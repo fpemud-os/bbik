@@ -1,0 +1,16 @@
+bbki
+=====
+
+Manage BIOS, Bootloader, Kernel and Initramfs
+
+
+Rationale
+=====
+
+pylkc compiles LINUX_SOURCE_DIRECTORY/scripts/kconfig/{zconf.*.c,conf.c} into pylkc.so, and use ctypes to call the C functions in this shared object
+
+
+License
+=====
+
+GPLv3
