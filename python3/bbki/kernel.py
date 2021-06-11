@@ -20,36 +20,42 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import os
+from util import Util
+from util import TempChdir
+from cache import KCache
+
 
 class Builder:
 
-    def __init__(self, kcacheObj, kernelCfgRules):
-        self.kcache = kcacheObj
-        self.kernelCfgRules = kernelCfgRules
+    def __init__(self, kcache_path, patch_path, kernel_config_rules, temp_directory):
+        assert len(os.listdir(temp_directory)) == 0
 
-        self.tmpDir = None
-        if True:
-            tDir = FmUtil.getMakeConfVar(FmConst.portageCfgMakeConf, "PORTAGE_TMPDIR")
-            if tDir == "":
-                tDir = "/var/tmp"
-            self.tmpDir = os.path.join(tDir, "kernel")
+        self.kcache = KCache(kcache_path, patch_path)
 
+        self.kernelCfgRules = kernel_config_rules
+
+        self.tmpDir = temp_directory
         self.ksrcTmpDir = os.path.join(self.tmpDir, "ksrc")
         self.firmwareTmpDir = os.path.join(self.tmpDir, "firmware")
         self.wirelessRegDbTmpDir = os.path.join(self.tmpDir, "wireless-regdb")
         self.kcfgRulesTmpFile = os.path.join(self.tmpDir, "kconfig.rules")
 
-        fn = self.kcache.getKernelFileByVersion(self.kcache.getLatestKernelVersion())
-        if not os.path.exists(fn):
-            raise Exception("\"%s\" does not exist" % (fn))
-
-        fn = self.kcache.getFirmwareFileByVersion(self.kcache.getLatestFirmwareVersion())
-        if not os.path.exists(fn):
-            raise Exception("\"%s\" does not exist" % (fn))
-
         self.kernelVer = self.kcache.getLatestKernelVersion()
         self.firmwareVer = self.kcache.getLatestFirmwareVersion()
         self.wirelessRegDbVer = self.kcache.getLatestWirelessRegDbVersion()
+
+        self.kernelFile = self.kcache.getKernelFileByVersion(self.kernelVer)
+        if not os.path.exists(self.kernelFile):
+            raise Exception("\"%s\" does not exist" % (self.kernelFile))
+
+        self.firmwareFile = self.kcache.getFirmwareFileByVersion(self.firmwareVer)
+        if not os.path.exists(self.firmwareFile):
+            raise Exception("\"%s\" does not exist" % (self.firmwareFile))
+
+        self.wirelessRegDbFile = self.kcache.getWirelessRegDbFileByVersion(self.wirelessRegDbVer)
+        if not os.path.exists(self.wirelessRegDbFile):
+            raise Exception("\"%s\" does not exist" % (self.wirelessRegDbFile))
 
         self.realSrcDir = None
         self.dotCfgFile = None
@@ -59,13 +65,10 @@ class Builder:
         # trick: kernel debug is seldomly needed
         self.trickDebug = False
 
-    def buildStepExtract(self):
-        FmUtil.forceDelete(self.tmpDir)         # FIXME
-
+    def extract(self):
         # extract kernel source
         os.makedirs(self.ksrcTmpDir)
-        fn = self.kcache.getKernelFileByVersion(self.kernelVer)
-        FmUtil.cmdCall("/bin/tar", "-xJf", fn, "-C", self.ksrcTmpDir)
+        Util.cmdCall("/bin/tar", "-xJf", self.kernelFile, "-C", self.ksrcTmpDir)
         realSrcDir = os.path.join(self.ksrcTmpDir, os.listdir(self.ksrcTmpDir)[0])
 
         # patch kernel source
@@ -74,7 +77,7 @@ class Builder:
             out = None
             with TempChdir(realSrcDir):
                 assert fullfn.endswith(".py")
-                out = FmUtil.cmdCall("python3", fullfn)     # FIXME, should respect shebang
+                out = Util.cmdCall("python3", fullfn)     # FIXME, should respect shebang
             if out == "outdated":
                 print("WARNING: Kernel patch \"%s\" is outdated." % (name))
             elif out == "":
@@ -84,24 +87,22 @@ class Builder:
 
         # extract kernel firmware
         os.makedirs(self.firmwareTmpDir)
-        fn = self.kcache.getFirmwareFileByVersion(self.firmwareVer)
-        FmUtil.cmdCall("/bin/tar", "-xJf", fn, "-C", self.firmwareTmpDir)
+        Util.cmdCall("/bin/tar", "-xJf", self.firmwareFile, "-C", self.firmwareTmpDir)
 
         # extract wireless regulatory database
         os.makedirs(self.wirelessRegDbTmpDir)
-        fn = self.kcache.getWirelessRegDbFileByVersion(self.wirelessRegDbVer)
-        FmUtil.cmdCall("/bin/tar", "-xJf", fn, "-C", self.wirelessRegDbTmpDir)
+        Util.cmdCall("/bin/tar", "-xJf", self.wirelessRegDbFile, "-C", self.wirelessRegDbTmpDir)
 
         # get real source directory
         self.realSrcDir = realSrcDir
         self.dotCfgFile = os.path.join(self.realSrcDir, ".config")
-        self.dstTarget = BuildTarget.newFromKernelDir(FmUtil.getHostArch(), self.realSrcDir)
+        self.dstTarget = BuildTarget.newFromKernelDir(Util.getHostArch(), self.realSrcDir)
 
         # calculate source signature
-        self.srcSignature = "kernel: %s\n" % (FmUtil.hashDir(self.realSrcDir))
+        self.srcSignature = "kernel: %s\n" % (Util.hashDir(self.realSrcDir))
         for name in self.kcache.getExtraDriverList():
             sourceDir = self.kcache.getExtraDriverSourceDir(name)
-            self.srcSignature += "edrv-src-%s: %s\n" % (name, FmUtil.hashDir(sourceDir))
+            self.srcSignature += "edrv-src-%s: %s\n" % (name, Util.hashDir(sourceDir))
 
     def buildStepGenerateDotCfg(self):
         # head rules
@@ -172,13 +173,13 @@ class Builder:
         # debug feature
         if True:
             # killing CONFIG_VT is failed for now
-            FmUtil.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
         if self.trickDebug:
-            FmUtil.shellCall("/bin/sed -i 's/=m,y/=y/g' %s" % (self.kcfgRulesTmpFile))
-            FmUtil.shellCall("/bin/sed -i 's/=m/=y/g' %s" % (self.kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i 's/=m,y/=y/g' %s" % (self.kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i 's/=m/=y/g' %s" % (self.kcfgRulesTmpFile))
 
         # generate the real ".config"
-        FmUtil.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
+        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
                        self.realSrcDir, self.kcfgRulesTmpFile, self.dotCfgFile)
 
         # "make olddefconfig" may change the .config file further
@@ -186,16 +187,16 @@ class Builder:
 
     def buildStepMakeInstall(self):
         self._makeMain(self.realSrcDir)
-        FmUtil.cmdCall("/bin/cp", "-f",
+        Util.cmdCall("/bin/cp", "-f",
                        "%s/arch/%s/boot/bzImage" % (self.realSrcDir, self.dstTarget.arch),
                        os.path.join(_bootDir, self.dstTarget.kernelFile))
-        FmUtil.cmdCall("/bin/cp", "-f",
+        Util.cmdCall("/bin/cp", "-f",
                        "%s/System.map" % (self.realSrcDir),
                        os.path.join(_bootDir, self.dstTarget.kernelMapFile))
-        FmUtil.cmdCall("/bin/cp", "-f",
+        Util.cmdCall("/bin/cp", "-f",
                        "%s/.config" % (self.realSrcDir),
                        os.path.join(_bootDir, self.dstTarget.kernelCfgFile))
-        FmUtil.cmdCall("/bin/cp", "-f",
+        Util.cmdCall("/bin/cp", "-f",
                        self.kcfgRulesTmpFile,
                        os.path.join(_bootDir, self.dstTarget.kernelCfgRuleFile))
 
@@ -210,7 +211,7 @@ class Builder:
         for fullfn in glob.glob(os.path.join("/lib/modules", self.dstTarget.verstr, "**", "*.ko"), recursive=True):
             # python-kmod bug: can only recognize the last firmware in modinfo
             # so use the command output of modinfo directly
-            for line in FmUtil.cmdCall("/bin/modinfo", fullfn).split("\n"):
+            for line in Util.cmdCall("/bin/modinfo", fullfn).split("\n"):
                 m = re.fullmatch("firmware: +(\\S.*)", line)
                 if m is not None:
                     firmwareList.append((m.group(1), fullfn.replace("/lib/modules/%s/" % (self.dstTarget.verstr), "")))
@@ -252,8 +253,8 @@ class Builder:
             shutil.copy(ret[0], "/lib/firmware")
 
         # ensure corrent permission
-        FmUtil.shellCall("/usr/bin/find /lib/firmware -type f | xargs chmod 644")
-        FmUtil.shellCall("/usr/bin/find /lib/firmware -type d | xargs chmod 755")
+        Util.shellCall("/usr/bin/find /lib/firmware -type f | xargs chmod 644")
+        Util.shellCall("/usr/bin/find /lib/firmware -type d | xargs chmod 755")
 
         # record
         with open("/lib/firmware/.ctime", "w") as f:
@@ -267,7 +268,7 @@ class Builder:
         os.mkdir(buildTmpDir)
         with TempChdir(buildTmpDir):
             assert fullfn.endswith(".py")
-            FmUtil.cmdExec("python3", fullfn, cacheDir, self.kernelVer)     # FIXME, should respect shebang
+            Util.cmdExec("python3", fullfn, cacheDir, self.kernelVer)     # FIXME, should respect shebang
 
     def buildStepClean(self):
         with open(os.path.join(_bootDir, self.dstTarget.kernelSrcSignatureFile), "w") as f:
@@ -285,18 +286,18 @@ class Builder:
         optList.append("CFLAGS=\"-Wno-error\"")
 
         # from /etc/portage/make.conf
-        optList.append(FmUtil.getMakeConfVar(FmConst.portageCfgMakeConf, "MAKEOPTS"))
+        optList.append(Util.getMakeConfVar(FmConst.portageCfgMakeConf, "MAKEOPTS"))
 
         # from envVarList
         optList += envVarList
 
         # execute command
         with TempChdir(dirname):
-            FmUtil.shellCall("/usr/bin/make %s" % (" ".join(optList)))
+            Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
 
     def _makeAuxillary(self, dirname, target, envVarList=[]):
         with TempChdir(dirname):
-            FmUtil.shellCall("/usr/bin/make %s %s" % (" ".join(envVarList), target))
+            Util.shellCall("/usr/bin/make %s %s" % (" ".join(envVarList), target))
 
     def _generateKernelCfgRulesFile(self, filename, *kargs):
         with open(filename, "w") as f:

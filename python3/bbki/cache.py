@@ -22,91 +22,39 @@
 
 import os
 import re
-import io
-import gzip
-import time
-import glob
-import shutil
 import configparser
-import robust_layer
-import robust_layer.simple_git
-import robust_layer.simple_subversion
-import lxml.html
-import urllib.request
-import urllib.error
-from fm_util import FmUtil
-from fm_util import TempChdir
-from fm_util import TmpHttpDirFs
-from fm_param import FmConst
+from util import FmUtil
 
 
 class KCache:
 
-    def __init__(self, cache_path, patch_path):
+    def __init__(self, config_path, patch_path, cache_path):
+        self.kernelUseDir = os.path.join(config_path, "kernel.use")
+        self.kernelMaskDir = os.path.join(config_path, "kernel.mask")
+
         self.kcachePath = cache_path
-        self.patchPath = patch_path
 
         # ksync
         self.ksyncFile = os.path.join(self.kcachePath, "ksync.txt")
 
-        # kernel information
-        self.kernelUrl = "https://www.kernel.org"
-
-        # firmware information
-        self.firmwareUrl = "https://www.kernel.org/pub/linux/kernel/firmware"
-
         # kernel patch information
-        self.patchDir = os.path.join(self.patchPath, "patch")
+        self.patchDir = os.path.join(patch_path, "patch")
 
         # extra kernel drivers
         # FIXME: check
-        self.extraDriverDir = os.path.join(self.patchPath, "driver")
+        self.extraDriverDir = os.path.join(patch_path, "driver")
         self.extraDriverDict = dict()
         for fn in os.listdir(self.extraDriverDir):
             self.extraDriverDict[fn] = self._parseExtraDriver(fn, os.path.join(self.extraDriverDir, fn))
 
         # extra firmwares
         # FIXME: check
-        self.extraFirmwareDir = os.path.join(self.patchPath, "firmware")
+        self.extraFirmwareDir = os.path.join(patch_path, "firmware")
         self.extraFirmwareDict = dict()
         for fn in os.listdir(self.extraFirmwareDir):
             name = re.sub(r'\.ini$', "", fn)
             assert name != fn
             self.extraFirmwareDict[name] = self._parseExtraFirmware(name, os.path.join(self.extraFirmwareDir, fn))
-
-        # wireless-regdb
-        self.wirelessRegDbDirUrl = "https://www.kernel.org/pub/software/network/wireless-regdb"
-
-    def sync(self):
-        # get kernel version from internet
-        if True:
-            while True:
-                ver = self._findKernelVersion("stable")
-                if ver is not None:
-                    self._writeKsyncFile("kernel", ver)
-                    break
-                time.sleep(1.0)
-            print("Linux kernel: %s" % (self.getLatestKernelVersion()))
-
-        # get firmware version version from internet
-        if True:
-            while True:
-                ver = self._findFirmwareVersion()
-                if ver is not None:
-                    self._writeKsyncFile("firmware", ver)
-                    break
-                time.sleep(1.0)
-            print("Firmware: %s" % (self.getLatestFirmwareVersion()))
-
-        # get wireless-regulatory-database version from internet
-        if True:
-            while True:
-                ver = self._findWirelessRegDbVersion()
-                if ver is not None:
-                    self._writeKsyncFile("wireless-regdb", ver)
-                    break
-                time.sleep(1.0)
-            print("Wireless Regulatory Database: %s" % (self.getLatestWirelessRegDbVersion()))
 
     def getPatchList(self):
         # FIXME: other extension
@@ -117,117 +65,6 @@ class KCache:
 
     def getExtraFirmwareList(self):
         return list(self.extraFirmwareDict.keys())
-
-    def updateKernelCache(self, kernelVersion):
-        kernelFile = "linux-%s.tar.xz" % (kernelVersion)
-        signFile = "linux-%s.tar.sign" % (kernelVersion)
-        myKernelFile = os.path.join(self.kcachePath, kernelFile)
-        mySignFile = os.path.join(self.kcachePath, signFile)
-
-        # we already have the latest linux kernel?
-        if os.path.exists(myKernelFile):
-            if os.path.exists(mySignFile):
-                print("File already downloaded.")
-                return
-            else:
-                FmUtil.forceDelete(myKernelFile)
-                FmUtil.forceDelete(mySignFile)
-
-        # get mirror
-        mr, retlist = FmUtil.portageGetLinuxKernelMirror(FmConst.portageCfgMakeConf,
-                                                         FmConst.defaultKernelMirror,
-                                                         kernelVersion,
-                                                         [kernelFile, signFile])
-        kernelFile = retlist[0]
-        signFile = retlist[1]
-
-        # download the target file
-        FmUtil.wgetDownload("%s/%s" % (mr, kernelFile), myKernelFile)
-        FmUtil.wgetDownload("%s/%s" % (mr, signFile), mySignFile)
-
-    def updateFirmwareCache(self, firmwareVersion):
-        firmwareFile = "linux-firmware-%s.tar.xz" % (firmwareVersion)
-        signFile = "linux-firmware-%s.tar.sign" % (firmwareVersion)
-        myFirmwareFile = os.path.join(self.kcachePath, firmwareFile)
-        mySignFile = os.path.join(self.kcachePath, signFile)
-
-        # we already have the latest firmware?
-        if os.path.exists(myFirmwareFile):
-            if os.path.exists(mySignFile):
-                print("File already downloaded.")
-                return
-            else:
-                FmUtil.forceDelete(myFirmwareFile)
-                FmUtil.forceDelete(mySignFile)
-
-        # get mirror
-        mr, retlist = FmUtil.portageGetLinuxFirmwareMirror(FmConst.portageCfgMakeConf,
-                                                           FmConst.defaultKernelMirror,
-                                                           [firmwareFile, signFile])
-        firmwareFile = retlist[0]
-        signFile = retlist[1]
-
-        # download the target file
-        FmUtil.wgetDownload("%s/%s" % (mr, firmwareFile), myFirmwareFile)
-        FmUtil.wgetDownload("%s/%s" % (mr, signFile), mySignFile)
-
-    def updateExtraSourceCache(self, sourceInfo):
-        cacheDir = os.path.join(self.kcachePath, "source-%s" % (sourceInfo["name"]))
-
-        # source type "git"
-        if sourceInfo["update-method"] == "git":
-            robust_layer.simple_git.pull(cacheDir, reclone_on_failure=True, url=sourceInfo["url"])
-            return
-
-        # source type "svn"
-        if sourceInfo["update-method"] == "svn":
-            robust_layer.simple_subversion.update(cacheDir, recheckout_on_failure=True, url=sourceInfo["url"])
-            return
-
-        # source type "httpdir"
-        if sourceInfo["update-method"] == "httpdir":
-            fnList = []
-            with TmpHttpDirFs(sourceInfo["url"]) as mp:
-                fnList = os.listdir(mp.mountpoint)
-            if sourceInfo["filter-regex"] != "":
-                fnList = [x for x in fnList if re.fullmatch(sourceInfo["filter-regex"], x) is not None]
-            if len(fnList) == 0:
-                raise Exception("no file avaiable")
-            remoteFullFn = os.path.join(sourceInfo["url"], fnList[-1])
-            localFullFn = os.path.join(cacheDir, fnList[-1])
-            if os.path.exists(localFullFn):
-                print("File already downloaded.")
-                return
-            FmUtil.wgetDownload(remoteFullFn, localFullFn)
-            for fn in os.listdir(cacheDir):
-                fullfn = os.path.join(cacheDir, fn)
-                if fullfn != localFullFn:
-                    FmUtil.forceDelete(fullfn)
-            return
-
-        # source type "exec"
-        if sourceInfo["update-method"] == "exec":
-            fullfn = os.path.join(sourceInfo["selfdir"], sourceInfo["executable"])
-            os.makedirs(cacheDir, exist_ok=True)
-            with TempChdir(cacheDir):
-                assert fullfn.endswith(".py")
-                FmUtil.cmdExec("python3", fullfn)     # FIXME, should respect shebang
-            return
-
-        # invalid source type
-        assert False
-
-    def updateWirelessRegDbCache(self, wirelessRegDbVersion):
-        filename = "wireless-regdb-%s.tar.xz" % (wirelessRegDbVersion)
-        localFile = os.path.join(self.kcachePath, filename)
-
-        # we already have the latest wireless regulatory database?
-        if os.path.exists(localFile):
-            print("File already downloaded.")
-            return
-
-        # download the target file
-        FmUtil.wgetDownload("%s/%s" % (self.wirelessRegDbDirUrl, filename), localFile)
 
     def getLatestKernelVersion(self):
         kernelVer = self._readDataFromKsyncFile("kernel")
@@ -245,8 +82,8 @@ class KCache:
         """returns list of USE flags"""
 
         ret = set()
-        for fn in os.listdir(FmConst.kernelUseDir):
-            for line in FmUtil.readListFile(os.path.join(FmConst.kernelUseDir, fn)):
+        for fn in os.listdir(self.kernelUseDir):
+            for line in FmUtil.readListFile(os.path.join(self.kernelUseDir, fn)):
                 line = line.replace("\t", " ")
                 line2 = ""
                 while line2 != line:
@@ -401,83 +238,14 @@ class KCache:
             return f.read().split("\n")[indexDict[prefix]]
 
     def _versionMaskCheck(self, prefix, version):
-        for fn in os.listdir(FmConst.kernelMaskDir):
-            with open(os.path.join(FmConst.kernelMaskDir, fn), "r") as f:
+        for fn in os.listdir(self.kernelMaskDir):
+            with open(os.path.join(self.kernelMaskDir, fn), "r") as f:
                 buf = f.read()
                 m = re.search("^>%s-(.*)$" % (prefix), buf, re.M)
                 if m is not None:
                     if version > m.group(1):
                         version = m.group(1)
         return version
-
-    def _findKernelVersion(self, typename):
-        try:
-            resp = urllib.request.urlopen(self.kernelUrl, timeout=robust_layer.TIMEOUT)
-            if resp.info().get('Content-Encoding') is None:
-                fakef = resp
-            elif resp.info().get('Content-Encoding') == 'gzip':
-                fakef = io.BytesIO(resp.read())
-                fakef = gzip.GzipFile(fileobj=fakef)
-            else:
-                assert False
-            root = lxml.html.parse(fakef)
-
-            td = root.xpath(".//td[text()='%s:']" % (typename))[0]
-            td = td.getnext()
-            while len(td) > 0:
-                td = td[0]
-            return td.text
-        except Exception as e:
-            print("Failed to acces %s, %s" % (self.kernelUrl, e))
-            return None
-
-    def _findFirmwareVersion(self):
-        try:
-            resp = urllib.request.urlopen(self.firmwareUrl, timeout=robust_layer.TIMEOUT)
-            root = lxml.html.parse(resp)
-            ret = None
-            for atag in root.xpath(".//a"):
-                m = re.fullmatch("linux-firmware-(.*)\\.tar\\.xz", atag.text)
-                if m is not None:
-                    if ret is None or ret < m.group(1):
-                        ret = m.group(1)
-            assert ret is not None
-            return ret
-        except Exception as e:
-            print("Failed to acces %s, %s" % (self.firmwareUrl, e))
-            return None
-
-    def _findWirelessRegDbVersion(self):
-        try:
-            ver = None
-            resp = urllib.request.urlopen(self.wirelessRegDbDirUrl, timeout=robust_layer.TIMEOUT)
-            out = resp.read().decode("iso8859-1")
-            for m in re.finditer("wireless-regdb-([0-9]+\\.[0-9]+\\.[0-9]+)\\.tar\\.xz", out, re.M):
-                if ver is None or m.group(1) > ver:
-                    ver = m.group(1)
-            return ver
-        except Exception as e:
-            print("Failed to acces %s, %s" % (self.wirelessRegDbDirUrl, e))
-            return None
-
-    def _writeKsyncFile(self, key, *kargs):
-        vlist = ["", "", "", ""]
-        if os.path.exists(self.ksyncFile):
-            with open(self.ksyncFile) as f:
-                vlist = f.read().split("\n")[0:3]
-                while len(vlist) < 4:
-                    vlist.append("")
-
-        if key == "kernel":
-            vlist[0] = kargs[0]
-        elif key == "firmware":
-            vlist[1] = kargs[0]
-        elif key == "wireless-regdb":
-            vlist[2] = kargs[0]
-
-        with open(self.ksyncFile, "w") as f:
-            for v in vlist:
-                f.write(v + "\n")
 
     def _parseExtraDriver(self, name, dir_path):
         ret = {}
