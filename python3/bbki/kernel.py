@@ -96,7 +96,7 @@ class Builder:
         # get real source directory
         self.realSrcDir = realSrcDir
         self.dotCfgFile = os.path.join(self.realSrcDir, ".config")
-        self.dstTarget = BuildTarget.newFromKernelDir(Util.getHostArch(), self.realSrcDir)
+        self.dstTarget = BuildTarget.new_from_kernel_srcdir(Util.getHostArch(), self.realSrcDir)
 
         # calculate source signature
         self.srcSignature = "kernel: %s\n" % (Util.hashDir(self.realSrcDir))
@@ -192,13 +192,13 @@ class Builder:
                        os.path.join(_bootDir, self.dstTarget.kernelFile))
         Util.cmdCall("/bin/cp", "-f",
                        "%s/System.map" % (self.realSrcDir),
-                       os.path.join(_bootDir, self.dstTarget.kernelMapFile))
+                       os.path.join(_bootDir, self.dstTarget.kernel_map_filename))
         Util.cmdCall("/bin/cp", "-f",
                        "%s/.config" % (self.realSrcDir),
-                       os.path.join(_bootDir, self.dstTarget.kernelCfgFile))
+                       os.path.join(_bootDir, self.dstTarget.kernel_config_filename))
         Util.cmdCall("/bin/cp", "-f",
                        self.kcfgRulesTmpFile,
-                       os.path.join(_bootDir, self.dstTarget.kernelCfgRuleFile))
+                       os.path.join(_bootDir, self.dstTarget.kernel_config_rules_filename))
 
         self._makeAuxillary(self.realSrcDir, "modules_install")
 

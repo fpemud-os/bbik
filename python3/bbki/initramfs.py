@@ -67,8 +67,8 @@ class Builder:
         self.firmwareDir = "/lib/firmware"
 
         self.initramfsTmpDir = os.path.join(tmpDir, "initramfs")
-        self.kernelFile = os.path.join(self.bootDir, self.buildTarget.kernelFile)
-        self.dotConfigFile = os.path.join(self.bootDir, self.buildTarget.kernelCfgFile)
+        self.kernelFile = os.path.join(self.bootDir, self.buildTarget.kernel_filename)
+        self.dotConfigFile = os.path.join(self.bootDir, self.buildTarget.kernel_config_filename)
 
         self.mntInfoDict = OrderedDict()
         self.mntInfoDict["root"] = None

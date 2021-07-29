@@ -27,6 +27,14 @@ import subprocess
 class Util:
 
     @staticmethod
+    def isValidKernelArch(archStr):
+        return True
+
+    @staticmethod
+    def isValidKernelVer(verStr):
+        return True
+
+    @staticmethod
     def readListFile(filename):
         ret = []
         with open(filename, "r") as f:
@@ -36,7 +44,7 @@ class Util:
                     ret.append(line)
         return ret
 
-    @staticmetho
+    @staticmethod
     def compareVersion(verstr1, verstr2):
         """eg: 3.9.11-gentoo-r1 or 3.10.7-gentoo"""
 

@@ -20,6 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import os
+import re
+from util import Util
+
 
 class BuildTarget:
 
@@ -43,7 +47,9 @@ class BuildTarget:
         return self._arch
 
     @property
-    def srcArch(self):
+    def src_arch(self):
+        # FIXME: what's the difference with arch?
+
         if self._arch == "i386" or self._arch == "x86_64":
             return "x86"
         elif self._arch == "sparc32" or self._arch == "sparc64":
@@ -67,37 +73,44 @@ class BuildTarget:
             return self._verstr
 
     @property
-    def kernelFile(self):
+    def kernel_filename(self):
         return "kernel-" + self.postfix
 
     @property
-    def kernelCfgFile(self):
+    def kernel_config_filename(self):
         return "config-" + self.postfix
 
     @property
-    def kernelCfgRuleFile(self):
+    def kernel_config_rules_filename(self):
         return "config-" + self.postfix + ".rules"
 
+    # FIXME: do we really need this?
     @property
-    def kernelMapFile(self):
-        return "System.map-" + self.postfix
+    def kernel_map_filename(self):
+        return "System.map-" + self.postfix     
 
+    # FIXME: do we really need this?
     @property
     def kernelSrcSignatureFile(self):
-        return "signature-" + self.postfix
+        return "signature-" + self.postfix      
 
     @property
-    def initrdFile(self):
+    def initrd_filename(self):
         return "initramfs-" + self.postfix
 
     @property
-    def initrdTarFile(self):
+    def initrd_tar_filename(self):
         return "initramfs-files-" + self.postfix + ".tar.bz2"
 
     @staticmethod
-    def newFromPostfix(postfix):
+    def new_from_postfix(postfix):
+        # postfix example: x86_64-3.9.11-gentoo-r1
         partList = postfix.split("-")
         if len(partList) < 2:
+            raise Exception("illegal postfix")
+        if not Util.isValidKernelArch(partList[0]):
+            raise Exception("illegal postfix")
+        if not Util.isValidKernelVer(partList[1]):
             raise Exception("illegal postfix")
 
         bTarget = BuildTarget()
@@ -106,17 +119,16 @@ class BuildTarget:
         return bTarget
 
     @staticmethod
-    def newFromKernelFilename(kernelFilename):
-        """kernelFilename format: kernel-x86_64-3.9.11-gentoo-r1"""
+    def new_from_kernel_filename(kernel_filename):
+        assert os.path.sep not in kernel_filename
 
-        assert os.path.basename(kernelFilename) == kernelFilename
-
-        partList = kernelFilename.split("-")
+        # kernel_filename example: kernel-x86_64-3.9.11-gentoo-r1
+        partList = kernel_filename.split("-")
         if len(partList) < 3:
             raise Exception("illegal kernel file")
-        if not FmUtil.isValidKernelArch(partList[1]):
+        if not Util.isValidKernelArch(partList[1]):
             raise Exception("illegal kernel file")
-        if not FmUtil.isValidKernelVer(partList[2]):
+        if not Util.isValidKernelVer(partList[2]):
             raise Exception("illegal kernel file")
 
         bTarget = BuildTarget()
@@ -125,7 +137,7 @@ class BuildTarget:
         return bTarget
 
     @staticmethod
-    def newFromKernelDir(hostArch, kernelDir):
+    def new_from_kernel_srcdir(hostArch, kernelDir):
         assert os.path.isabs(kernelDir)
 
         version = None

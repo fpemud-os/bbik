@@ -23,7 +23,7 @@
 import os
 import re
 import configparser
-from util import FmUtil
+from util import Util
 
 
 class KCache:
@@ -83,7 +83,7 @@ class KCache:
 
         ret = set()
         for fn in os.listdir(self.kernelUseDir):
-            for line in FmUtil.readListFile(os.path.join(self.kernelUseDir, fn)):
+            for line in Util.readListFile(os.path.join(self.kernelUseDir, fn)):
                 line = line.replace("\t", " ")
                 line2 = ""
                 while line2 != line:
@@ -200,10 +200,10 @@ class KCache:
         kernelFileList = []
         for f in os.listdir(self.kcachePath):
             if f.startswith("linux-") and f.endswith(".tar.xz") and not f.startswith("linux-firmware-"):
-                if FmUtil.compareVersion(f.replace("linux-", "").replace(".tar.xz", ""), cbe.buildTarget.verstr) < 0:
+                if Util.compareVersion(f.replace("linux-", "").replace(".tar.xz", ""), cbe.buildTarget.verstr) < 0:
                     kernelFileList.append(f)    # remove lower version
             elif f.startswith("linux-") and f.endswith(".tar.sign") and not f.startswith("linux-firmware-"):
-                if FmUtil.compareVersion(f.replace("linux-", "").replace(".tar.sign", ""), cbe.buildTarget.verstr) < 0:
+                if Util.compareVersion(f.replace("linux-", "").replace(".tar.sign", ""), cbe.buildTarget.verstr) < 0:
                     kernelFileList.append(f)    # remove lower version
         return sorted(kernelFileList)
 
@@ -317,56 +317,56 @@ class KCache:
 
 
 
-class FkmBootEntry:
+class BootEntry:
 
     def __init__(self, buildTarget):
         self.buildTarget = buildTarget
 
     @property
     def kernelFile(self):
-        return os.path.join(_bootDir, self.buildTarget.kernelFile)
+        return os.path.join(_bootDir, self.buildTarget.kernel_filename)
 
     @property
-    def kernelCfgFile(self):
-        return os.path.join(_bootDir, self.buildTarget.kernelCfgFile)
+    def kernel_config_filename(self):
+        return os.path.join(_bootDir, self.buildTarget.kernel_config_filename)
 
     @property
-    def kernelCfgRuleFile(self):
-        return os.path.join(_bootDir, self.buildTarget.kernelCfgRuleFile)
+    def kernel_config_rules_filename(self):
+        return os.path.join(_bootDir, self.buildTarget.kernel_config_rules_filename)
 
     @property
     def kernelSrcSignatureFile(self):
         return os.path.join(_bootDir, self.buildTarget.kernelSrcSignatureFile)
 
     @property
-    def kernelMapFile(self):
-        return os.path.join(_bootDir, self.buildTarget.kernelMapFile)
+    def kernel_map_filename(self):
+        return os.path.join(_bootDir, self.buildTarget.kernel_map_filename)
 
     @property
-    def initrdFile(self):
-        return os.path.join(_bootDir, self.buildTarget.initrdFile)
+    def initrd_filename(self):
+        return os.path.join(_bootDir, self.buildTarget.initrd_filename)
 
     @property
-    def initrdTarFile(self):
-        return os.path.join(_bootDir, self.buildTarget.initrdTarFile)
+    def initrd_tar_filename(self):
+        return os.path.join(_bootDir, self.buildTarget.initrd_tar_filename)
 
     def kernelFilesExists(self):
         if not os.path.exists(self.kernelFile):
             return False
-        if not os.path.exists(self.kernelCfgFile):
+        if not os.path.exists(self.kernel_config_filename):
             return False
-        if not os.path.exists(self.kernelCfgRuleFile):
+        if not os.path.exists(self.kernel_config_rules_filename):
             return False
-        if not os.path.exists(self.kernelMapFile):
+        if not os.path.exists(self.kernel_map_filename):
             return False
         if not os.path.exists(self.kernelSrcSignatureFile):
             return False
         return True
 
     def initrdFileExists(self):
-        if not os.path.exists(self.initrdFile):
+        if not os.path.exists(self.initrd_filename):
             return False
-        if not os.path.exists(self.initrdTarFile):
+        if not os.path.exists(self.initrd_tar_filename):
             return False
         return True
 
@@ -376,8 +376,8 @@ class FkmBootEntry:
         if ret == []:
             return None
 
-        buildTarget = BuildTarget.newFromKernelFilename(ret[-1])
-        cbe = FkmBootEntry(buildTarget)
+        buildTarget = BuildTarget.new_from_kernel_filename(ret[-1])
+        cbe = BootEntry(buildTarget)
         if strict:
             if not cbe.kernelFilesExists():
                 return None

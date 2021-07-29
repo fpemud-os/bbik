@@ -31,11 +31,6 @@ bbki
 __author__ = "fpemud@sina.com (Fpemud)"
 __version__ = "0.0.1"
 
-import os
-import re
-import ctypes
-import subprocess
-import builtins
-from . import api
 
-
+from .common import BuildTarget
+from .common import BootEntry
