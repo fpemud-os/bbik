@@ -107,16 +107,16 @@ class BuildTarget:
         # postfix example: x86_64-3.9.11-gentoo-r1
         partList = postfix.split("-")
         if len(partList) < 2:
-            raise Exception("illegal postfix")
+            raise ValueError("illegal postfix")
         if not Util.isValidKernelArch(partList[0]):
-            raise Exception("illegal postfix")
+            raise ValueError("illegal postfix")
         if not Util.isValidKernelVer(partList[1]):
-            raise Exception("illegal postfix")
+            raise ValueError("illegal postfix")
 
-        bTarget = BuildTarget()
-        bTarget._arch = partList[0]
-        bTarget._verstr = "-".join(partList[1:])
-        return bTarget
+        ret = BuildTarget()
+        ret._arch = partList[0]
+        ret._verstr = "-".join(partList[1:])
+        return ret
 
     @staticmethod
     def new_from_kernel_filename(kernel_filename):
@@ -125,51 +125,49 @@ class BuildTarget:
         # kernel_filename example: kernel-x86_64-3.9.11-gentoo-r1
         partList = kernel_filename.split("-")
         if len(partList) < 3:
-            raise Exception("illegal kernel file")
+            raise ValueError("illegal kernel file")
         if not Util.isValidKernelArch(partList[1]):
-            raise Exception("illegal kernel file")
+            raise ValueError("illegal kernel file")
         if not Util.isValidKernelVer(partList[2]):
-            raise Exception("illegal kernel file")
+            raise ValueError("illegal kernel file")
 
-        bTarget = BuildTarget()
-        bTarget._arch = partList[1]
-        bTarget._verstr = "-".join(partList[2:])
-        return bTarget
+        ret = BuildTarget()
+        ret._arch = partList[1]
+        ret._verstr = "-".join(partList[2:])
+        return ret
 
     @staticmethod
-    def new_from_kernel_srcdir(hostArch, kernelDir):
-        assert os.path.isabs(kernelDir)
-
+    def new_from_kernel_srcdir(arch, kernel_srcdir):
         version = None
         patchlevel = None
         sublevel = None
         extraversion = None
-        with open(os.path.join(kernelDir, "Makefile")) as f:
+        with open(os.path.join(kernel_srcdir, "Makefile")) as f:
             buf = f.read()
 
             m = re.search("VERSION = ([0-9]+)", buf, re.M)
             if m is None:
-                raise Exception("illegal kernel source directory")
+                raise ValueError("illegal kernel source directory")
             version = int(m.group(1))
 
             m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
             if m is None:
-                raise Exception("illegal kernel source directory")
+                raise ValueError("illegal kernel source directory")
             patchlevel = int(m.group(1))
 
             m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
             if m is None:
-                raise Exception("illegal kernel source directory")
+                raise ValueError("illegal kernel source directory")
             sublevel = int(m.group(1))
 
             m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
             if m is not None:
                 extraversion = m.group(1)
 
-        bTarget = BuildTarget()
-        bTarget._arch = hostArch
+        ret = BuildTarget()
+        ret._arch = arch
         if extraversion is not None:
-            bTarget._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
+            ret._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
         else:
-            bTarget._verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
-        return bTarget
+            ret._verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
+        return ret
