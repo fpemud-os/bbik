@@ -28,9 +28,10 @@ from cache import KCache
 
 class Builder:
 
-    def __init__(self, kcache_path, patch_path, kernel_config_rules, temp_directory):
+    def __init__(self, bbki_config, kcache_path, patch_path, kernel_config_rules, temp_directory):
         assert len(os.listdir(temp_directory)) == 0
 
+        self._cfg = bbki_config
         self.kcache = KCache(kcache_path, patch_path)
 
         self.kernelCfgRules = kernel_config_rules
@@ -141,7 +142,7 @@ class Builder:
             buf += "\n"
 
             # android features need by anbox program
-            if "anbox" in self.kcache.getKernelUseFlags():
+            if "anbox" in self._cfg.get_kernel_use_flag():
                 buf += "[symbols:/Device drivers/Android]=y\n"
                 buf += "STAGING=y\n"
                 buf += "ASHMEM=y\n"

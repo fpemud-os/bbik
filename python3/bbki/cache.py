@@ -28,9 +28,9 @@ from util import Util
 
 class KCache:
 
-    def __init__(self, config_path, patch_path, cache_path):
+    def __init__(self, bbki_config, patch_path, cache_path):
+        self._cfg = bbki_config
         self.kernelUseDir = os.path.join(config_path, "kernel.use")
-        self.kernelMaskDir = os.path.join(config_path, "kernel.mask")
 
         self.kcachePath = cache_path
 
@@ -68,7 +68,7 @@ class KCache:
 
     def getLatestKernelVersion(self):
         kernelVer = self._readDataFromKsyncFile("kernel")
-        kernelVer = self._versionMaskCheck("kernel", kernelVer)
+        kernelVer = self._cfg.check_version_mask("kernel", kernelVer)
         return kernelVer
 
     def getKernelFileByVersion(self, version):
@@ -78,31 +78,12 @@ class KCache:
         fn = os.path.join(self.kcachePath, fn)
         return fn
 
-    def getKernelUseFlags(self):
-        """returns list of USE flags"""
-
-        ret = set()
-        for fn in os.listdir(self.kernelUseDir):
-            for line in Util.readListFile(os.path.join(self.kernelUseDir, fn)):
-                line = line.replace("\t", " ")
-                line2 = ""
-                while line2 != line:
-                    line2 = line
-                    line = line.replace("  ", " ")
-                for item in line.split(" "):
-                    if item.startswith("-"):
-                        item = item[1:]
-                        ret.remove(item)
-                    else:
-                        ret.add(item)
-        return sorted(list(ret))
-
     def getLatestFirmwareVersion(self):
         # firmware version is the date when it is generated
         # example: 2019.06.03
 
         ret = self._readDataFromKsyncFile("firmware")
-        ret = self._versionMaskCheck("firmware", ret)
+        ret = self._cfg.check_version_mask("firmware", ret)
         return ret
 
     def getFirmwareFileByVersion(self, version):
@@ -186,7 +167,7 @@ class KCache:
         # example: 2019.06.03
 
         ret = self._readDataFromKsyncFile("wireless-regdb")
-        ret = self._versionMaskCheck("wireless-regdb", ret)
+        ret = self._cfg.check_version_mask("wireless-regdb", ret)
         return ret
 
     def getWirelessRegDbFileByVersion(self, version):
@@ -236,16 +217,6 @@ class KCache:
         }
         with open(self.ksyncFile, "r") as f:
             return f.read().split("\n")[indexDict[prefix]]
-
-    def _versionMaskCheck(self, prefix, version):
-        for fn in os.listdir(self.kernelMaskDir):
-            with open(os.path.join(self.kernelMaskDir, fn), "r") as f:
-                buf = f.read()
-                m = re.search("^>%s-(.*)$" % (prefix), buf, re.M)
-                if m is not None:
-                    if version > m.group(1):
-                        version = m.group(1)
-        return version
 
     def _parseExtraDriver(self, name, dir_path):
         ret = {}
