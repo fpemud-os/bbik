@@ -26,7 +26,7 @@ from util import TempChdir
 from cache import KCache
 
 
-class Builder:
+class KernelBuilder:
 
     def __init__(self, bbki_config, kcache_path, patch_path, kernel_config_rules, temp_directory):
         assert len(os.listdir(temp_directory)) == 0

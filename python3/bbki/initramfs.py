@@ -57,7 +57,7 @@ class FkmInitramfsKcfgChecker:
             raise Exception("config symbol %s must be selected as \"%s\"!" % (e.name, e.value))
 
 
-class Builder:
+class InitramfsBuilder:
 
     def __init__(self, tmpDir, buildTarget):
         self.buildTarget = buildTarget

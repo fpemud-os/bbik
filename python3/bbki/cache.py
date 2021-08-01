@@ -26,11 +26,26 @@ import configparser
 from util import Util
 
 
+class SyncRecord:
+    
+    def __init__(self, sync_record_filename):
+        self.ksyncFile = sync_record_filename
+
+    def _readDataFromKsyncFile(self, prefix):
+        indexDict = {
+            "kernel": 0,
+            "firmware": 1,
+            "wireless-regdb": 2,
+        }
+        with open(self.ksyncFile, "r") as f:
+            return f.read().split("\n")[indexDict[prefix]]
+
+
+
 class KCache:
 
     def __init__(self, bbki_config, patch_path, cache_path):
         self._cfg = bbki_config
-        self.kernelUseDir = os.path.join(config_path, "kernel.use")
 
         self.kcachePath = cache_path
 
