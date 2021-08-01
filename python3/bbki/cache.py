@@ -31,14 +31,14 @@ class SyncRecord:
     def __init__(self, sync_record_filename):
         self.ksyncFile = sync_record_filename
 
-    def _readDataFromKsyncFile(self, prefix):
+    def read(self, record_type):
         indexDict = {
             "kernel": 0,
             "firmware": 1,
             "wireless-regdb": 2,
         }
         with open(self.ksyncFile, "r") as f:
-            return f.read().split("\n")[indexDict[prefix]]
+            return f.read().split("\n")[indexDict[record_type]]
 
 
 
@@ -46,6 +46,7 @@ class KCache:
 
     def __init__(self, bbki_config, patch_path, cache_path):
         self._cfg = bbki_config
+        self._syncRecord = SyncRecord(self._cfg.cache_sync_record_file)
 
         self.kcachePath = cache_path
 
@@ -82,7 +83,7 @@ class KCache:
         return list(self.extraFirmwareDict.keys())
 
     def getLatestKernelVersion(self):
-        kernelVer = self._readDataFromKsyncFile("kernel")
+        kernelVer = self._syncRecord.read("kernel")
         kernelVer = self._cfg.check_version_mask("kernel", kernelVer)
         return kernelVer
 
@@ -97,7 +98,7 @@ class KCache:
         # firmware version is the date when it is generated
         # example: 2019.06.03
 
-        ret = self._readDataFromKsyncFile("firmware")
+        ret = self._syncRecord.read("firmware")
         ret = self._cfg.check_version_mask("firmware", ret)
         return ret
 
@@ -181,7 +182,7 @@ class KCache:
         # wireless regulatory database version is the date when it is generated
         # example: 2019.06.03
 
-        ret = self._readDataFromKsyncFile("wireless-regdb")
+        ret = self._syncRecord.read("wireless-regdb")
         ret = self._cfg.check_version_mask("wireless-regdb", ret)
         return ret
 
@@ -223,15 +224,6 @@ class KCache:
         if len(fileList) > 0:
             fileList = fileList[:-1]
         return fileList
-
-    def _readDataFromKsyncFile(self, prefix):
-        indexDict = {
-            "kernel": 0,
-            "firmware": 1,
-            "wireless-regdb": 2,
-        }
-        with open(self.ksyncFile, "r") as f:
-            return f.read().split("\n")[indexDict[prefix]]
 
     def _parseExtraDriver(self, name, dir_path):
         ret = {}
