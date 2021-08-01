@@ -192,7 +192,7 @@ class Builder:
                        os.path.join(_bootDir, self.dstTarget.kernelFile))
         Util.cmdCall("/bin/cp", "-f",
                        "%s/System.map" % (self.realSrcDir),
-                       os.path.join(_bootDir, self.dstTarget.kernel_map_filename))
+                       os.path.join(_bootDir, self.dstTarget.kernelMapFilename))
         Util.cmdCall("/bin/cp", "-f",
                        "%s/.config" % (self.realSrcDir),
                        os.path.join(_bootDir, self.dstTarget.kernel_config_filename))

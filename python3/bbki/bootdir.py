@@ -32,31 +32,33 @@ class BootEntry:
 
     @property
     def kernel_file(self):
-        return os.path.join(_bootDir, self.buildTarget.kernel_filename)
+        return os.path.join(_bootDir, "kernel-" + self.buildTarget.postfix)
 
     @property
     def kernel_config_file(self):
-        return os.path.join(_bootDir, self.buildTarget.kernel_config_filename)
+        return os.path.join(_bootDir, "config-"+ self.buildTarget.postfix)
 
     @property
     def kernel_config_rules_file(self):
-        return os.path.join(_bootDir, self.buildTarget.kernel_config_rules_filename)
+        return os.path.join(_bootDir, "config-" + self.buildTarget.postfix + ".rules")
 
+    # FIXME: do we really need this?
+    @property
+    def kernelMapFile(self):
+        return os.path.join(_bootDir, "System.map-" + self.buildTarget.postfix)
+
+    # FIXME: do we really need this?
     @property
     def kernelSrcSignatureFile(self):
-        return os.path.join(_bootDir, self.buildTarget.kernelSrcSignatureFile)
-
-    @property
-    def kernel_map_file(self):
-        return os.path.join(_bootDir, self.buildTarget.kernel_map_filename)
+        return os.path.join(_bootDir, "signature-" + self.buildTarget.postfix)
 
     @property
     def initrd_file(self):
-        return os.path.join(_bootDir, self.buildTarget.initrd_filename)
+        return os.path.join(_bootDir, "initramfs-" + self.buildTarget.postfix)
 
     @property
     def initrd_tar_file(self):
-        return os.path.join(_bootDir, self.buildTarget.initrd_tar_filename)
+        return os.path.join(_bootDir, "initramfs-files-" + self.buildTarget.postfix)
 
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_file):
@@ -65,7 +67,7 @@ class BootEntry:
             return False
         if not os.path.exists(self.kernel_config_rules_file):
             return False
-        if not os.path.exists(self.kernel_map_file):
+        if not os.path.exists(self.kernelMapFile):
             return False
         if not os.path.exists(self.kernelSrcSignatureFile):
             return False
@@ -84,7 +86,17 @@ class BootEntry:
         if ret == []:
             return None
 
-        buildTarget = BuildTarget.new_from_kernel_filename(ret[-1])
+        buildTarget = None
+        for fn in reversed(ret):
+            postfix = fn[len("kernel-"):]
+            try:
+                buildTarget = BuildTarget.new_from_postfix(postfix)
+            except ValueError:
+                continue
+
+        if buildTarget is None:
+            return None
+
         ret = BootEntry(buildTarget)
         if strict:
             if not ret.has_kernel_files():

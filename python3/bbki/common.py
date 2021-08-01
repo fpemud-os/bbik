@@ -72,32 +72,39 @@ class BuildTarget:
         except ValueError:
             return self._verstr
 
+    # deprecated
     @property
     def kernel_filename(self):
         return "kernel-" + self.postfix
 
+    # deprecated
     @property
     def kernel_config_filename(self):
         return "config-" + self.postfix
 
+    # deprecated
     @property
     def kernel_config_rules_filename(self):
         return "config-" + self.postfix + ".rules"
 
+    # deprecated
     # FIXME: do we really need this?
     @property
-    def kernel_map_filename(self):
+    def kernelMapFilename(self):
         return "System.map-" + self.postfix     
 
+    # deprecated
     # FIXME: do we really need this?
     @property
     def kernelSrcSignatureFile(self):
         return "signature-" + self.postfix      
 
+    # deprecated
     @property
     def initrd_filename(self):
         return "initramfs-" + self.postfix
 
+    # deprecated
     @property
     def initrd_tar_filename(self):
         return "initramfs-files-" + self.postfix + ".tar.bz2"
@@ -108,32 +115,14 @@ class BuildTarget:
         partList = postfix.split("-")
         if len(partList) < 2:
             raise ValueError("illegal postfix")
-        if not Util.isValidKernelArch(partList[0]):
+        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
             raise ValueError("illegal postfix")
-        if not Util.isValidKernelVer(partList[1]):
+        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
             raise ValueError("illegal postfix")
 
         ret = BuildTarget()
         ret._arch = partList[0]
         ret._verstr = "-".join(partList[1:])
-        return ret
-
-    @staticmethod
-    def new_from_kernel_filename(kernel_filename):
-        assert os.path.sep not in kernel_filename
-
-        # kernel_filename example: kernel-x86_64-3.9.11-gentoo-r1
-        partList = kernel_filename.split("-")
-        if len(partList) < 3:
-            raise ValueError("illegal kernel file")
-        if not Util.isValidKernelArch(partList[1]):
-            raise ValueError("illegal kernel file")
-        if not Util.isValidKernelVer(partList[2]):
-            raise ValueError("illegal kernel file")
-
-        ret = BuildTarget()
-        ret._arch = partList[1]
-        ret._verstr = "-".join(partList[2:])
         return ret
 
     @staticmethod
