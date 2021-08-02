@@ -44,6 +44,10 @@ class Config:
         self._cacheDistfilesRoDirList = []
 
     @property
+    def data_repo_dir(self):
+        return self._dataRepoDir
+
+    @property
     def cache_sync_record_file(self):
         return self._cacheSyncRecordFile
 

@@ -24,7 +24,7 @@ import time
 import robust_layer
 
 
-class Temp:
+class KenrelSyncer:
 
     def sync_kernel_info(self):
         # get kernel version from internet

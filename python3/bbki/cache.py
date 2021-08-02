@@ -41,6 +41,37 @@ class SyncRecord:
             return f.read().split("\n")[indexDict[record_type]]
 
 
+class KernelSyncer:
+    pass
+
+
+class FirmwareSyncer:
+    pass
+
+
+class ExtSourceSyncer:
+    pass
+
+
+class WirelessRegdbSyncer:
+    pass
+
+
+def get_syncer(self, syncer_name):
+    if syncer_name == "kernel":
+        pass
+
+    if syncer_name == "firmware":
+        pass
+
+    if syncer_name == "ext-src":
+        pass
+
+    if syncer_name == "wireless-regdb":
+        pass
+
+    assert False
+
 
 class KCache:
 
