@@ -131,7 +131,7 @@ class WirelessRegdbSyncer:
         assert False
 
 
-class SyncRecord:
+class VersionRecord:
     
     def __init__(self, bbki_config):
         self._cfg = bbki_config
@@ -171,7 +171,7 @@ class DistfilesCache:
 
     def __init__(self, bbki_config, patch_path, cache_path):
         self._cfg = bbki_config
-        self._syncRecord = SyncRecord(self._cfg.cache_sync_record_file)
+        self._syncRecord = VersionRecord(self._cfg.cache_sync_record_file)
 
         self.kcachePath = cache_path
 
