@@ -23,7 +23,7 @@
 import os
 from util import Util
 from util import TempChdir
-from cache import KCache
+from cache import DistfilesCache
 
 
 class KernelBuilder:
@@ -32,7 +32,7 @@ class KernelBuilder:
         assert len(os.listdir(temp_directory)) == 0
 
         self._cfg = bbki_config
-        self.kcache = KCache(kcache_path, patch_path)
+        self.kcache = DistfilesCache(kcache_path, patch_path)
 
         self.kernelCfgRules = kernel_config_rules
 
