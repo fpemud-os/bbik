@@ -26,6 +26,120 @@ from util import TempChdir
 from cache import DistfilesCache
 
 
+class Builder:
+
+    def __init__(self, bbki_config, kernel_config_rules, temp_directory):
+        assert len(os.listdir(temp_directory)) == 0
+
+        self._cfg = bbki_config
+
+    def get_addon_list(self):
+        pass
+
+    def extract(self):
+        pass
+
+    def generateDotCfg(self):
+        # head rules
+        buf = ""
+        if True:
+            # default hostname
+            buf += "DEFAULT_HOSTNAME=\"(none)\"\n"
+            buf += "\n"
+
+            # deprecated symbol, but many drivers still need it
+            buf += "FW_LOADER=y\n"
+            buf += "\n"
+
+            # atk9k depends on it
+            buf += "DEBUG_FS=y\n"
+            buf += "\n"
+
+            # H3C CAS 2.0 still use legacy virtio device, so it is needed
+            buf += "VIRTIO_PCI_LEGACY=y\n"
+            buf += "\n"
+
+            # we still need iptables
+            buf += "NETFILTER_XTABLES=y\n"
+            buf += "IP_NF_IPTABLES=y\n"
+            buf += "IP_NF_ARPTABLES=y\n"
+            buf += "\n"
+
+            # it seems we still need this, why?
+            buf += "FB=y\n"
+            buf += "DRM_FBDEV_EMULATION=y\n"
+            buf += "\n"
+
+            # net-wireless/iwd needs them, FIXME
+            buf += "PKCS8_PRIVATE_KEY_PARSER=y\n"
+            buf += "KEY_DH_OPERATIONS=y\n"
+            buf += "\n"
+
+            # android features need by anbox program
+            if "anbox" in self._cfg.get_kernel_use_flag():
+                buf += "[symbols:/Device drivers/Android]=y\n"
+                buf += "STAGING=y\n"
+                buf += "ASHMEM=y\n"
+                buf += "\n"
+
+            # debug feature
+            if True:
+                # killing CONFIG_VT is failed for now
+                buf += "TTY=y\n"
+                buf += "[symbols:VT]=y\n"
+                buf += "[symbols:/Device Drivers/Graphics support/Console display driver support]=y\n"
+                buf += "\n"
+            if self.trickDebug:
+                pass
+
+            # symbols we dislike
+            buf += "[debugging-symbols:/]=n\n"
+            buf += "[deprecated-symbols:/]=n\n"
+            buf += "[workaround-symbols:/]=n\n"
+            buf += "[experimental-symbols:/]=n\n"
+            buf += "[dangerous-symbols:/]=n\n"
+            buf += "\n"
+
+        # generate rules file
+        self._generateKernelCfgRulesFile(self.kcfgRulesTmpFile,
+                                         {"head": buf},
+                                         self.kernelCfgRules)
+
+        # debug feature
+        if True:
+            # killing CONFIG_VT is failed for now
+            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
+        if self.trickDebug:
+            Util.shellCall("/bin/sed -i 's/=m,y/=y/g' %s" % (self.kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i 's/=m/=y/g' %s" % (self.kcfgRulesTmpFile))
+
+        # generate the real ".config"
+        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
+                       self.realSrcDir, self.kcfgRulesTmpFile, self.dotCfgFile)
+
+        # "make olddefconfig" may change the .config file further
+        self._makeAuxillary(self.realSrcDir, "olddefconfig")
+
+    def patch(self):
+        pass
+
+    def build(self):
+        pass
+
+    def build(self):
+        pass
+
+    def build_addons(self):
+        pass
+
+    def cleanup(self):
+        pass
+
+
+
+
+
+
 class KernelBuilder:
 
     def __init__(self, bbki_config, kcache_path, patch_path, kernel_config_rules, temp_directory):

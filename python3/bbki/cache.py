@@ -23,155 +23,20 @@
 
 import os
 import re
-import io
-import gzip
-import time
-import robust_layer
 import configparser
-import lxml.html
-import urllib.request
 from util import Util
 
 
-class KernelSyncer:
-    
-    @staticmethod
-    def get_latest_version():
-        kernelUrl = "https://www.kernel.org"
-        typename = "stable"
-        while True:
-            # get kernel version from internet
-            try:
-                with urllib.request.urlopen(kernelUrl, timeout=robust_layer.TIMEOUT) as resp:
-                    if resp.info().get('Content-Encoding') is None:
-                        fakef = resp
-                    elif resp.info().get('Content-Encoding') == 'gzip':
-                        fakef = io.BytesIO(resp.read())
-                        fakef = gzip.GzipFile(fileobj=fakef)
-                    else:
-                        assert False
-                    root = lxml.html.parse(fakef)
-
-                    td = root.xpath(".//td[text()='%s:']" % (typename))[0]
-                    td = td.getnext()
-                    while len(td) > 0:
-                        td = td[0]
-                    return td.text
-            except OSError as e:
-                print("Failed to acces %s, %s" % (kernelUrl, e))
-                time.sleep(robust_layer.RETRY_TIMEOUT)
-
-    def __init__(self, bbki_config):
-        self._cfg = bbki_config
-
-    def sync(self):
-        assert False
-
-
-class FirmwareSyncer:
-
-    @staticmethod
-    def get_latest_version():
-        firmwareUrl = "https://www.kernel.org/pub/linux/kernel/firmware"
-        while True:
-            # get firmware version version from internet
-            try:
-                ret = None
-                with urllib.request.urlopen(firmwareUrl, timeout=robust_layer.TIMEOUT) as resp:
-                    root = lxml.html.parse(resp)
-                    for atag in root.xpath(".//a"):
-                        m = re.fullmatch("linux-firmware-(.*)\\.tar\\.xz", atag.text)
-                        if m is not None:
-                            if ret is None or ret < m.group(1):
-                                ret = m.group(1)
-                    assert ret is not None
-                return ret
-            except OSError as e:
-                print("Failed to acces %s, %s" % (firmwareUrl, e))
-                time.sleep(robust_layer.RETRY_TIMEOUT)
-
-    def __init__(self, bbki_config):
-        self._cfg = bbki_config
-
-    def sync(self):
-        assert False
-
-
-class ExtSourceSyncer:
-
-    def __init__(self, bbki_config):
-        self._cfg = bbki_config
-
-    def sync(self):
-        assert False
-
-
-class WirelessRegdbSyncer:
-
-    @staticmethod
-    def get_latest_version():
-        wirelessRegDbDirUrl = "https://www.kernel.org/pub/software/network/wireless-regdb"
-        while True:
-            try:
-                ver = None
-                with urllib.request.urlopen(wirelessRegDbDirUrl, timeout=robust_layer.TIMEOUT) as resp:
-                    out = resp.read().decode("iso8859-1")
-                    for m in re.finditer("wireless-regdb-([0-9]+\\.[0-9]+\\.[0-9]+)\\.tar\\.xz", out, re.M):
-                        if ver is None or m.group(1) > ver:
-                            ver = m.group(1)
-                return ver
-            except OSError as e:
-                print("Failed to acces %s, %s" % (wirelessRegDbDirUrl, e))
-                time.sleep(robust_layer.RETRY_TIMEOUT)
-
-    def __init__(self, bbki_config):
-        self._cfg = bbki_config
-
-    def sync(self):
-        assert False
-
-
-class VersionRecord:
+class Syncer:
     
     def __init__(self, bbki_config):
         self._cfg = bbki_config
-
-    def read(self, record_type):
-        indexDict = {
-            "kernel": 0,
-            "firmware": 1,
-            "wireless-regdb": 2,
-        }
-        with open(self._cfg.cache_sync_record_file, "r") as f:
-            return f.read().split("\n")[indexDict[record_type]]
-
-    def write(self, record_type, *kargs):
-        vlist = ["", "", "", ""]
-        if os.path.exists(self._cfg.cache_sync_record_file):
-            with open(self._cfg.cache_sync_record_file) as f:
-                vlist = f.read().split("\n")[0:3]
-                while len(vlist) < 4:
-                    vlist.append("")
-
-        if record_type == "kernel":
-            vlist[0] = kargs[0]
-        elif record_type == "firmware":
-            vlist[1] = kargs[0]
-        elif record_type == "wireless-regdb":
-            vlist[2] = kargs[0]
-        else:
-            assert False
-
-        with open(self._cfg.cache_sync_record_file, "w") as f:
-            for v in vlist:
-                f.write(v + "\n")
 
 
 class DistfilesCache:
 
     def __init__(self, bbki_config, patch_path, cache_path):
         self._cfg = bbki_config
-        self._syncRecord = VersionRecord(self._cfg.cache_sync_record_file)
 
         self.kcachePath = cache_path
 
