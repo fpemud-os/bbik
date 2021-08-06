@@ -27,6 +27,12 @@ import subprocess
 class Util:
 
     @staticmethod
+    def splitToTuple(s, d, count):
+        ret = s.split(d)
+        assert len(ret) == count
+        return tuple(ret)
+
+    @staticmethod
     def isValidKernelArch(archStr):
         return True
 
@@ -45,7 +51,7 @@ class Util:
         return ret
 
     @staticmethod
-    def compareVersion(verstr1, verstr2):
+    def compareVerstr(verstr1, verstr2):
         """eg: 3.9.11-gentoo-r1 or 3.10.7-gentoo"""
 
         partList1 = verstr1.split("-")

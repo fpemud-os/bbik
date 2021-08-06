@@ -22,7 +22,11 @@
 
 
 import os
+import re
+import glob
 import robust_layer.simple_git
+from . import util
+from . import Bbki
 
 
 class Repository:
@@ -31,42 +35,39 @@ class Repository:
         self._bbki = bbki
         self._path = path
 
-    def is_repo_exist(self):
-        return os.path.exists(self._path)
-
-    def get_repo_dir(self):
+    def get_dir(self):
         return self._path
 
-    def check(self, bAutoFix=False):
-        if not self.is_repo_exist():
-            if bAutoFix:
-                self.create_repository()
-            else:
-                raise RepositoryCheckError("repository does not exist")
+    def exists(self):
+        return os.path.exists(self._path)
 
     def create(self):
         # Business exception should not be raise, but be printed as error message
-        self.sync_repository()
+        self.sync()
 
     def sync(self):
         # Business exception should not be raise, but be printed as error message
-        robust_layer.simple_git.pull(self._cfg.data_repo_dir, reclone_on_failure=True, url="https://github.com/fpemud-os/bbki-repo")
+        robust_layer.simple_git.pull(self._path, reclone_on_failure=True, url="https://github.com/fpemud-os/bbki-repo")
+
+    def check(self, autofix=False):
+        if not self.exists():
+            if autofix:
+                self.create()
+            else:
+                raise RepositoryCheckError("repository does not exist")
+
+    def get_items_by_name(self, item_type, item_name):
+        assert item_type in [Bbki.ITEM_TYPE_KERNEL, Bbki.ITEM_TYPE_KERNEL_ADDON]
+
+        ret = []
+        dirpath = os.path.join(self._path, _format_catdir(item_type, self._bbki.kernel_type), item_name)
+        for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
+            ret.append(BbkiItem.new_by_bbki_file(fullfn))
+        return ret
 
 
-class KernelPackage:
-
-    def __init__(self, repostory):
-        pass
-
-    
 
 
-
-
-class KernelAddonPackage:
-
-    def __init__(self, repostory):
-        pass
 
 
 
@@ -75,3 +76,94 @@ class RepositoryCheckError(Exception):
 
     def __init__(self, message):
         self.message = message
+
+
+
+class BbkiItem:
+
+    def __init__(self, repo):
+        self._repo = repo
+        self._itemType = None
+        self._itemName = None
+        self._ver = None
+        self._rev = None
+
+    @property
+    def kernel_type(self):
+        return self._repo._bbki._kernelType
+
+    @property
+    def item_type(self):
+        return self._itemType
+
+    @property
+    def name(self):
+        return self._itemName
+
+    @property
+    def fullname(self):
+        return os.path.join(_format_catdir(self.item_type, self.kernel_type), self._itemName)
+
+    @property
+    def ver(self):
+        return self._ver
+
+    @property
+    def rev(self):
+        return self._rev
+
+    @property
+    def verstr(self):
+        if self.revision == 0:
+            return self.ver
+        else:
+            return self.ver + "-r" + self.revision
+
+    @property
+    def bbki_dir(self):
+        return os.path.join(self._repo.get_dir(), self.fullname)
+
+    @property
+    def bbki_file(self):
+        return os.path.join(self.bbki_dir, self.verstr + ".bbki")
+
+    @staticmethod
+    def new_by_bbki_filepath(self, repo, bbki_file):
+        assert repo is not None and isinstance(repo, Repository)
+        assert bbki_file.startswith(repo.get_dir())
+
+        bbki_file = bbki_file[len(repo.get_dir()):]
+        catdir, itemName, fn = util.splitToTuple(bbki_file, "/", 3)
+        itemType, kernelType = _parse_catdir(catdir)
+        ver, rev = _parse_bbki_filename(fn)
+
+        ret = BbkiItem(repo)
+        ret._itemType = itemType
+        ret._itemName = itemName
+        ret._ver = ver
+        ret._rev = rev
+        return ret
+
+
+def _format_catdir(item_type, kernel_type):
+    if item_type == Bbki.ITEM_TYPE_KERNEL:
+        return kernel_type
+    elif item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
+        return kernel_type + "-addon"
+    else:
+        assert False
+
+
+def _parse_catdir(catdir):
+    if not catdir.endswith("-addon"):
+        return (Bbki.ITEM_TYPE_KERNEL, catdir)
+    else:
+        return (Bbki.ITEM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
+
+
+def _parse_bbki_filename(filename):
+    m = re.fullmatch("(.*)(-r([0-9]+))?", filename)
+    if m.group(1) is None:
+        return (m.group(1), 0)
+    else:
+        return (m.group(1), int(m.group(3)))

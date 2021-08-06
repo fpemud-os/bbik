@@ -24,6 +24,7 @@
 import os
 import re
 from . import util
+from . import Bbki
 
 
 class Config:
@@ -32,8 +33,9 @@ class Config:
         if cfgdir is None:
             cfgdir = "/etc/bbki"
 
-        self._cfgKernelMaskDir = os.path.join(cfgdir, "kernel.mask")
-        self._cfgKernelUseDir = os.path.join(cfgdir, "kernel.use")
+        self._cfgBbkiKernelTypeFile = os.path.join(cfgdir, "bbki.kernel_type")
+        self._cfgBbkiKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
+        self._cfgBbkiMaskDir = os.path.join(cfgdir, "bbki.mask")
 
         self._dataDir = "/var/lib/bbki"
         self._dataRepoDir = os.path.join(self._dataDir, "repo")
@@ -41,6 +43,10 @@ class Config:
         self._cacheDir = "/var/cache/bbki"
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
+
+        self._tmpKernelType = None
+        self._tmpKernelAddonNameList = None
+        self._tmpMaskBufList = None
 
     @property
     def data_repo_dir(self):
@@ -54,33 +60,50 @@ class Config:
     def cache_distfiles_ro_dir_list(self):
         return self._cacheDistfilesRoDirList
 
-    def check_version_mask(self, version_type, version):
-        assert version_type in ["kernel", "firmware", "wireless-regdb"]
+    def get_kernel_type(self):
+        # fill cache
+        if self._tmpKernelType is None:
+            ret = util.readListFile(self._cfgBbkiKernelTypeFile)
+            if len(ret) > 0:
+                self._tmpKernelType = ret[0]
 
-        for fn in os.listdir(self._cfgKernelMaskDir):
-            with open(os.path.join(self._cfgKernelMaskDir, fn), "r") as f:
-                buf = f.read()
-                m = re.search("^>%s-(.*)$" % (version_type), buf, re.M)
-                if m is not None:
-                    if version > m.group(1):
-                        version = m.group(1)
-        return version
+        # return value according to cache
+        if self._tmpKernelType is None:
+                raise InvalidConfigError("no kernel type specified")
+        if self._tmpKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
+            raise InvalidConfigError("invalid kernel type \"%s\" specified" % (self._tmpKernelType))
+        return self._tmpKernelType
 
-    def get_kernel_use_flags(self):
-        """returns list of USE flags"""
+    def get_kernel_addon_names(self):
+        # fill cache
+        if self._tmpKernelAddonNameList is None:
+            ret = set()
+            for fn in os.listdir(self._cfgBbkiKernelAddonDir):
+                for line in util.readListFile(os.path.join(self._cfgBbkiKernelAddonDir, fn)):
+                    ret.add(line)
+            self._tmpKernelAddonNameList = sorted(list(ret))
 
-        ret = set()
-        for fn in os.listdir(self.kernelUseDir):
-            for line in util.readListFile(os.path.join(self.kernelUseDir, fn)):
-                line = line.replace("\t", " ")
-                line2 = ""
-                while line2 != line:
-                    line2 = line
-                    line = line.replace("  ", " ")
-                for item in line.split(" "):
-                    if item.startswith("-"):
-                        item = item[1:]
-                        ret.remove(item)
-                    else:
-                        ret.add(item)
-        return sorted(list(ret))
+        # return value according to cache
+        return self._tmpKernelAddonNameList
+
+    def check_version_mask(self, item_fullname, item_verstr):
+        # fill cache
+        if self._tmpMaskBufList is None:
+            self._tmpMaskBufList = []
+            for fn in os.listdir(self._cfgBbkiMaskDir):
+                with open(os.path.join(self._cfgBbkiMaskDir, fn), "r") as f:
+                    self._tmpMaskBufList.append(f.read())
+
+        # match according to cache
+        for buf in self._tmpMaskBufList:
+            m = re.search("^>%s-(.*)$" % (item_fullname), buf, re.M)
+            if m is not None:
+                if util.compareVerstr(verstr, m.group(1)) > 0:
+                    return False
+        return True
+
+
+class InvalidConfigError(Exception):
+
+    def __init__(self, message):
+        self.message = message

@@ -187,10 +187,10 @@ class DistfilesCache:
         kernelFileList = []
         for f in os.listdir(self.kcachePath):
             if f.startswith("linux-") and f.endswith(".tar.xz") and not f.startswith("linux-firmware-"):
-                if Util.compareVersion(f.replace("linux-", "").replace(".tar.xz", ""), cbe.buildTarget.verstr) < 0:
+                if Util.compareVerstr(f.replace("linux-", "").replace(".tar.xz", ""), cbe.buildTarget.verstr) < 0:
                     kernelFileList.append(f)    # remove lower version
             elif f.startswith("linux-") and f.endswith(".tar.sign") and not f.startswith("linux-firmware-"):
-                if Util.compareVersion(f.replace("linux-", "").replace(".tar.sign", ""), cbe.buildTarget.verstr) < 0:
+                if Util.compareVerstr(f.replace("linux-", "").replace(".tar.sign", ""), cbe.buildTarget.verstr) < 0:
                     kernelFileList.append(f)    # remove lower version
         return sorted(kernelFileList)
 
