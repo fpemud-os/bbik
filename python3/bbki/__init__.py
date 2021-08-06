@@ -34,3 +34,12 @@ __version__ = "0.0.1"
 
 from .common import BuildTarget
 from .common import BootEntry
+
+
+class Bbki:
+
+    def __init__(self, cfgdir=None):
+        self._cfg = Config(cfgdir)
+        self._repoList = [
+            
+        ]
