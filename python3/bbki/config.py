@@ -39,17 +39,12 @@ class Config:
         self._dataRepoDir = os.path.join(self._dataDir, "repo")
 
         self._cacheDir = "/var/cache/bbki"
-        self._cacheSyncRecordFile = os.path.join(self._cacheDir, "ksync.txt")
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
 
     @property
     def data_repo_dir(self):
         return self._dataRepoDir
-
-    @property
-    def cache_sync_record_file(self):
-        return self._cacheSyncRecordFile
 
     @property
     def cache_distfiles_dir(self):
