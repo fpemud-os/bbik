@@ -27,27 +27,28 @@ import robust_layer.simple_git
 
 class Repository:
 
-    def __init__(self, bbki_config):
-        self._cfg = bbki_config
+    def __init__(self, bbki, path):
+        self._bbki = bbki
+        self._path = path
 
     def is_repo_exist(self):
-        return os.path.exists(self._cfg.data_repo_dir)
+        return os.path.exists(self._path)
 
     def get_repo_dir(self):
-        return self._cfg.data_repo_dir
+        return self._path
 
-    def check_repository(self, bAutoFix=False):
+    def check(self, bAutoFix=False):
         if not self.is_repo_exist():
             if bAutoFix:
                 self.create_repository()
             else:
                 raise RepositoryCheckError("repository does not exist")
 
-    def create_repository(self):
+    def create(self):
         # Business exception should not be raise, but be printed as error message
         self.sync_repository()
 
-    def sync_repository(self):
+    def sync(self):
         # Business exception should not be raise, but be printed as error message
         robust_layer.simple_git.pull(self._cfg.data_repo_dir, reclone_on_failure=True, url="https://github.com/fpemud-os/bbki-repo")
 
