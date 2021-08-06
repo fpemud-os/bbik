@@ -91,10 +91,14 @@ class Bbki:
 
 class BbkiItem:
 
-    def __init__(self, bbki, item_type, item_name):
+    def __init__(self, bbki, item_type, item_name, ver, revision=0):
+        assert isinstance(revision, int)
+
         self._bbki = bbki
         self._itemType = item_type
         self._itemName = item_name
+        self._ver = ver
+        self._revision = revision
 
     @property
     def kernel_type(self):
@@ -108,30 +112,31 @@ class BbkiItem:
     def name(self):
         return self._itemName
 
-
-class BbkiSubItem:
-
-    def __init__(self, item):
-        self._item = item
-        self._ver = None
-        self._revision = None
-
     @property
-    def kernel_type(self):
-        return self._item.kernel_tpye
-
-    @property
-    def item_type(self):
-        return self._item.item_type
-
-    @property
-    def name(self):
-        return self._item.name
-
-    @property
-    def version(self):
+    def ver(self):
         return self._ver
+
+    @property
+    def verstr(self):
+        if self.revision == 0:
+            return self.ver
+        else:
+            return self.ver + "-r" + self.revision
 
     @property
     def revision(self):
         return self._revision
+
+    @property
+    def bbki_dir(self):
+        if self.item_type == Bbki.ITEM_TYPE_KERNEL:
+            catdir = self.kernel_type
+        elif self.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
+            catdir = self.kernel_type + "-addon"
+        else:
+            assert False
+        return os.path.join(self._bbki.data_repo_dir, catdir, self._itemName)
+
+    @property
+    def bbki_file(self):
+        return os.path.join(self.bbki_dir, self.verstr + ".bbki")
