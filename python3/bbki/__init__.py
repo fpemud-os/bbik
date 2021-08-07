@@ -34,7 +34,7 @@ __version__ = "0.0.1"
 
 import os
 from .config import Config
-from .repo import Repository
+from .repo import Repo
 
 
 class Bbki:
@@ -47,7 +47,7 @@ class Bbki:
     def __init__(self, cfgdir=None):
         self._cfg = Config(cfgdir)
         self._repoList = [
-            Repository(self._cfg.data_repo_dir),
+            Repo(self._cfg.data_repo_dir),
         ]
 
     @property
@@ -59,7 +59,7 @@ class Bbki:
         return self._repoList
 
     def get_kernel(self):
-        items = self._repoList[0].get_items_by_name(self.ITEM_TYPE_KERNEL, self._cfg.get_kernel_type())
+        items = self._repoList[0].get_items_by_type_name(self.ITEM_TYPE_KERNEL, self._cfg.get_kernel_type())
         items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
         if len(items) > 0:
             return items[-1]
@@ -69,14 +69,11 @@ class Bbki:
     def get_kernel_addons(self):
         ret = []
         for name in self._cfg.get_kernel_addon_names():
-            items = self._repoList[0].get_items_by_name(self.ITEM_TYPE_KERNEL_ADDON, name)
+            items = self._repoList[0].get_items_by_type_name(self.ITEM_TYPE_KERNEL_ADDON, name)
             items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                # filter by bbki-config
             if len(items) > 0:
                 ret.append(items[-1])
         return ret
-
-    def get_syncer(self):
-        assert False
 
     def get_kernel_installer(self):
         assert False
@@ -94,6 +91,9 @@ class Bbki:
         assert False
 
     def clean_cache_dir(self, pretend=False):
+        DistfilesCache
+
+
         assert False
 
 

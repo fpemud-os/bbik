@@ -56,7 +56,26 @@ class Repo:
             else:
                 raise RepoCheckError("repository does not exist")
 
-    def get_items_by_name(self, item_type, item_name):
+    # def query_items(self):
+    #     ret = []
+    #     for fullfn in glob.glob(os.path.join(self._path, "**", "*.bbki")):
+    #         ret.append(RepoItem.new_by_bbki_file(fullfn))
+    #     return ret
+
+    def query_item_type_name(self):
+        ret = []
+        for kernel_type in [Bbki.KERNEL_TYPE_LINUX]:
+            kernelDir = os.path.join(self._path, kernel_type)
+            if os.path.exists(kernelDir):
+                for fn in os.listdir(kernelDir):
+                    ret.append(Bbki.ITEM_TYPE_KERNEL, fn)
+            kernelAddonDir = os.path.join(self._path, kernel_type + "-addon")
+            if os.path.exists(kernelAddonDir):
+                for fn in os.listdir(kernelAddonDir):
+                    ret.append(Bbki.ITEM_TYPE_KERNEL_ADDON, fn)
+        return ret
+
+    def get_items_by_type_name(self, item_type, item_name):
         assert item_type in [Bbki.ITEM_TYPE_KERNEL, Bbki.ITEM_TYPE_KERNEL_ADDON]
 
         ret = []
@@ -64,19 +83,6 @@ class Repo:
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
             ret.append(RepoItem.new_by_bbki_file(fullfn))
         return ret
-
-
-
-
-
-
-
-
-class RepoCheckError(Exception):
-
-    def __init__(self, message):
-        self.message = message
-
 
 
 class RepoItem:
@@ -127,6 +133,12 @@ class RepoItem:
     def bbki_file(self):
         return os.path.join(self.bbki_dir, self.verstr + ".bbki")
 
+    def get_variables(self):
+        assert False
+
+    def call_function(self, function_name, *function_args):
+        assert False
+
     @staticmethod
     def new_by_bbki_filepath(self, repo, bbki_file):
         assert repo is not None and isinstance(repo, Repo)
@@ -143,6 +155,12 @@ class RepoItem:
         ret._ver = ver
         ret._rev = rev
         return ret
+
+
+class RepoCheckError(Exception):
+
+    def __init__(self, message):
+        self.message = message
 
 
 def _format_catdir(item_type, kernel_type):
