@@ -134,7 +134,18 @@ class RepoItem:
         return os.path.join(self.bbki_dir, self.verstr + ".bbki")
 
     def get_variables(self):
-        assert False
+        ret = dict()
+        with open(self.bbki_file) as f:
+            for line in f.split("\n"):
+                line = line.rstrip()
+                m = re.fullmatch(r'^(\S+)=(.*)', line)
+                if m is not None:
+                    k = m.group(1)
+                    v = m.group(2)
+                    if v.startswith("\"") and v.endswith("\""):
+                        v = v[1:-1]
+                    ret[k] = v
+        return ret
 
     def call_function(self, function_name, *function_args):
         assert False

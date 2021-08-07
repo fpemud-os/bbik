@@ -26,14 +26,17 @@ from util import TempChdir
 from cache import DistfilesCache
 
 
-class Builder:
+class KernelInstaller:
 
     def __init__(self, bbki_config, kernel_config_rules, temp_directory):
         assert len(os.listdir(temp_directory)) == 0
 
         self._cfg = bbki_config
 
-    def get_addon_list(self):
+    def fetch_kernel(self):
+        pass
+
+    def fetch_kernel_addon(self, addon_name):
         pass
 
     def extract(self):
