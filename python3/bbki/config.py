@@ -49,9 +49,11 @@ class Config:
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
 
-        self._tmpKernelType = None
-        self._tmpKernelAddonNameList = None
-        self._tmpMaskBufList = None
+        self._tmpDir = "/var/tmp/bbki"
+
+        self._tKernelType = None
+        self._tKernelAddonNameList = None
+        self._tMaskBufList = None
 
     @property
     def data_repo_dir(self):
@@ -65,28 +67,32 @@ class Config:
     def cache_distfiles_ro_dir_list(self):
         return self._cacheDistfilesRoDirList
 
+    @property
+    def tmp_dir(self):
+        return self._tmpDir
+
     def get_kernel_type(self):
         # fill cache
-        if self._tmpKernelType is None:
+        if self._tKernelType is None:
             if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.kernel_type
                 ret = util.readListFile(self._profileKernelTypeFile)
                 if len(ret) > 0:
-                    self._tmpKernelType = ret[0]
+                    self._tKernelType = ret[0]
             if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.kernel_type
                 ret = util.readListFile(self._cfgKernelTypeFile)
                 if len(ret) > 0:
-                    self._tmpKernelType = ret[0]
+                    self._tKernelType = ret[0]
 
         # return value according to cache
-        if self._tmpKernelType is None:
+        if self._tKernelType is None:
                 raise InvalidConfigError("no kernel type specified")
-        if self._tmpKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
-            raise InvalidConfigError("invalid kernel type \"%s\" specified" % (self._tmpKernelType))
-        return self._tmpKernelType
+        if self._tKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
+            raise InvalidConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
+        return self._tKernelType
 
     def get_kernel_addon_names(self):
         # fill cache
-        if self._tmpKernelAddonNameList is None:
+        if self._tKernelAddonNameList is None:
             ret = set()
             if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.kernel_addon
                 for fn in os.listdir(self._profileKernelAddonDir):
@@ -104,26 +110,26 @@ class Config:
                         else:
                             line = line[1:]
                             ret.remove(line)
-            self._tmpKernelAddonNameList = sorted(list(ret))
+            self._tKernelAddonNameList = sorted(list(ret))
 
         # return value according to cache
-        return self._tmpKernelAddonNameList
+        return self._tKernelAddonNameList
 
     def check_version_mask(self, item_fullname, item_verstr):
         # fill cache
-        if self._tmpMaskBufList is None:
-            self._tmpMaskBufList = []
+        if self._tMaskBufList is None:
+            self._tMaskBufList = []
             if os.path.exists(self._profileMaskDir):                 # step1: use /etc/bbki/profile/bbki.mask
                 for fn in os.listdir(self._profileMaskDir):
                     with open(os.path.join(self._profileMaskDir, fn), "r") as f:
-                        self._tmpMaskBufList.append(f.read())
+                        self._tMaskBufList.append(f.read())
             if os.path.exists(self._cfgMaskDir):                     # step2: use /etc/bbki/bbki.mask
                 for fn in os.listdir(self._cfgMaskDir):
                     with open(os.path.join(self._cfgMaskDir, fn), "r") as f:
-                        self._tmpMaskBufList.append(f.read())
+                        self._tMaskBufList.append(f.read())
 
         # match according to cache
-        for buf in self._tmpMaskBufList:
+        for buf in self._tMaskBufList:
             m = re.search("^>%s-(.*)$" % (item_fullname), buf, re.M)
             if m is not None:
                 if util.compareVerstr(verstr, m.group(1)) > 0:

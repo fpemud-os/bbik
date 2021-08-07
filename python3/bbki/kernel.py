@@ -21,28 +21,40 @@
 # THE SOFTWARE.
 
 import os
-from util import Util
-from util import TempChdir
-from cache import DistfilesCache
+import robust_layer.wget
+import robust_layer.simple_git
+from . import Bbki
+from .util import Util
+from .util import TempChdir
 
 
 class KernelInstaller:
 
-    def __init__(self, bbki_config, kernel_config_rules, temp_directory):
-        assert len(os.listdir(temp_directory)) == 0
+    def __init__(self, bbki, kernel_config_rules):
+        self._bbki = bbki
 
-        self._cfg = bbki_config
+    def fetch_kernel(self, item):
+        assert item.item_type == Bbki.ITEM_TYPE_KERNEL
+        self._fetchItem(item)
 
-    def fetch_kernel(self):
-        pass
+    def fetch_kernel_addon(self, addon_item):
+        assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
+        self._fetchItem(addon_item)
 
-    def fetch_kernel_addon(self, addon_name):
-        pass
+    def extract_kernel(self, item):
+        assert item.item_type == Bbki.ITEM_TYPE_KERNEL
+        self._extractItem(item)
 
-    def extract(self):
-        pass
+    def extract_kernel_addon(self, addon_item):
+        assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
+        self._extractItem(addon_item)
 
-    def generateDotCfg(self):
+    def patch(self, addon_item_list):
+        for addon_item in addon_item_list:
+            assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
+            addon_item.call_function("addon_patch_kernel")
+
+    def generate_dotcfg(self):
         # head rules
         buf = ""
         if True:
@@ -112,9 +124,6 @@ class KernelInstaller:
         if True:
             # killing CONFIG_VT is failed for now
             Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
-        if self.trickDebug:
-            Util.shellCall("/bin/sed -i 's/=m,y/=y/g' %s" % (self.kcfgRulesTmpFile))
-            Util.shellCall("/bin/sed -i 's/=m/=y/g' %s" % (self.kcfgRulesTmpFile))
 
         # generate the real ".config"
         Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
@@ -123,19 +132,31 @@ class KernelInstaller:
         # "make olddefconfig" may change the .config file further
         self._makeAuxillary(self.realSrcDir, "olddefconfig")
 
-    def patch(self):
+    def build_kernel(self):
         pass
 
-    def build(self):
-        pass
-
-    def build(self):
+    def build_addon(self):
         pass
 
     def build_addons(self):
         pass
 
     def cleanup(self):
+        pass
+
+    def _fetchItem(self, item):
+        for vcsType, url, localFn in item.get_distfiles():
+            localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir)
+            if vcsType in ["http", "ftp"]:
+                if os.path.exists(localFullFn):
+                    continue
+                robust_layer.wget.exec("-O", localFullFn, url)
+            elif vcsType == "git":
+                robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
+            else:
+                assert False
+
+    def _extractItem(self, item):
         pass
 
 

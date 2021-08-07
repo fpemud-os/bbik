@@ -32,7 +32,6 @@ __author__ = "fpemud@sina.com (Fpemud)"
 __version__ = "0.0.1"
 
 
-import os
 from .config import Config
 from .repo import Repo
 
@@ -97,3 +96,9 @@ class Bbki:
         assert False
 
 
+class BbkiConfigError(Exception):
+    pass
+
+
+class BbkiRepoError(Exception):
+    pass

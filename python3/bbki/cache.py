@@ -37,9 +37,7 @@ class DistfilesCache:
                 if destructive:
                     items = [items[-1]]
                 for item in items:
-                    varDict = item.get_variables()
-                    fnList = _get_distfiles(varDict.get("SRC_URI", ""), varDict.get("SRC_URI_GIT", ""))
-                    keepFiles |= set(fnList)
+                    keepFiles |= set([fn for t, r, fn in item.get_distfiles()])
         keepFiles.add("git-src")
 
         ret = []
@@ -55,19 +53,3 @@ class DistfilesCache:
                     ret.append(fn2)
                 continue
         return ret
-
-
-def _get_distfiles(src_uri, src_uri_git):
-    ret = []
-
-    for line in src_uri.split("\n"):
-        line = line.strip()
-        if line != "":
-            ret.append(os.path.basename(line))
-
-    for line in src_uri_git.split("\n"):
-        line = line.strip()
-        if line != "":
-            ret.append("git-src" + urlib.parse.urlparse(line).path)
-
-    return ret

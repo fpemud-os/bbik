@@ -24,6 +24,7 @@
 import os
 import re
 import glob
+import urllib.parse
 import robust_layer.simple_git
 from . import util
 from . import Bbki
@@ -87,12 +88,32 @@ class Repo:
 
 class RepoItem:
 
+    @staticmethod
+    def new_by_bbki_filepath(self, repo, bbki_file):
+        assert repo is not None and isinstance(repo, Repo)
+        assert bbki_file.startswith(repo.get_dir())
+
+        bbki_file = bbki_file[len(repo.get_dir()):]
+        catdir, itemName, fn = util.splitToTuple(bbki_file, "/", 3)
+        itemType, kernelType = _parse_catdir(catdir)
+        ver, rev = _parse_bbki_filename(fn)
+
+        ret = RepoItem(repo)
+        ret._itemType = itemType
+        ret._itemName = itemName
+        ret._ver = ver
+        ret._rev = rev
+        return ret
+
     def __init__(self, repo):
         self._repo = repo
         self._itemType = None
         self._itemName = None
         self._ver = None
         self._rev = None
+
+        self._tVarDict = None
+        self._tFuncList = None
 
     @property
     def kernel_type(self):
@@ -133,8 +154,76 @@ class RepoItem:
     def bbki_file(self):
         return os.path.join(self.bbki_dir, self.verstr + ".bbki")
 
+    def has_variable(self, var_name):
+        self._fillt()                       # fill cache
+        return var_name in self._tVarDict   # return value according to cache
+
     def get_variables(self):
-        ret = dict()
+        self._fillt()                       # fill cache
+        return self._tVarDict               # return value according to cache
+
+    def get_distfiles(self):
+        ret = []
+
+        src_uri = self.get_variables().get("SRC_URI", "")
+        for line in src_uri.split("\n"):
+            line = line.strip()
+            if line != "":
+                o = urllib.parse.urlparse(line)
+                if o.scheme == "http":
+                    ret.append(("http", line, os.path.basename(line)))
+                elif o.scheme == "ftp":
+                    ret.append(("http", line, os.path.basename(line)))
+                else:
+                    assert False
+
+        src_uri_git = self.get_variables().get("SRC_URI_GIT", "")
+        for line in src_uri_git.split("\n"):
+            line = line.strip()
+            if line != "":
+                ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
+
+        return ret
+
+    def has_function(self, func_name):
+        self._fillt()                           # fill cache
+        return func_name in self._tFuncList     # return value according to cache
+
+    def get_functions(self):
+        self._fillt()                           # fill cache
+        return self._tFuncList                  # return value according to cache
+
+    def call_function(self, function_name, *function_args):
+        # fill cache
+        self._fillt()
+
+        # no function 
+        if function_name not in self._tFuncList:
+            return
+
+        if function_name == "src_fetch":
+            return
+
+        if function_name == "src_unpack":
+            return
+
+        if function_name == "kernel_build":
+            return
+
+        if function_name == "kernel_addon_patch_kernel":
+            return
+
+        if function_name == "kernel_addon_build":
+            return
+
+        if function_name == "kernel_addon_install":
+            return
+
+    def _fillt(self):
+        if self._tVarDict is not None and self._tFuncList is not None:
+            return
+
+        self._tVarDict = dict()
         with open(self.bbki_file) as f:
             for line in f.split("\n"):
                 line = line.rstrip()
@@ -144,28 +233,22 @@ class RepoItem:
                     v = m.group(2)
                     if v.startswith("\"") and v.endswith("\""):
                         v = v[1:-1]
-                    ret[k] = v
-        return ret
+                    self._tVarDict[k] = v
 
-    def call_function(self, function_name, *function_args):
-        assert False
+        validFuncs = [
+            "src_fetch", "src_unpack",
+            "kernel_build",
+            "kernel_addon_patch_kernel", "kernel_addon_build", "kernel_addon_install",
+        ]
+        self._tFuncList = []
+        with open(self.bbki_file) as f:
+            for line in f.split("\n"):
+                line = line.rstrip()
+                m = re.fullmatch(r'^(\S+)\(\) {', line)
+                if m is not None:
+                    if m.group(1) in validFuncs:
+                        self._tFuncList.append(m.group(1))
 
-    @staticmethod
-    def new_by_bbki_filepath(self, repo, bbki_file):
-        assert repo is not None and isinstance(repo, Repo)
-        assert bbki_file.startswith(repo.get_dir())
-
-        bbki_file = bbki_file[len(repo.get_dir()):]
-        catdir, itemName, fn = util.splitToTuple(bbki_file, "/", 3)
-        itemType, kernelType = _parse_catdir(catdir)
-        ver, rev = _parse_bbki_filename(fn)
-
-        ret = RepoItem(repo)
-        ret._itemType = itemType
-        ret._itemName = itemName
-        ret._ver = ver
-        ret._rev = rev
-        return ret
 
 
 class RepoCheckError(Exception):
