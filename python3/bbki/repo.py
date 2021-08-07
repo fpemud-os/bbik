@@ -29,7 +29,7 @@ from . import util
 from . import Bbki
 
 
-class Repository:
+class Repo:
 
     def __init__(self, bbki, path):
         self._bbki = bbki
@@ -54,7 +54,7 @@ class Repository:
             if autofix:
                 self.create()
             else:
-                raise RepositoryCheckError("repository does not exist")
+                raise RepoCheckError("repository does not exist")
 
     def get_items_by_name(self, item_type, item_name):
         assert item_type in [Bbki.ITEM_TYPE_KERNEL, Bbki.ITEM_TYPE_KERNEL_ADDON]
@@ -62,7 +62,7 @@ class Repository:
         ret = []
         dirpath = os.path.join(self._path, _format_catdir(item_type, self._bbki.kernel_type), item_name)
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
-            ret.append(BbkiItem.new_by_bbki_file(fullfn))
+            ret.append(RepoItem.new_by_bbki_file(fullfn))
         return ret
 
 
@@ -72,14 +72,14 @@ class Repository:
 
 
 
-class RepositoryCheckError(Exception):
+class RepoCheckError(Exception):
 
     def __init__(self, message):
         self.message = message
 
 
 
-class BbkiItem:
+class RepoItem:
 
     def __init__(self, repo):
         self._repo = repo
@@ -129,7 +129,7 @@ class BbkiItem:
 
     @staticmethod
     def new_by_bbki_filepath(self, repo, bbki_file):
-        assert repo is not None and isinstance(repo, Repository)
+        assert repo is not None and isinstance(repo, Repo)
         assert bbki_file.startswith(repo.get_dir())
 
         bbki_file = bbki_file[len(repo.get_dir()):]
@@ -137,7 +137,7 @@ class BbkiItem:
         itemType, kernelType = _parse_catdir(catdir)
         ver, rev = _parse_bbki_filename(fn)
 
-        ret = BbkiItem(repo)
+        ret = RepoItem(repo)
         ret._itemType = itemType
         ret._itemName = itemName
         ret._ver = ver

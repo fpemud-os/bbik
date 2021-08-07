@@ -33,9 +33,14 @@ class Config:
         if cfgdir is None:
             cfgdir = "/etc/bbki"
 
-        self._cfgBbkiKernelTypeFile = os.path.join(cfgdir, "bbki.kernel_type")
-        self._cfgBbkiKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
-        self._cfgBbkiMaskDir = os.path.join(cfgdir, "bbki.mask")
+        self._profileDir = os.path.join(cfgdir, "profile")
+        self._profileKernelTypeFile = os.path.join(self._profileDir, "bbki.kernel_type")
+        self._profileKernelAddonDir = os.path.join(self._profileDir, "bbki.kernel_addon")
+        self._profileMaskDir = os.path.join(self._profileDir, "bbki.mask")
+
+        self._cfgKernelTypeFile = os.path.join(cfgdir, "bbki.kernel_type")
+        self._cfgKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
+        self._cfgMaskDir = os.path.join(cfgdir, "bbki.mask")
 
         self._dataDir = "/var/lib/bbki"
         self._dataRepoDir = os.path.join(self._dataDir, "repo")
@@ -63,9 +68,14 @@ class Config:
     def get_kernel_type(self):
         # fill cache
         if self._tmpKernelType is None:
-            ret = util.readListFile(self._cfgBbkiKernelTypeFile)
-            if len(ret) > 0:
-                self._tmpKernelType = ret[0]
+            if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.kernel_type
+                ret = util.readListFile(self._profileKernelTypeFile)
+                if len(ret) > 0:
+                    self._tmpKernelType = ret[0]
+            if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.kernel_type
+                ret = util.readListFile(self._cfgKernelTypeFile)
+                if len(ret) > 0:
+                    self._tmpKernelType = ret[0]
 
         # return value according to cache
         if self._tmpKernelType is None:
@@ -78,9 +88,22 @@ class Config:
         # fill cache
         if self._tmpKernelAddonNameList is None:
             ret = set()
-            for fn in os.listdir(self._cfgBbkiKernelAddonDir):
-                for line in util.readListFile(os.path.join(self._cfgBbkiKernelAddonDir, fn)):
-                    ret.add(line)
+            if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.kernel_addon
+                for fn in os.listdir(self._profileKernelAddonDir):
+                    for line in util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
+                        if not line.startswith("-"):
+                            ret.add(line)
+                        else:
+                            line = line[1:]
+                            ret.remove(line)
+            if os.path.exists(self._cfgKernelAddonDir):                 # step2: use /etc/bbki/bbki.kernel_addon
+                for fn in os.listdir(self._cfgKernelAddonDir):
+                    for line in util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
+                        if not line.startswith("-"):
+                            ret.add(line)
+                        else:
+                            line = line[1:]
+                            ret.remove(line)
             self._tmpKernelAddonNameList = sorted(list(ret))
 
         # return value according to cache
@@ -90,9 +113,14 @@ class Config:
         # fill cache
         if self._tmpMaskBufList is None:
             self._tmpMaskBufList = []
-            for fn in os.listdir(self._cfgBbkiMaskDir):
-                with open(os.path.join(self._cfgBbkiMaskDir, fn), "r") as f:
-                    self._tmpMaskBufList.append(f.read())
+            if os.path.exists(self._profileMaskDir):                 # step1: use /etc/bbki/profile/bbki.mask
+                for fn in os.listdir(self._profileMaskDir):
+                    with open(os.path.join(self._profileMaskDir, fn), "r") as f:
+                        self._tmpMaskBufList.append(f.read())
+            if os.path.exists(self._cfgMaskDir):                     # step2: use /etc/bbki/bbki.mask
+                for fn in os.listdir(self._cfgMaskDir):
+                    with open(os.path.join(self._cfgMaskDir, fn), "r") as f:
+                        self._tmpMaskBufList.append(f.read())
 
         # match according to cache
         for buf in self._tmpMaskBufList:
