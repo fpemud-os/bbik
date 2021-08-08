@@ -154,52 +154,31 @@ class RepoItem:
     def bbki_file(self):
         return os.path.join(self.bbki_dir, self.verstr + ".bbki")
 
-    def has_variable(self, var_name):
-        self._fillt()                       # fill cache
-        return var_name in self._tVarDict   # return value according to cache
-
     def get_variables(self):
-        self._fillt()                       # fill cache
-        return self._tVarDict               # return value according to cache
-
-    def get_distfiles(self):
-        ret = []
-
-        src_uri = self.get_variables().get("SRC_URI", "")
-        for line in src_uri.split("\n"):
-            line = line.strip()
-            if line != "":
-                o = urllib.parse.urlparse(line)
-                if o.scheme == "http":
-                    ret.append(("http", line, os.path.basename(line)))
-                elif o.scheme == "ftp":
-                    ret.append(("http", line, os.path.basename(line)))
-                else:
-                    assert False
-
-        src_uri_git = self.get_variables().get("SRC_URI_GIT", "")
-        for line in src_uri_git.split("\n"):
-            line = line.strip()
-            if line != "":
-                ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
-
-        return ret
-
-    def has_function(self, func_name):
         self._fillt()                           # fill cache
-        return func_name in self._tFuncList     # return value according to cache
+        return self._tVarDict                   # return value according to cache
+
+    def has_variable(self, var_name):
+        self._fillt()                           # fill cache
+        return var_name in self._tVarDict       # return value according to cache
+
+    def get_variable(self, var_name):
+        self._fillt()                           # fill cache
+        return self._tVarDict[var_name]         # return value according to cache
 
     def get_functions(self):
         self._fillt()                           # fill cache
         return self._tFuncList                  # return value according to cache
 
+    def has_function(self, func_name):
+        self._fillt()                           # fill cache
+        return func_name in self._tFuncList     # return value according to cache
+
     def call_function(self, function_name, *function_args):
         # fill cache
         self._fillt()
 
-        # no function 
-        if function_name not in self._tFuncList:
-            return
+        assert function_name  in self._tFuncList
 
         if function_name == "src_fetch":
             return
@@ -218,6 +197,29 @@ class RepoItem:
 
         if function_name == "kernel_addon_install":
             return
+
+    def get_distfiles(self):
+        if self.has_function("src_fetch"):
+            return [os.path.join("custom-src", self.bbki_dir)]
+
+        ret = []
+        if self.has_variable("SRC_URI"):
+            for line in self.get_variable("SRC_URI").split("\n"):
+                line = line.strip()
+                if line != "":
+                    o = urllib.parse.urlparse(line)
+                    if o.scheme == "http":
+                        ret.append(("http", line, os.path.basename(line)))
+                    elif o.scheme == "ftp":
+                        ret.append(("http", line, os.path.basename(line)))
+                    else:
+                        assert False
+        if self.has_variable("SRC_URI_GIT"):
+            for line in self.get_variable("SRC_URI_GIT").split("\n"):
+                line = line.strip()
+                if line != "":
+                    ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
+        return ret
 
     def _fillt(self):
         if self._tVarDict is not None and self._tFuncList is not None:
