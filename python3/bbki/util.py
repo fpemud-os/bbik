@@ -20,6 +20,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+
+import os
 import time
 import subprocess
 
@@ -119,4 +121,3 @@ class TempChdir:
 
     def __exit__(self, type, value, traceback):
         os.chdir(self.olddir)
-

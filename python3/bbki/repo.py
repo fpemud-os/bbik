@@ -24,10 +24,11 @@
 import os
 import re
 import glob
+import pathlib
 import urllib.parse
 import robust_layer.simple_git
-from . import util
 from . import Bbki
+from .util import TempChdir, Util
 
 
 class Repo:
@@ -106,6 +107,15 @@ class RepoItem:
         return ret
 
     def __init__(self, repo):
+        self._funcDict = {
+            "src_fetch": self._callFuncSrcFetch,
+            "src_unpack": self._callFuncSrcUnpack,
+            "kernel_build": self._callFuncKernelBuild,
+            "kernel_addon_patch_kernel": self._callFuncKernelAddonPatchKernel,
+            "kernel_addon_build": self._callFuncKernelAddonBuild,
+            "kernel_addon_install": self._callFuncKernelAddonInstall,
+        }
+
         self._repo = repo
         self._itemType = None
         self._itemName = None
@@ -175,28 +185,8 @@ class RepoItem:
         return func_name in self._tFuncList     # return value according to cache
 
     def call_function(self, function_name, *function_args):
-        # fill cache
-        self._fillt()
-
-        assert function_name  in self._tFuncList
-
-        if function_name == "src_fetch":
-            return
-
-        if function_name == "src_unpack":
-            return
-
-        if function_name == "kernel_build":
-            return
-
-        if function_name == "kernel_addon_patch_kernel":
-            return
-
-        if function_name == "kernel_addon_build":
-            return
-
-        if function_name == "kernel_addon_install":
-            return
+        self._fillt()                                   # fill cache
+        self._funcDict[function_name](*function_args)
 
     def get_distfiles(self):
         if self.has_function("src_fetch"):
@@ -251,6 +241,49 @@ class RepoItem:
                     if m.group(1) in validFuncs:
                         self._tFuncList.append(m.group(1))
 
+    def _callFuncSrcFetch(self):
+        if self.has_function("src_fetch"):                                                                  # custom action
+            targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, self.get_custom_src_dir())
+            os.makedirs(targetDir, exist_ok=True)
+            _exec_bbki_file(self.bbki_file, "src_fetch", targetDir)
+        else:                                                                                               # default action
+            for vcsType, url, localFn in self.get_distfiles():
+                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
+                if vcsType in ["http", "ftp"]:
+                    if os.path.exists(localFullFn):
+                        continue
+                    robust_layer.wget.exec("-O", localFullFn, url)
+                elif vcsType == "git":
+                    robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
+                else:
+                    assert False
+
+    def _callFuncSrcUnpack(self, target_dir):
+        if self.has_function("src_unpack"):                                                                 # custom action
+
+
+        else:                                                                                               # default action
+
+
+
+
+    def _callFuncSrcFetch(self):
+        pass
+
+    def _callFuncKernelBuild(self):
+        pass
+
+    def _callFuncSrcFetch(self):
+        pass
+
+    def _callFuncKernelAddonPatchKernel(self):
+        pass
+
+    def _callFuncKernelAddonBuild(self):
+        pass
+
+    def _callFuncKernelAddonInstall(self):
+        pass
 
 
 class RepoCheckError(Exception):
@@ -281,3 +314,13 @@ def _parse_bbki_filename(filename):
         return (m.group(1), 0)
     else:
         return (m.group(1), int(m.group(3)))
+
+
+def _exec_bbki_file(item, function_name, cwd):
+    preCmd = ""
+    preCmd = "A=%s\n" % (" ".join(item.get_distfiles()))
+
+    scriptContent = pathlib.Path(item.bbki_file).read_text()
+
+    with TempChdir(cwd):
+        Util.cmdCall("/bin/bash", "-c", "%s\n%s\n%s" % (preCmd, scriptContent, function_name))
