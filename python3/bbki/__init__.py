@@ -33,7 +33,8 @@ __version__ = "0.0.1"
 
 
 from .config import Config
-from .repo import Repo
+from .repo import Repo, RepoItem
+from .kernel import KernelInstaller
 
 
 class Bbki:
@@ -75,7 +76,7 @@ class Bbki:
         return ret
 
     def get_kernel_installer(self):
-        assert False
+        return KernelInstaller(self)
 
     def get_initramfs_installer(self):
         assert False

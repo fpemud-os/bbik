@@ -217,72 +217,6 @@ class RepoItem:
             raise BbkiRepoError("fetch() and SRC_URI_GIT are mutally exclusive")
 
 
-def _format_catdir(item_type, kernel_type):
-    if item_type == Bbki.ITEM_TYPE_KERNEL:
-        return kernel_type
-    elif item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
-        return kernel_type + "-addon"
-    else:
-        assert False
-
-
-def _parse_catdir(catdir):
-    if not catdir.endswith("-addon"):
-        return (Bbki.ITEM_TYPE_KERNEL, catdir)
-    else:
-        return (Bbki.ITEM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
-
-
-def _parse_bbki_filename(filename):
-    m = re.fullmatch("(.*)(-r([0-9]+))?", filename)
-    if m.group(1) is None:
-        return (m.group(1), 0)
-    else:
-        return (m.group(1), int(m.group(3)))
-
-
-def _custom_src_dir(item):
-    return os.path.join("custom-src", item.bbki_dir)
-
-
-def _distfiles_get(item):
-    if not item.has_variable("SRC_URI"):
-        return []
-
-    assert not item.has_function("fetch")
-    ret = []
-    for line in item.get_variable("SRC_URI").split("\n"):
-        line = line.strip()
-        if line != "":
-            ret.append((line, os.path.basename(line)))
-    return ret
-
-
-def _distfiles_get_git(item):
-    if not item.has_variable("SRC_URI_GIT"):
-        return []
-
-    assert not item.has_function("fetch")
-    ret = []
-    for line in item.get_variable("SRC_URI_GIT").split("\n"):
-        line = line.strip()
-        if line != "":
-            ret.append((line, "git-src" + urllib.parse.urlparse(line).path))
-    return ret
-
-
-def _tmpdirs(item):
-    tmpRootDir = os.path.join(item._bbki.config.tmp_dir, item.bbki_dir)
-    trBuildInfoDir = os.path.join(tmpRootDir, "build-info")     # FIXME
-    trDistDir = os.path.join(tmpRootDir, "distdir")             # FIXME
-    trEmptyDir = os.path.join(tmpRootDir, "empty")              # FIXME
-    trFilesDir = os.path.join(tmpRootDir, "files")              # should be symlink
-    trHomeDir = os.path.join(tmpRootDir, "homedir")             # FIXME
-    trTmpDir = os.path.join(tmpRootDir, "temp")
-    trWorkDir = os.path.join(tmpRootDir, "work")
-    return (tmpRootDir, trTmpDir, trWorkDir)
-
-
 class _BbkiFileExecutor:
 
     @staticmethod
@@ -293,17 +227,9 @@ class _BbkiFileExecutor:
         ret.remove("get_valid_bbki_functions")
         return ret
 
-    def __init__(self, item, kernel_item=None):
-        if item.item_type == Bbki.ITEM_TYPE_KERNEL:
-            assert kernel_item is not None
-        elif item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
-            assert kernel_item is None
-        else:
-            assert False
-
+    def __init__(self, item):
         self._bbki = item._bbki
         self._item = item
-        self._kernel_item = kernel_item
         self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._item)
 
     def fetch(self):
@@ -413,31 +339,22 @@ class _BbkiFileExecutor:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
-                    Util.cmdCall("/bin/cp", "-f",
-                                "arch/%s/boot/bzImage" % (self.dstTarget.arch),
-                                os.path.join(_bootDir, self.dstTarget.kernelFile))
-                    Util.cmdCall("/bin/cp", "-f",
-                                "System.map" % (self.realSrcDir),
-                                os.path.join(_bootDir, self.dstTarget.kernelMapFilename))
-                    Util.cmdCall("/bin/cp", "-f",
-                                ".config" % (self.realSrcDir),
-                                os.path.join(_bootDir, self.dstTarget.kernel_config_filename))
-                    Util.cmdCall("/bin/cp", "-f",
-                                self.kcfgRulesTmpFile,
-                                os.path.join(_bootDir, self.dstTarget.kernel_config_rules_filename))
-
-
+                    dstTarget = BuildTarget.new_from_kernel_srcdir("amd64", self._trWorkDir)
+                    bootEntry = BootEntry(dstTarget)
+                    shutil.copy("arch/%s/boot/bzImage" % (dstTarget.arch), bootEntry.kernel_file)
+                    shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
+                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
                 else:
                     assert False
 
-    def kernel_addon_patch_kernel(self):
+    def kernel_addon_patch_kernel(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         self._ensure_tmpdir()
         if self._item.has_function("kernel_addon_patch_kernel"):                                                           
             # custom action
-            dummy, dummy, kernelDir = _tmpdirs(self._kernel_item)
+            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._item)))
@@ -452,13 +369,13 @@ class _BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def kernel_addon_build(self):
+    def kernel_addon_build(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item.has_function("kernel_addon_build"):                                                           
             # custom action
-            dummy, dummy, kernelDir = _tmpdirs(self._kernel_item)
+            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._item)))
@@ -473,7 +390,7 @@ class _BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def kernel_addon_install(self):
+    def kernel_addon_install(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
@@ -487,3 +404,69 @@ class _BbkiFileExecutor:
     def _ensure_tmpdir(self):
         os.makedirs(self._trTmpDir, exists_ok=True)
         os.makedirs(self._trWorkDir, exists_ok=True)
+
+
+def _format_catdir(item_type, kernel_type):
+    if item_type == Bbki.ITEM_TYPE_KERNEL:
+        return kernel_type
+    elif item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
+        return kernel_type + "-addon"
+    else:
+        assert False
+
+
+def _parse_catdir(catdir):
+    if not catdir.endswith("-addon"):
+        return (Bbki.ITEM_TYPE_KERNEL, catdir)
+    else:
+        return (Bbki.ITEM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
+
+
+def _parse_bbki_filename(filename):
+    m = re.fullmatch("(.*)(-r([0-9]+))?", filename)
+    if m.group(1) is None:
+        return (m.group(1), 0)
+    else:
+        return (m.group(1), int(m.group(3)))
+
+
+def _custom_src_dir(item):
+    return os.path.join("custom-src", item.bbki_dir)
+
+
+def _distfiles_get(item):
+    if not item.has_variable("SRC_URI"):
+        return []
+
+    assert not item.has_function("fetch")
+    ret = []
+    for line in item.get_variable("SRC_URI").split("\n"):
+        line = line.strip()
+        if line != "":
+            ret.append((line, os.path.basename(line)))
+    return ret
+
+
+def _distfiles_get_git(item):
+    if not item.has_variable("SRC_URI_GIT"):
+        return []
+
+    assert not item.has_function("fetch")
+    ret = []
+    for line in item.get_variable("SRC_URI_GIT").split("\n"):
+        line = line.strip()
+        if line != "":
+            ret.append((line, "git-src" + urllib.parse.urlparse(line).path))
+    return ret
+
+
+def _tmpdirs(item):
+    tmpRootDir = os.path.join(item._bbki.config.tmp_dir, item.bbki_dir)
+    trBuildInfoDir = os.path.join(tmpRootDir, "build-info")     # FIXME
+    trDistDir = os.path.join(tmpRootDir, "distdir")             # FIXME
+    trEmptyDir = os.path.join(tmpRootDir, "empty")              # FIXME
+    trFilesDir = os.path.join(tmpRootDir, "files")              # should be symlink
+    trHomeDir = os.path.join(tmpRootDir, "homedir")             # FIXME
+    trTmpDir = os.path.join(tmpRootDir, "temp")
+    trWorkDir = os.path.join(tmpRootDir, "work")
+    return (tmpRootDir, trTmpDir, trWorkDir)

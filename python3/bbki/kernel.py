@@ -26,6 +26,7 @@ import robust_layer.simple_git
 from . import Bbki
 from .util import Util
 from .util import TempChdir
+from .repo import _BbkiFileExecutor
 
 
 class KernelInstaller:
@@ -33,28 +34,29 @@ class KernelInstaller:
     def __init__(self, bbki, kernel_config_rules):
         self._bbki = bbki
 
-    def fetch_kernel(self, item):
-        assert item.item_type == Bbki.ITEM_TYPE_KERNEL
-        self._fetchItem(item)
+    def fetch_kernel(self, kernel_item):
+        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
+        _BbkiFileExecutor(kernel_item).fetch()
 
-    def fetch_kernel_addon(self, addon_item):
-        assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-        self._fetchItem(addon_item)
+    def fetch_kernel_addon(self, kernel_addon_item):
+        assert kernel_addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
+        _BbkiFileExecutor(kernel_addon_item).fetch()
 
-    def extract_kernel(self, item):
-        assert item.item_type == Bbki.ITEM_TYPE_KERNEL
-        self._extractItem(item)
+    def extract_kernel(self, kernel_item):
+        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
+        _BbkiFileExecutor(kernel_item).src_unpack()
 
-    def extract_kernel_addon(self, addon_item):
-        assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-        self._extractItem(addon_item)
+    def extract_kernel_addon(self, kernel_addon_item):
+        assert kernel_addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
+        _BbkiFileExecutor(kernel_addon_item).src_unpack()
 
-    def patch(self, addon_item_list):
-        for addon_item in addon_item_list:
+    def patch(self, kernel_item, kernel_addon_item_list):
+        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
+        for addon_item in kernel_addon_item_list:
             assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-            addon_item.call_function("addon_patch_kernel")
+            _BbkiFileExecutor(addon_item).kernel_addon_patch_kernel(kernel_item)
 
-    def generate_dotcfg(self):
+    def generate_dotcfg(self, kernel_item):
         # head rules
         buf = ""
         if True:
@@ -132,13 +134,10 @@ class KernelInstaller:
         # "make olddefconfig" may change the .config file further
         self._makeAuxillary(self.realSrcDir, "olddefconfig")
 
-    def build_kernel(self):
+    def build_kernel(self, kernel_item):
         pass
 
-    def build_addon(self):
-        pass
-
-    def build_addons(self):
+    def build_addon(self, kernel_item, kernel_addon_item):
         pass
 
     def cleanup(self):
@@ -147,7 +146,8 @@ class KernelInstaller:
 
 
 
-class Cleaner:
+
+class KernelCleaner:
 
     def __init__(self):
         pass
