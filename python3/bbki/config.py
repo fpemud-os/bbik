@@ -23,8 +23,8 @@
 
 import os
 import re
-from . import util
 from . import Bbki
+from .util import Util
 
 
 class Config:
@@ -103,11 +103,11 @@ class Config:
         # fill cache
         if self._tKernelType is None:
             if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.kernel_type
-                ret = util.readListFile(self._profileKernelTypeFile)
+                ret = Util.readListFile(self._profileKernelTypeFile)
                 if len(ret) > 0:
                     self._tKernelType = ret[0]
             if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.kernel_type
-                ret = util.readListFile(self._cfgKernelTypeFile)
+                ret = Util.readListFile(self._cfgKernelTypeFile)
                 if len(ret) > 0:
                     self._tKernelType = ret[0]
 
@@ -124,7 +124,7 @@ class Config:
             ret = set()
             if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.kernel_addon
                 for fn in os.listdir(self._profileKernelAddonDir):
-                    for line in util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
+                    for line in Util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
                         if not line.startswith("-"):
                             ret.add(line)
                         else:
@@ -132,7 +132,7 @@ class Config:
                             ret.remove(line)
             if os.path.exists(self._cfgKernelAddonDir):                 # step2: use /etc/bbki/bbki.kernel_addon
                 for fn in os.listdir(self._cfgKernelAddonDir):
-                    for line in util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
+                    for line in Util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
                         if not line.startswith("-"):
                             ret.add(line)
                         else:
@@ -160,7 +160,7 @@ class Config:
         for buf in self._tMaskBufList:
             m = re.search("^>%s-(.*)$" % (item_fullname), buf, re.M)
             if m is not None:
-                if util.compareVerstr(verstr, m.group(1)) > 0:
+                if Util.compareVerstr(item_verstr, m.group(1)) > 0:
                     return False
         return True
 

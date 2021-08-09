@@ -22,7 +22,7 @@
 
 
 import os
-from .common import BuildTarget
+from .kernel import BuildTarget
 
 
 class BootEntry:
