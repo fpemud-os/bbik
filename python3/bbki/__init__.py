@@ -102,3 +102,9 @@ class BbkiConfigError(Exception):
 
 class BbkiRepoError(Exception):
     pass
+
+
+class RepoCheckError(Exception):
+
+    def __init__(self, message):
+        self.message = message

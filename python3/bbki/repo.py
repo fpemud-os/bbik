@@ -28,6 +28,7 @@ import pathlib
 import urllib.parse
 import robust_layer.simple_git
 from . import Bbki
+from . import BbkiRepoError
 from .util import TempChdir, Util
 
 
@@ -56,7 +57,7 @@ class Repo:
             if autofix:
                 self.create()
             else:
-                raise RepoCheckError("repository does not exist")
+                raise BbkiRepoError("repository does not exist")
 
     # def query_items(self):
     #     ret = []
@@ -107,15 +108,7 @@ class RepoItem:
         return ret
 
     def __init__(self, repo):
-        self._funcDict = {
-            "src_fetch": self._callFuncSrcFetch,
-            "src_unpack": self._callFuncSrcUnpack,
-            "kernel_build": self._callFuncKernelBuild,
-            "kernel_addon_patch_kernel": self._callFuncKernelAddonPatchKernel,
-            "kernel_addon_build": self._callFuncKernelAddonBuild,
-            "kernel_addon_install": self._callFuncKernelAddonInstall,
-        }
-
+        self._bbki = repo._bbki
         self._repo = repo
         self._itemType = None
         self._itemName = None
@@ -184,32 +177,14 @@ class RepoItem:
         self._fillt()                           # fill cache
         return func_name in self._tFuncList     # return value according to cache
 
-    def call_function(self, function_name, *function_args):
-        self._fillt()                                   # fill cache
-        self._funcDict[function_name](*function_args)
-
     def get_distfiles(self):
         if self.has_function("src_fetch"):
-            return [os.path.join("custom-src", self.bbki_dir)]
-
-        ret = []
-        if self.has_variable("SRC_URI"):
-            for line in self.get_variable("SRC_URI").split("\n"):
-                line = line.strip()
-                if line != "":
-                    o = urllib.parse.urlparse(line)
-                    if o.scheme == "http":
-                        ret.append(("http", line, os.path.basename(line)))
-                    elif o.scheme == "ftp":
-                        ret.append(("http", line, os.path.basename(line)))
-                    else:
-                        assert False
-        if self.has_variable("SRC_URI_GIT"):
-            for line in self.get_variable("SRC_URI_GIT").split("\n"):
-                line = line.strip()
-                if line != "":
-                    ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
-        return ret
+            return [_custom_src_dir(self)]
+        else:
+            ret = []
+            ret += [localFn for url, localFn in _distfiles_get(self)]
+            ret += [localFn for url, localFn in _distfiles_get_git(self)]
+            return ret
 
     def _fillt(self):
         if self._tVarDict is not None and self._tFuncList is not None:
@@ -227,69 +202,19 @@ class RepoItem:
                         v = v[1:-1]
                     self._tVarDict[k] = v
 
-        validFuncs = [
-            "src_fetch", "src_unpack",
-            "kernel_build",
-            "kernel_addon_patch_kernel", "kernel_addon_build", "kernel_addon_install",
-        ]
         self._tFuncList = []
         with open(self.bbki_file) as f:
             for line in f.split("\n"):
                 line = line.rstrip()
                 m = re.fullmatch(r'^(\S+)\(\) {', line)
                 if m is not None:
-                    if m.group(1) in validFuncs:
+                    if m.group(1) in _BbkiFileExecutor.get_valid_bbki_functions():
                         self._tFuncList.append(m.group(1))
 
-    def _callFuncSrcFetch(self):
-        if self.has_function("src_fetch"):                                                                  # custom action
-            targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, self.get_custom_src_dir())
-            os.makedirs(targetDir, exist_ok=True)
-            _exec_bbki_file(self.bbki_file, "src_fetch", targetDir)
-        else:                                                                                               # default action
-            for vcsType, url, localFn in self.get_distfiles():
-                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
-                if vcsType in ["http", "ftp"]:
-                    if os.path.exists(localFullFn):
-                        continue
-                    robust_layer.wget.exec("-O", localFullFn, url)
-                elif vcsType == "git":
-                    robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
-                else:
-                    assert False
-
-    def _callFuncSrcUnpack(self, target_dir):
-        if self.has_function("src_unpack"):                                                                 # custom action
-
-
-        else:                                                                                               # default action
-
-
-
-
-    def _callFuncSrcFetch(self):
-        pass
-
-    def _callFuncKernelBuild(self):
-        pass
-
-    def _callFuncSrcFetch(self):
-        pass
-
-    def _callFuncKernelAddonPatchKernel(self):
-        pass
-
-    def _callFuncKernelAddonBuild(self):
-        pass
-
-    def _callFuncKernelAddonInstall(self):
-        pass
-
-
-class RepoCheckError(Exception):
-
-    def __init__(self, message):
-        self.message = message
+        if "src_fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
+            raise BbkiRepoError("src_fetch() and SRC_URI are mutally exclusive")
+        if "src_fetch" in self._tFuncList and "SRC_URI_GIT" in self._tVarDict:
+            raise BbkiRepoError("src_fetch() and SRC_URI_GIT are mutally exclusive")
 
 
 def _format_catdir(item_type, kernel_type):
@@ -316,11 +241,124 @@ def _parse_bbki_filename(filename):
         return (m.group(1), int(m.group(3)))
 
 
-def _exec_bbki_file(item, function_name, cwd):
-    preCmd = ""
-    preCmd = "A=%s\n" % (" ".join(item.get_distfiles()))
+def _custom_src_dir(item):
+    return os.path.join("custom-src", item.bbki_dir)
 
-    scriptContent = pathlib.Path(item.bbki_file).read_text()
 
-    with TempChdir(cwd):
-        Util.cmdCall("/bin/bash", "-c", "%s\n%s\n%s" % (preCmd, scriptContent, function_name))
+def _distfiles_get(item):
+    if not item.has_variable("SRC_URI"):
+        return []
+
+    assert not item.has_function("src_fetch")
+    ret = []
+    for line in item.get_variable("SRC_URI").split("\n"):
+        line = line.strip()
+        if line != "":
+            o = urllib.parse.urlparse(line)
+            if o.scheme == "http":
+                ret.append((line, os.path.basename(line)))
+            elif o.scheme == "ftp":
+                ret.append((line, os.path.basename(line)))
+            else:
+                assert False
+    return ret
+
+
+def _distfiles_get_git(item):
+    if not item.has_variable("SRC_URI_GIT"):
+        return []
+
+    assert not item.has_function("src_fetch")
+    ret = []
+    for line in item.get_variable("SRC_URI_GIT").split("\n"):
+        line = line.strip()
+        if line != "":
+            ret.append((line, "git-src" + urllib.parse.urlparse(line).path))
+    return ret
+
+
+class _BbkiFileExecutor:
+
+    @staticmethod
+    def get_valid_bbki_functions():
+        ret = dir(_BbkiFileExecutor)
+        ret = [m for m in ret if callable(getattr(_BbkiFileExecutor, m))]
+        ret = [m for m in ret if not m.startswith("_")]
+        ret.remove("get_valid_bbki_functions")
+        return ret
+
+    def __init__(self, item):
+        self._bbki = item._bbki
+        self._item = item
+
+    def src_fetch(self):
+        if self._item.has_function("src_fetch"):                                                                
+            # custom action
+            targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, _custom_src_dir(self._item))
+            os.makedirs(targetDir, exist_ok=True)
+            with TempChdir(targetDir):
+                cmd = ""
+                cmd += "A=%s\n" % (" ".join(_distfiles_get(self._item)))
+                cmd += "\n"
+                cmd += "source %s\n" % (self._item.bbki_file)
+                cmd += "\n"
+                cmd += "src_fetch\n"
+                Util.cmdCall("/bin/bash", "-c", cmd)
+        else:                                                                                                   
+            # default action
+            for url, localFn in _distfiles_get(self._item):
+                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
+                if not os.path.exists(localFullFn):
+                    robust_layer.wget.exec("-O", localFullFn, url)
+            for url, localFn in _distfiles_get_git(self._item):
+                robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
+
+    def src_unpack(self):
+        if self._item.has_function("src_unpack"):                                                           
+            # custom action
+            pass
+        else:                                                                                               
+            # default action
+            pass
+
+    def kernel_build(self):
+        if self._item.has_function("kernel_build"):                                                           
+            # custom action
+            pass
+        else:                                                                                               
+            # default action
+            pass
+
+    def kernel_addon_patch_kernel(self):
+        if self._item.has_function("kernel_addon_patch_kernel"):                                                           
+            # custom action
+            pass
+        else:                                                                                               
+            # no-op as the default action
+            pass
+
+    def kernel_addon_build(self):
+        if self._item.has_function("kernel_addon_build"):                                                           
+            # custom action
+            pass
+        else:                                                                                               
+            # no-op as the default action
+            pass
+    
+    def kernel_addon_install(self):
+        if self._item.has_function("kernel_addon_install"):                                                           
+            # custom action
+            pass
+        else:                                                                                               
+            # no-op as the default action
+            pass
+
+    def _exec_bbki_file(self, item, function_name, cwd):
+        with TempChdir(cwd):
+            cmd = ""
+            cmd += "A=%s\n" % (" ".join(_distfiles_get(item)))
+            cmd += "\n"
+            cmd += "source %s\n" % (self._item.bbki_file)
+            cmd += "\n"
+            cmd += "%s\n" % (function_name)
+            Util.cmdCall("/bin/bash", "-c", cmd)
