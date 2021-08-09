@@ -384,10 +384,51 @@ class _BbkiFileExecutor:
         else:                                                                                               
             # default action
             with TempChdir(self._trWorkDir):
-                optList = []
-                optList.append("CFLAGS=\"-Wno-error\"")
-                optList.append(self._bbki.config.get_make_conf_variable("MAKEOPTS"))
-                Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
+                if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
+                    optList = []
+                    optList.append("CFLAGS=\"-Wno-error\"")
+                    optList.append(self._bbki.config.get_make_conf_variable("MAKEOPTS"))
+                    Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
+                    Util.shellCall("/usr/bin/make %s modules" % (" ".join(optList)))
+                else:
+                    assert False
+
+    def kernel_install(self):
+        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL:
+            raise NotImplementedError()
+
+        self._ensure_tmpdir()
+        if self._item.has_function("kernel_build"):                                                           
+            # custom action
+            with TempChdir(self._trWorkDir):
+                cmd = ""
+                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._item)))
+                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (self._item.bbki_file)
+                cmd += "\n"
+                cmd += "kernel_install\n"
+                Util.cmdCall("/bin/bash", "-c", cmd)
+        else:                                                                                               
+            # default action
+            with TempChdir(self._trWorkDir):
+                if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
+                    Util.cmdCall("/bin/cp", "-f",
+                                "arch/%s/boot/bzImage" % (self.dstTarget.arch),
+                                os.path.join(_bootDir, self.dstTarget.kernelFile))
+                    Util.cmdCall("/bin/cp", "-f",
+                                "System.map" % (self.realSrcDir),
+                                os.path.join(_bootDir, self.dstTarget.kernelMapFilename))
+                    Util.cmdCall("/bin/cp", "-f",
+                                ".config" % (self.realSrcDir),
+                                os.path.join(_bootDir, self.dstTarget.kernel_config_filename))
+                    Util.cmdCall("/bin/cp", "-f",
+                                self.kcfgRulesTmpFile,
+                                os.path.join(_bootDir, self.dstTarget.kernel_config_rules_filename))
+
+
+                else:
+                    assert False
 
     def kernel_addon_patch_kernel(self):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
@@ -428,6 +469,17 @@ class _BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_addon_build\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
+        else:                                                                                               
+            # no-op as the default action
+            pass
+
+    def kernel_addon_install(self):
+        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+            raise NotImplementedError()
+
+        if self._item.has_function("kernel_addon_install"):                                                           
+            # custom action
+            pass
         else:                                                                                               
             # no-op as the default action
             pass
