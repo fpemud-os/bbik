@@ -25,6 +25,7 @@ import os
 import re
 import glob
 import shutil
+import inspect
 import urllib.parse
 import robust_layer.simple_git
 from . import Bbki
@@ -221,19 +222,33 @@ class _BbkiFileExecutor:
 
     @staticmethod
     def get_valid_bbki_functions():
-        ret = dir(_BbkiFileExecutor)
-        ret = [m for m in ret if callable(getattr(_BbkiFileExecutor, m))]
-        ret = [m for m in ret if not m.startswith("_")]
-        ret.remove("get_valid_bbki_functions")
-        return ret
+        return [m[len("exec_"):] for m in dir(_BbkiFileExecutor) if not m.startswith("exec_")]
 
     def __init__(self, item):
         self._bbki = item._bbki
         self._item = item
-        self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._item)
 
-    def fetch(self):
-        if self._item.has_function("fetch"):                                                                
+    def create_tmpdirs(self):
+        self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._item)
+        if os.path.exists(self._tmpRootDir):
+            robust_layer.simple_fops.rm(self._tmpRootDir)
+        os.makedirs(self._trTmpDir)
+        os.makedirs(self._trWorkDir)
+
+    def remove_tmpdirs(self):
+        robust_layer.simple_fops.rm(self._tmpRootDir)
+        del self._trWorkDir
+        del self._trTmpDir
+        del self._tmpRootDir
+
+    def get_workdir(self):
+        return self._trWorkDir
+
+    def get_tmpdir(self):
+        return self._trTmpDir
+
+    def exec_fetch(self):
+        if self._item_has_me():                                                                
             # custom action
             targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, _custom_src_dir(self._item))
             os.makedirs(targetDir, exist_ok=True)
@@ -252,9 +267,8 @@ class _BbkiFileExecutor:
             for url, localFn in _distfiles_get_git(self._item):
                 robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
 
-    def src_unpack(self):
-        self._ensure_tmpdir()
-        if self._item.has_function("src_unpack"):                                                           
+    def exec_src_unpack(self):
+        if self._item_has_me():                                                                
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -274,9 +288,8 @@ class _BbkiFileExecutor:
                 except ValueError:
                     pass
 
-    def src_prepare(self):
-        self._ensure_tmpdir()
-        if self._item.has_function("src_prepare"):                                                           
+    def exec_src_prepare(self):
+        if self._item_has_me():                                                                
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -291,12 +304,11 @@ class _BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def kernel_build(self):
+    def exec_kernel_build(self):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL:
             raise NotImplementedError()
 
-        self._ensure_tmpdir()
-        if self._item.has_function("kernel_build"):                                                           
+        if self._item_has_me():                                                                
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -319,12 +331,11 @@ class _BbkiFileExecutor:
                 else:
                     assert False
 
-    def kernel_install(self):
+    def exec_kernel_install(self):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL:
             raise NotImplementedError()
 
-        self._ensure_tmpdir()
-        if self._item.has_function("kernel_build"):                                                           
+        if self._item_has_me():                                                                
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -347,12 +358,11 @@ class _BbkiFileExecutor:
                 else:
                     assert False
 
-    def kernel_addon_patch_kernel(self, kernel_item):
+    def exec_kernel_addon_patch_kernel(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        self._ensure_tmpdir()
-        if self._item.has_function("kernel_addon_patch_kernel"):                                                           
+        if self._item_has_me():                                                                
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
@@ -369,11 +379,32 @@ class _BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def kernel_addon_build(self, kernel_item):
+    def exec_kernel_addon_contribute_config_rules(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item.has_function("kernel_addon_build"):                                                           
+        if self._item_has_me():                                                                
+            # custom action
+            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
+            with TempChdir(kernelDir):
+                cmd = ""
+                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._item)))
+                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (self._item.bbki_file)
+                cmd += "\n"
+                cmd += "kernel_addon_patch_kernel\n"
+                Util.cmdCall("/bin/bash", "-c", cmd)
+        else:                                                                                               
+            # no-op as the default action
+            pass
+
+    def exec_kernel_addon_build(self, kernel_item):
+        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+            raise NotImplementedError()
+
+        if self._item_has_me():                                                                
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(self._trWorkDir):
@@ -390,20 +421,21 @@ class _BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def kernel_addon_install(self, kernel_item):
+    def exec_kernel_addon_install(self, kernel_item):
         if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item.has_function("kernel_addon_install"):                                                           
+        if self._item_has_me():                                                                
             # custom action
             pass
         else:                                                                                               
             # no-op as the default action
             pass
 
-    def _ensure_tmpdir(self):
-        os.makedirs(self._trTmpDir, exists_ok=True)
-        os.makedirs(self._trWorkDir, exists_ok=True)
+    def _item_has_me(self):
+        parent_func_name = inspect.getouterframes(inspect.currentframe())[1].function
+        assert parent_func_name.startswith("exec_")
+        return self._item.has_function(parent_func_name[len("exec_"):])
 
 
 def _format_catdir(item_type, kernel_type):

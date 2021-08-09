@@ -21,45 +21,191 @@
 # THE SOFTWARE.
 
 import os
-import robust_layer.wget
-import robust_layer.simple_git
-from . import Bbki
+import re
+import robust_layer.simple_fops
 from .util import Util
 from .util import TempChdir
 from .repo import _BbkiFileExecutor
 
 
+class BuildTarget:
+
+    def __init__(self):
+        self._arch = None
+        self._verstr = None
+
+    @property
+    def name(self):
+        # string, eg: "linux-x86_64-3.9.11-gentoo-r1"
+        return "linux-" + self._arch + "-" + self._verstr
+
+    @property
+    def postfix(self):
+        # string, eg: "x86_64-3.9.11-gentoo-r1"
+        return self._arch + "-" + self._verstr
+
+    @property
+    def arch(self):
+        # string, eg: "x86_64".
+        return self._arch
+
+    @property
+    def src_arch(self):
+        # FIXME: what's the difference with arch?
+
+        if self._arch == "i386" or self._arch == "x86_64":
+            return "x86"
+        elif self._arch == "sparc32" or self._arch == "sparc64":
+            return "sparc"
+        elif self._arch == "sh":
+            return "sh64"
+        else:
+            return self._arch
+
+    @property
+    def verstr(self):
+        # string, eg: "3.9.11-gentoo-r1"
+        return self._verstr
+
+    @property
+    def ver(self):
+        # string, eg: "3.9.11"
+        try:
+            return self._verstr[:self._verstr.index("-")]
+        except ValueError:
+            return self._verstr
+
+    # deprecated
+    @property
+    def kernel_filename(self):
+        return "kernel-" + self.postfix
+
+    # deprecated
+    @property
+    def kernel_config_filename(self):
+        return "config-" + self.postfix
+
+    # deprecated
+    @property
+    def kernel_config_rules_filename(self):
+        return "config-" + self.postfix + ".rules"
+
+    # deprecated
+    # FIXME: do we really need this?
+    @property
+    def kernelMapFilename(self):
+        return "System.map-" + self.postfix     
+
+    # deprecated
+    # FIXME: do we really need this?
+    @property
+    def kernelSrcSignatureFile(self):
+        return "signature-" + self.postfix      
+
+    @property
+    def initrd_filename(self):
+        return "initramfs-" + self.postfix
+
+    # deprecated
+    @property
+    def initrd_tar_filename(self):
+        return "initramfs-files-" + self.postfix + ".tar.bz2"
+
+    @staticmethod
+    def new_from_postfix(postfix):
+        # postfix example: x86_64-3.9.11-gentoo-r1
+        partList = postfix.split("-")
+        if len(partList) < 2:
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
+            raise ValueError("illegal postfix")
+
+        ret = BuildTarget()
+        ret._arch = partList[0]
+        ret._verstr = "-".join(partList[1:])
+        return ret
+
+    @staticmethod
+    def new_from_kernel_srcdir(arch, kernel_srcdir):
+        version = None
+        patchlevel = None
+        sublevel = None
+        extraversion = None
+        with open(os.path.join(kernel_srcdir, "Makefile")) as f:
+            buf = f.read()
+
+            m = re.search("VERSION = ([0-9]+)", buf, re.M)
+            if m is None:
+                raise ValueError("illegal kernel source directory")
+            version = int(m.group(1))
+
+            m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
+            if m is None:
+                raise ValueError("illegal kernel source directory")
+            patchlevel = int(m.group(1))
+
+            m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
+            if m is None:
+                raise ValueError("illegal kernel source directory")
+            sublevel = int(m.group(1))
+
+            m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
+            if m is not None:
+                extraversion = m.group(1)
+
+        ret = BuildTarget()
+        ret._arch = arch
+        if extraversion is not None:
+            ret._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
+        else:
+            ret._verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
+        return ret
+
+
 class KernelInstaller:
 
-    def __init__(self, bbki, kernel_config_rules):
+    def __init__(self, bbki, kernel_item, kernel_addon_item_list):
         self._bbki = bbki
 
-    def fetch_kernel(self, kernel_item):
-        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
-        _BbkiFileExecutor(kernel_item).fetch()
+        self._kernelItem = kernel_item
+        self._addonItemList = kernel_addon_item_list
 
-    def fetch_kernel_addon(self, kernel_addon_item):
-        assert kernel_addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-        _BbkiFileExecutor(kernel_addon_item).fetch()
+        self._executorDict = dict()
+        self._executorDict[kernel_item] = _BbkiFileExecutor(kernel_item)
+        for item in kernel_addon_item_list:
+            self._executorDict[item] = _BbkiFileExecutor(item)
 
-    def extract_kernel(self, kernel_item):
-        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
-        _BbkiFileExecutor(kernel_item).src_unpack()
+        # create tmpdirs
+        self._executorDict[self._kernelItem].create_tmpdirs()
+        for item in self._addonItemList:
+            self._executorDict[item].create_tmpdirs()
 
-    def extract_kernel_addon(self, kernel_addon_item):
-        assert kernel_addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-        _BbkiFileExecutor(kernel_addon_item).src_unpack()
+    def dispose(self):
+        for item in reversed(self._addonItemList):
+            self._executorDict[item].remove_tmpdirs()
+        self._executorDict[self._kernelItem].remove_tmpdirs()
 
-    def patch(self, kernel_item, kernel_addon_item_list):
-        assert kernel_item.item_type == Bbki.ITEM_TYPE_KERNEL
-        for addon_item in kernel_addon_item_list:
-            assert addon_item.item_type == Bbki.ITEM_TYPE_KERNEL_ADDON
-            _BbkiFileExecutor(addon_item).kernel_addon_patch_kernel(kernel_item)
+    def unpack(self):
+        self._executorDict[self._kernelItem].src_unpack()
+        for item in self._addonItemList:
+            self._executorDict[item].exec_src_unpack()
 
-    def generate_dotcfg(self, kernel_item):
+    def patch_kernel(self):
+        for addon_item in self._addonItemList:
+            self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelItem)
+
+    def generate_kernel_dotcfg(self):
+        rulesDict = dict()
+        workDir = self._executorDict[self._kernelItem].get_workdir()
+        kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
+        dotCfgFile = os.path.join(workDir, ".config")
+
         # head rules
-        buf = ""
         if True:
+            buf = ""
+
             # default hostname
             buf += "DEFAULT_HOSTNAME=\"(none)\"\n"
             buf += "\n"
@@ -92,13 +238,6 @@ class KernelInstaller:
             buf += "KEY_DH_OPERATIONS=y\n"
             buf += "\n"
 
-            # android features need by anbox program
-            if "anbox" in self._cfg.get_kernel_use_flag():
-                buf += "[symbols:/Device drivers/Android]=y\n"
-                buf += "STAGING=y\n"
-                buf += "ASHMEM=y\n"
-                buf += "\n"
-
             # debug feature
             if True:
                 # killing CONFIG_VT is failed for now
@@ -106,8 +245,6 @@ class KernelInstaller:
                 buf += "[symbols:VT]=y\n"
                 buf += "[symbols:/Device Drivers/Graphics support/Console display driver support]=y\n"
                 buf += "\n"
-            if self.trickDebug:
-                pass
 
             # symbols we dislike
             buf += "[debugging-symbols:/]=n\n"
@@ -117,34 +254,37 @@ class KernelInstaller:
             buf += "[dangerous-symbols:/]=n\n"
             buf += "\n"
 
+            rulesDict["head"] = buf
+
+        # addon rules
+        for addon_item in self._addonItemList:
+            buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
+            rulesDict[addon_item.name] = buf
+
         # generate rules file
-        self._generateKernelCfgRulesFile(self.kcfgRulesTmpFile,
-                                         {"head": buf},
-                                         self.kernelCfgRules)
+        _generateKernelCfgRulesFile(kcfgRulesTmpFile, rulesDict)
 
         # debug feature
         if True:
             # killing CONFIG_VT is failed for now
-            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (kcfgRulesTmpFile))
 
         # generate the real ".config"
-        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
-                       self.realSrcDir, self.kcfgRulesTmpFile, self.dotCfgFile)
+        # FIXME
+        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py", workDir, kcfgRulesTmpFile, dotCfgFile)
 
         # "make olddefconfig" may change the .config file further
-        self._makeAuxillary(self.realSrcDir, "olddefconfig")
+        with TempChdir(workDir):
+            Util.shellCall("/usr/bin/make olddefconfig")
 
-    def build_kernel(self, kernel_item):
-        pass
+    def build_kernel(self):
+        self._executorDict[self._kernelItem].exec_kernel_build()
+        for item in self._addonItemList:
+            self._executorDict[item].exec_kernel_addon_build()
 
-    def build_addon(self, kernel_item, kernel_addon_item):
-        pass
-
-    def cleanup(self):
-        pass
-
-
-
+        self._executorDict[self._kernelItem].exec_kernel_install()
+        for item in self._addonItemList:
+            self._executorDict[item].exec_kernel_addon_install()
 
 
 class KernelCleaner:
@@ -163,6 +303,18 @@ class KernelCleaner:
             return ret
         else:
             return []
+
+
+def _generateKernelCfgRulesFile(filename, *kargs):
+    with open(filename, "w") as f:
+        for kcfgRulesMap in kargs:
+            for name, buf in kcfgRulesMap.items():
+                f.write("## %s ######################\n" % (name))
+                f.write("\n")
+                f.write(buf)
+                f.write("\n")
+                f.write("\n")
+                f.write("\n")
 
 
 
@@ -262,313 +414,3 @@ if len(bootFileList) > 0 or len(moduleFileList) > 0 or len(firmwareFileList) > 0
 else:
     ret = 0
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class KernelBuilder:
-
-    def __init__(self, bbki_config, kcache_path, patch_path, kernel_config_rules, temp_directory):
-        assert len(os.listdir(temp_directory)) == 0
-
-        self._cfg = bbki_config
-        self.kcache = DistfilesCache(kcache_path, patch_path)
-
-        self.kernelCfgRules = kernel_config_rules
-
-        self.tmpDir = temp_directory
-        self.ksrcTmpDir = os.path.join(self.tmpDir, "ksrc")
-        self.firmwareTmpDir = os.path.join(self.tmpDir, "firmware")
-        self.wirelessRegDbTmpDir = os.path.join(self.tmpDir, "wireless-regdb")
-        self.kcfgRulesTmpFile = os.path.join(self.tmpDir, "kconfig.rules")
-
-        self.kernelVer = self.kcache.getLatestKernelVersion()
-        self.firmwareVer = self.kcache.getLatestFirmwareVersion()
-        self.wirelessRegDbVer = self.kcache.getLatestWirelessRegDbVersion()
-
-        self.kernelFile = self.kcache.getKernelFileByVersion(self.kernelVer)
-        if not os.path.exists(self.kernelFile):
-            raise Exception("\"%s\" does not exist" % (self.kernelFile))
-
-        self.firmwareFile = self.kcache.getFirmwareFileByVersion(self.firmwareVer)
-        if not os.path.exists(self.firmwareFile):
-            raise Exception("\"%s\" does not exist" % (self.firmwareFile))
-
-        self.wirelessRegDbFile = self.kcache.getWirelessRegDbFileByVersion(self.wirelessRegDbVer)
-        if not os.path.exists(self.wirelessRegDbFile):
-            raise Exception("\"%s\" does not exist" % (self.wirelessRegDbFile))
-
-        self.realSrcDir = None
-        self.dotCfgFile = None
-        self.dstTarget = None
-        self.srcSignature = None
-
-        # trick: kernel debug is seldomly needed
-        self.trickDebug = False
-
-    def extract(self):
-        # extract kernel source
-        os.makedirs(self.ksrcTmpDir)
-        Util.cmdCall("/bin/tar", "-xJf", self.kernelFile, "-C", self.ksrcTmpDir)
-        realSrcDir = os.path.join(self.ksrcTmpDir, os.listdir(self.ksrcTmpDir)[0])
-
-        # patch kernel source
-        for name in self.kcache.getPatchList():
-            fullfn = self.kcache.getPatchExecFile(name)
-            out = None
-            with TempChdir(realSrcDir):
-                assert fullfn.endswith(".py")
-                out = Util.cmdCall("python3", fullfn)     # FIXME, should respect shebang
-            if out == "outdated":
-                print("WARNING: Kernel patch \"%s\" is outdated." % (name))
-            elif out == "":
-                pass
-            else:
-                raise Exception("Kernel patch \"%s\" exits with error \"%s\"." % (name, out))
-
-        # extract kernel firmware
-        os.makedirs(self.firmwareTmpDir)
-        Util.cmdCall("/bin/tar", "-xJf", self.firmwareFile, "-C", self.firmwareTmpDir)
-
-        # extract wireless regulatory database
-        os.makedirs(self.wirelessRegDbTmpDir)
-        Util.cmdCall("/bin/tar", "-xJf", self.wirelessRegDbFile, "-C", self.wirelessRegDbTmpDir)
-
-        # get real source directory
-        self.realSrcDir = realSrcDir
-        self.dotCfgFile = os.path.join(self.realSrcDir, ".config")
-        self.dstTarget = BuildTarget.new_from_kernel_srcdir(Util.getHostArch(), self.realSrcDir)
-
-        # calculate source signature
-        self.srcSignature = "kernel: %s\n" % (Util.hashDir(self.realSrcDir))
-        for name in self.kcache.getExtraDriverList():
-            sourceDir = self.kcache.getExtraDriverSourceDir(name)
-            self.srcSignature += "edrv-src-%s: %s\n" % (name, Util.hashDir(sourceDir))
-
-    def buildStepGenerateDotCfg(self):
-        # head rules
-        buf = ""
-        if True:
-            # default hostname
-            buf += "DEFAULT_HOSTNAME=\"(none)\"\n"
-            buf += "\n"
-
-            # deprecated symbol, but many drivers still need it
-            buf += "FW_LOADER=y\n"
-            buf += "\n"
-
-            # atk9k depends on it
-            buf += "DEBUG_FS=y\n"
-            buf += "\n"
-
-            # H3C CAS 2.0 still use legacy virtio device, so it is needed
-            buf += "VIRTIO_PCI_LEGACY=y\n"
-            buf += "\n"
-
-            # we still need iptables
-            buf += "NETFILTER_XTABLES=y\n"
-            buf += "IP_NF_IPTABLES=y\n"
-            buf += "IP_NF_ARPTABLES=y\n"
-            buf += "\n"
-
-            # it seems we still need this, why?
-            buf += "FB=y\n"
-            buf += "DRM_FBDEV_EMULATION=y\n"
-            buf += "\n"
-
-            # net-wireless/iwd needs them, FIXME
-            buf += "PKCS8_PRIVATE_KEY_PARSER=y\n"
-            buf += "KEY_DH_OPERATIONS=y\n"
-            buf += "\n"
-
-            # android features need by anbox program
-            if "anbox" in self._cfg.get_kernel_use_flag():
-                buf += "[symbols:/Device drivers/Android]=y\n"
-                buf += "STAGING=y\n"
-                buf += "ASHMEM=y\n"
-                buf += "\n"
-
-            # debug feature
-            if True:
-                # killing CONFIG_VT is failed for now
-                buf += "TTY=y\n"
-                buf += "[symbols:VT]=y\n"
-                buf += "[symbols:/Device Drivers/Graphics support/Console display driver support]=y\n"
-                buf += "\n"
-            if self.trickDebug:
-                pass
-
-            # symbols we dislike
-            buf += "[debugging-symbols:/]=n\n"
-            buf += "[deprecated-symbols:/]=n\n"
-            buf += "[workaround-symbols:/]=n\n"
-            buf += "[experimental-symbols:/]=n\n"
-            buf += "[dangerous-symbols:/]=n\n"
-            buf += "\n"
-
-        # generate rules file
-        self._generateKernelCfgRulesFile(self.kcfgRulesTmpFile,
-                                         {"head": buf},
-                                         self.kernelCfgRules)
-
-        # debug feature
-        if True:
-            # killing CONFIG_VT is failed for now
-            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (self.kcfgRulesTmpFile))
-        if self.trickDebug:
-            Util.shellCall("/bin/sed -i 's/=m,y/=y/g' %s" % (self.kcfgRulesTmpFile))
-            Util.shellCall("/bin/sed -i 's/=m/=y/g' %s" % (self.kcfgRulesTmpFile))
-
-        # generate the real ".config"
-        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py",
-                       self.realSrcDir, self.kcfgRulesTmpFile, self.dotCfgFile)
-
-        # "make olddefconfig" may change the .config file further
-        self._makeAuxillary(self.realSrcDir, "olddefconfig")
-
-    def buildStepMakeInstall(self):
-        self._makeMain(self.realSrcDir)
-        Util.cmdCall("/bin/cp", "-f",
-                       "%s/arch/%s/boot/bzImage" % (self.realSrcDir, self.dstTarget.arch),
-                       os.path.join(_bootDir, self.dstTarget.kernelFile))
-        Util.cmdCall("/bin/cp", "-f",
-                       "%s/System.map" % (self.realSrcDir),
-                       os.path.join(_bootDir, self.dstTarget.kernelMapFilename))
-        Util.cmdCall("/bin/cp", "-f",
-                       "%s/.config" % (self.realSrcDir),
-                       os.path.join(_bootDir, self.dstTarget.kernel_config_filename))
-        Util.cmdCall("/bin/cp", "-f",
-                       self.kcfgRulesTmpFile,
-                       os.path.join(_bootDir, self.dstTarget.kernel_config_rules_filename))
-
-        self._makeAuxillary(self.realSrcDir, "modules_install")
-
-    def buildStepInstallFirmware(self):
-        # get add all *used* firmware file
-        # FIXME:
-        # 1. should consider built-in modules by parsing /lib/modules/X.Y.Z/modules.builtin.modinfo
-        # 2. currently it seems built-in modules don't need firmware
-        firmwareList = []
-        for fullfn in glob.glob(os.path.join("/lib/modules", self.dstTarget.verstr, "**", "*.ko"), recursive=True):
-            # python-kmod bug: can only recognize the last firmware in modinfo
-            # so use the command output of modinfo directly
-            for line in Util.cmdCall("/bin/modinfo", fullfn).split("\n"):
-                m = re.fullmatch("firmware: +(\\S.*)", line)
-                if m is not None:
-                    firmwareList.append((m.group(1), fullfn.replace("/lib/modules/%s/" % (self.dstTarget.verstr), "")))
-
-        # copy firmware from official firmware repository
-        os.makedirs("/lib/firmware", exist_ok=True)
-        for fn, kn in firmwareList:
-            srcFn = os.path.join(self.firmwareTmpDir, fn)
-            dstFn = os.path.join("/lib/firmware", fn)
-            if os.path.exists(srcFn):
-                os.makedirs(os.path.dirname(dstFn), exist_ok=True)
-                shutil.copy(srcFn, dstFn)
-
-        # copy firmware from extra firmware repositories
-        if True:
-            usedExtraNames = set()
-            for fn, kn in firmwareList:
-                dstFn = os.path.join("/lib/firmware", fn)
-                for firmwareName in self.kcache.getExtraFirmwareList():
-                    fullfn, bOverWrite = self.kcache.getExtraFirmwareFileMapping(firmwareName, fn)
-                    if fullfn is None:
-                        continue
-                    if os.path.exists(dstFn) and not bOverWrite:
-                        continue
-                    os.makedirs(os.path.dirname(dstFn), exist_ok=True)
-                    shutil.copy(fullfn, dstFn)
-                    usedExtraNames.add(firmwareName)
-            for firmwareName in set(self.kcache.getExtraFirmwareList()) - usedExtraNames:
-                print("WARNING: Extra firmware \"%s\" is outdated." % (firmwareName))
-
-        # copy wireless-regdb
-        if True:
-            ret = glob.glob(os.path.join(self.wirelessRegDbTmpDir, "**", "regulatory.db"), recursive=True)
-            assert len(ret) == 1
-            shutil.copy(ret[0], "/lib/firmware")
-        if True:
-            ret = glob.glob(os.path.join(self.wirelessRegDbTmpDir, "**", "regulatory.db.p7s"), recursive=True)
-            assert len(ret) == 1
-            shutil.copy(ret[0], "/lib/firmware")
-
-        # ensure corrent permission
-        Util.shellCall("/usr/bin/find /lib/firmware -type f | xargs chmod 644")
-        Util.shellCall("/usr/bin/find /lib/firmware -type d | xargs chmod 755")
-
-        # record
-        with open("/lib/firmware/.ctime", "w") as f:
-            f.write(self.firmwareVer + "\n")
-            f.write(self.wirelessRegDbVer + "\n")
-
-    def buildStepBuildAndInstallExtraDriver(self, driverName):
-        cacheDir = self.kcache.getExtraDriverSourceDir(driverName)
-        fullfn = self.kcache.getExtraDriverExecFile(driverName)
-        buildTmpDir = os.path.join(self.tmpDir, driverName)
-        os.mkdir(buildTmpDir)
-        with TempChdir(buildTmpDir):
-            assert fullfn.endswith(".py")
-            Util.cmdExec("python3", fullfn, cacheDir, self.kernelVer)     # FIXME, should respect shebang
-
-    def buildStepClean(self):
-        with open(os.path.join(_bootDir, self.dstTarget.kernelSrcSignatureFile), "w") as f:
-            f.write(self.srcSignature)
-        os.unlink(os.path.join(self._getModulesDir(), "source"))
-        os.unlink(os.path.join(self._getModulesDir(), "build"))
-
-    def _getModulesDir(self):
-        return "/lib/modules/%s" % (self.kernelVer)
-
-    def _makeMain(self, dirname, envVarList=[]):
-        optList = []
-
-        # CFLAGS
-        optList.append("CFLAGS=\"-Wno-error\"")
-
-        # from /etc/portage/make.conf
-        optList.append(Util.getMakeConfVar(FmConst.portageCfgMakeConf, "MAKEOPTS"))
-
-        # from envVarList
-        optList += envVarList
-
-        # execute command
-        with TempChdir(dirname):
-            Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
-
-    def _makeAuxillary(self, dirname, target, envVarList=[]):
-        with TempChdir(dirname):
-            Util.shellCall("/usr/bin/make %s %s" % (" ".join(envVarList), target))
-
-    def _generateKernelCfgRulesFile(self, filename, *kargs):
-        with open(filename, "w") as f:
-            for kcfgRulesMap in kargs:
-                for name, buf in kcfgRulesMap.items():
-                    f.write("## %s ######################\n" % (name))
-                    f.write("\n")
-                    f.write(buf)
-                    f.write("\n")
-                    f.write("\n")
-                    f.write("\n")
