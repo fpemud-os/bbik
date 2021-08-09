@@ -85,7 +85,7 @@ class InitramfsInstaller:
         self.mntInfoDict[miType].mntOpt = mntOpt
 
     def build(self):
-        Util.mkDirAndClear(self.initramfsTmpDir)
+        FmUtil.mkDirAndClear(self.initramfsTmpDir)
 
         # variables
         targetInitrdFile = self._bootEntry.initrd_file
@@ -149,7 +149,7 @@ class InitramfsInstaller:
                     hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
                     with open(os.path.join(hostDevPath, "proc_name")) as f:
                         hostControllerName = f.read().rstrip()
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, hostControllerName)
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, hostControllerName)
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
@@ -164,30 +164,30 @@ class InitramfsInstaller:
             # get kernel module for block device driver
             for d in [x for x in blkDevInfoList if x.devType.endswith("_disk") or x.devType.endswith("_raid")]:
                 if d.devType == "scsi_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "sd_mod")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "sd_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "virtio_pci")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "virtio_pci")
                     kmodList += r1
                     firmwareList += r2
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "virtio_blk")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "virtio_blk")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "xen_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "xen-blkfront")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "xen-blkfront")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "nvme_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nvme")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nvme")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "lvm2_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "dm_mod")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "dm_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "bcache_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "bcache")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "bcache")
                     kmodList += r1
                     firmwareList += r2
                 else:
@@ -212,7 +212,7 @@ class InitramfsInstaller:
                     pass
                 elif d.fsType in ["ext2", "ext4", "xfs", "btrfs"]:
                     # coincide: fs type and module name are same
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, d.fsType)
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, d.fsType)
                     kmodList += r1
                     firmwareList += r2
                 elif d.fsType == "vfat":
@@ -220,29 +220,29 @@ class InitramfsInstaller:
                     with open(self._bootEntry.kernel_config_file) as f:
                         buf = f.read()
 
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "vfat")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "vfat")
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_CODEPAGE is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nls_cp%s" % (m.group(1)))
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nls_cp%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_IOCHARSET is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nls_%s" % (m.group(1)))
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self.kernelFile, self.kernelModuleDir, self.firmwareDir, "nls_%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
                 else:
                     assert False
 
             # remove duplications
-            kmodList = Util.removeDuplication(kmodList)
-            firmwareList = Util.removeDuplication(firmwareList)
+            kmodList = FmUtil.removeDuplication(kmodList)
+            firmwareList = FmUtil.removeDuplication(firmwareList)
 
         # install kmod files
         for f in kmodList:
@@ -260,7 +260,7 @@ class InitramfsInstaller:
         blkOpList = []
         for d in blkDevInfoList:
             if d.devType == "scsi_disk":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
+                # blkOpList.append("blkdev-wait sd* %s" % (FmUtil.getBlkDevUuid(d.devPath))
                 pass
             elif d.devType == "virtio_disk":
                 pass
@@ -269,18 +269,18 @@ class InitramfsInstaller:
             elif d.devType == "nvme_disk":
                 pass
             elif d.devType == "lvm2_raid":
-                blkOpList.append("lvm-lv-activate %s %s %s" % (Util.getBlkDevUuid(d.devPath), d.param["vg_name"], d.param["lv_name"]))
+                blkOpList.append("lvm-lv-activate %s %s %s" % (FmUtil.getBlkDevUuid(d.devPath), d.param["vg_name"], d.param["lv_name"]))
             elif d.devType == "bcache_raid":
                 for cacheDev in d.param["cache_dev_list"]:
-                    item = "bcache-cache-device-activate %s" % (Util.getBlkDevUuid(cacheDev))
+                    item = "bcache-cache-device-activate %s" % (FmUtil.getBlkDevUuid(cacheDev))
                     if item not in blkOpList:
                         blkOpList.append(item)
-                blkOpList.append("bcache-backing-device-activate %s %s" % (Util.getBlkDevUuid(d.devPath), Util.getBlkDevUuid(d.param["backing_dev"])))
+                blkOpList.append("bcache-backing-device-activate %s %s" % (FmUtil.getBlkDevUuid(d.devPath), FmUtil.getBlkDevUuid(d.param["backing_dev"])))
             elif d.devType == "mbr_partition":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
+                # blkOpList.append("blkdev-wait sd* %s" % (FmUtil.getBlkDevUuid(d.devPath))
                 pass
             elif d.devType == "gpt_partition":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
+                # blkOpList.append("blkdev-wait sd* %s" % (FmUtil.getBlkDevUuid(d.devPath))
                 pass
             else:
                 assert False
@@ -318,7 +318,7 @@ class InitramfsInstaller:
                 elif d.fsType == "bcache":
                     pass
                 elif d.fsType in ["ext2", "ext4", "xfs", "vfat"]:
-                    fsckOpList.append("fsck %s %s" % (d.fsType, Util.getBlkDevUuid(d.devPath)))
+                    fsckOpList.append("fsck %s %s" % (d.fsType, FmUtil.getBlkDevUuid(d.devPath)))
                 elif d.fsType in ["btrfs"]:
                     pass
                 else:
@@ -424,7 +424,7 @@ class InitramfsInstaller:
             cmdStr += "| /bin/cpio --null -H newc -o "
             cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
             cmdStr += "> \"%s\" " % (targetInitrdFile)
-            Util.shellCall(cmdStr)
+            FmUtil.shellCall(cmdStr)
 
             # tar file
             with tarfile.open(targetTarFile, "w:bz2") as f:
@@ -461,24 +461,24 @@ class InitramfsInstaller:
 
     def _installBin(self, binFilename, rootDir):
         self._copyToInitrd(binFilename, rootDir)
-        for df in Util.libUsed(binFilename):
+        for df in FmUtil.libUsed(binFilename):
             self._copyToInitrd(df, rootDir)
 
     def _installBinFromInitDataDir(self, binFilename, rootDir, targetDir):
         srcFilename = os.path.join(FmConst.libInitrdDir, binFilename)
         dstFilename = os.path.join(rootDir, targetDir, binFilename)
 
-        Util.cmdCall("/bin/cp", "-f", srcFilename, dstFilename)
-        Util.cmdCall("/bin/chmod", "755", dstFilename)
+        FmUtil.cmdCall("/bin/cp", "-f", srcFilename, dstFilename)
+        FmUtil.cmdCall("/bin/chmod", "755", dstFilename)
 
-        for df in Util.libUsed(dstFilename):
+        for df in FmUtil.libUsed(dstFilename):
             self._copyToInitrd(df, rootDir)
 
     def _installFilesLvm(self, rootDir):
         self._installBinFromInitDataDir("lvm-lv-activate", rootDir, "usr/sbin")
 
         # note: surrounded " would be recognized as part of rootDir, it's a bug of systemd-tmpfiles
-        Util.cmdCall("/bin/systemd-tmpfiles", "--create", "--root=%s" % (rootDir), "/usr/lib/tmpfiles.d/lvm2.conf")
+        FmUtil.cmdCall("/bin/systemd-tmpfiles", "--create", "--root=%s" % (rootDir), "/usr/lib/tmpfiles.d/lvm2.conf")
 
         etcDir = os.path.join(rootDir, "etc", "lvm")
         if not os.path.exists(etcDir):
@@ -512,7 +512,7 @@ class InitramfsInstaller:
         # write comments
         for name, obj in mntInfoDict.items():
             if obj is not None:
-                buf += "# uuid(%s)=%s\n" % (name, Util.getBlkDevUuid(mntInfoDict[name].devPath))
+                buf += "# uuid(%s)=%s\n" % (name, FmUtil.getBlkDevUuid(mntInfoDict[name].devPath))
         buf += "\n"
 
         # load kernel modules
@@ -536,14 +536,14 @@ class InitramfsInstaller:
         # mount root
         if True:
             mi = mntInfoDict["root"]
-            uuid = Util.getBlkDevUuid(mi.devPath)
+            uuid = FmUtil.getBlkDevUuid(mi.devPath)
             buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fsType, mi.mntOpt, uuid, "/sysroot")
             buf += "\n"
 
         # mount boot
         if mntInfoDict["boot"] is not None:
             mi = mntInfoDict["boot"]
-            uuid = Util.getBlkDevUuid(mi.devPath)
+            uuid = FmUtil.getBlkDevUuid(mi.devPath)
             buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fsType, mi.mntOpt, uuid, os.path.join("/sysroot", "boot"))
             buf += "\n"
 
@@ -560,18 +560,18 @@ class InitramfsInstaller:
 
     def _getBlkDevInfoList(self, devPath):
         # lvm2_raid
-        lvmInfo = Util.getBlkDevLvmInfo(devPath)
+        lvmInfo = FmUtil.getBlkDevLvmInfo(devPath)
         if lvmInfo is not None:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "lvm2_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath)
             assert bdi.fsType != ""
             bdi.param["vg_name"] = lvmInfo[0]
             bdi.param["lv_name"] = lvmInfo[1]
 
             retList = []
-            for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
+            for slaveDevPath in FmUtil.lvmGetSlaveDevPathList(lvmInfo[0]):
                 retList += self._getBlkDevInfoList(slaveDevPath)
             return retList + [bdi]
 
@@ -587,7 +587,7 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "mbr_partition"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath)
             assert bdi.fsType != ""
             return self._getBlkDevInfoList(m.group(1)) + [bdi]
 
@@ -597,8 +597,8 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "scsi_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            bdi.param["scsi_host_path"] = Util.scsiGetHostControllerPath(devPath)
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath).lower()
+            bdi.param["scsi_host_path"] = FmUtil.scsiGetHostControllerPath(devPath)
             return [bdi]
 
         # xen_disk
@@ -607,7 +607,7 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "xen_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath).lower()
             return [bdi]
 
         # virtio_disk
@@ -616,7 +616,7 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "virtio_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath).lower()
             return [bdi]
 
         # nvme_disk
@@ -625,7 +625,7 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "nvme_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath).lower()
             return [bdi]
 
         # bcache
@@ -634,12 +634,12 @@ class InitramfsInstaller:
             bdi = _BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "bcache_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            bdi.fsType = FmUtil.getBlkDevFsType(devPath).lower()
             assert bdi.fsType != ""
 
             retList = []
 
-            slist = Util.bcacheGetSlaveDevPathList(devPath)
+            slist = FmUtil.bcacheGetSlaveDevPathList(devPath)
             assert (len(slist) >= 1)
             bdi.param["cache_dev_list"] = slist[0:-1]
             bdi.param["backing_dev"] = slist[-1]
@@ -680,7 +680,7 @@ class InitramfsInstaller:
         dstdir = os.path.dirname(dstfile)
         if not os.path.exists(dstdir):
             os.makedirs(dstdir)
-        Util.cmdCall("/bin/cp", "-f", filename, dstfile)
+        FmUtil.cmdCall("/bin/cp", "-f", filename, dstfile)
 
 
 class _MntInfo:
