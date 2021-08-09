@@ -25,6 +25,7 @@ from .config import Config
 from .repo import Repo
 from .repo import _BbkiFileExecutor
 from .kernel import KernelInstaller
+from .initramfs import InitramfsInstaller
 
 
 class Bbki:
@@ -71,8 +72,8 @@ class Bbki:
     def get_kernel_installer(self):
         return KernelInstaller(self)
 
-    def get_initramfs_installer(self):
-        assert False
+    def get_initramfs_installer(self, boot_entry):
+        return InitramfsInstaller(boot_entry)
 
     def get_bootloader_installer(self):
         assert False

@@ -28,37 +28,41 @@ from .common import BuildTarget
 class BootEntry:
 
     def __init__(self, build_target):
-        self.buildTarget = build_target
+        self._buildTarget = build_target
+
+    @property
+    def build_target(self):
+        return self._buildTarget
 
     @property
     def kernel_file(self):
-        return os.path.join(_bootDir, "kernel-" + self.buildTarget.postfix)
+        return os.path.join(_bootDir, "kernel-" + self._buildTarget.postfix)
 
     @property
     def kernel_config_file(self):
-        return os.path.join(_bootDir, "config-"+ self.buildTarget.postfix)
+        return os.path.join(_bootDir, "config-"+ self._buildTarget.postfix)
 
     @property
     def kernel_config_rules_file(self):
-        return os.path.join(_bootDir, "config-" + self.buildTarget.postfix + ".rules")
+        return os.path.join(_bootDir, "config-" + self._buildTarget.postfix + ".rules")
 
     # FIXME: do we really need this?
     @property
     def kernelMapFile(self):
-        return os.path.join(_bootDir, "System.map-" + self.buildTarget.postfix)
+        return os.path.join(_bootDir, "System.map-" + self._buildTarget.postfix)
 
     # FIXME: do we really need this?
     @property
     def kernelSrcSignatureFile(self):
-        return os.path.join(_bootDir, "signature-" + self.buildTarget.postfix)
+        return os.path.join(_bootDir, "signature-" + self._buildTarget.postfix)
 
     @property
     def initrd_file(self):
-        return os.path.join(_bootDir, "initramfs-" + self.buildTarget.postfix)
+        return os.path.join(_bootDir, "initramfs-" + self._buildTarget.postfix)
 
     @property
     def initrd_tar_file(self):
-        return os.path.join(_bootDir, "initramfs-files-" + self.buildTarget.postfix)
+        return os.path.join(_bootDir, "initramfs-files-" + self._buildTarget.postfix)
 
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_file):

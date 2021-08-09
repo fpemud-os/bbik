@@ -128,6 +128,19 @@ class BuildTarget:
         return ret
 
     @staticmethod
+    def new_from_verstr(arch, verstr):
+        # verstr example: 3.9.11-gentoo-r1
+        partList = verstr.split("-")
+        if len(partList) < 1:
+            raise ValueError("illegal verstr")
+        if not Util.isValidKernelVer(partList[0]):          # FIXME: isValidKernelVer should be moved out from util
+            raise ValueError("illegal verstr")
+
+        ret = BuildTarget()
+        ret._arch = arch
+        ret._verstr = verstr
+        return ret
+    @staticmethod
     def new_from_kernel_srcdir(arch, kernel_srcdir):
         version = None
         patchlevel = None
@@ -186,6 +199,9 @@ class KernelInstaller:
         for item in reversed(self._addonItemList):
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelItem].remove_tmpdirs()
+
+    def get_build_target(self):
+        return BuildTarget.new_from_verstr("amd64", self._kernelItem.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelItem].src_unpack()

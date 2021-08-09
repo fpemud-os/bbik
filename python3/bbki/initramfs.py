@@ -58,13 +58,12 @@ class FkmInitramfsKcfgChecker:
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, build_target):
+    def __init__(self, bbki, boot_entry):
         self._bbki = bbki
-        self._buildTarget = build_target
-        self._bootEntry = BootEntry(self._buildTarget)
+        self._bootEntry = boot_entry
 
         self.bootDir = "/boot"
-        self.kernelModuleDir = "/lib/modules/%s" % (self._buildTarget.verstr)
+        self.kernelModuleDir = "/lib/modules/%s" % (boot_entry.build_target.verstr)
         self.firmwareDir = "/lib/firmware"
 
         self.initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
