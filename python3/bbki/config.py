@@ -33,6 +33,8 @@ class Config:
         if cfgdir is None:
             cfgdir = "/etc/bbki"
 
+        self._makeConf = os.path.join(cfgdir, "make.conf")
+
         self._profileDir = os.path.join(cfgdir, "profile")
         self._profileKernelTypeFile = os.path.join(self._profileDir, "bbki.kernel_type")
         self._profileKernelAddonDir = os.path.join(self._profileDir, "bbki.kernel_addon")
@@ -70,6 +72,32 @@ class Config:
     @property
     def tmp_dir(self):
         return self._tmpDir
+
+    def get_make_conf_variable(self, var_name):
+        # Returns variable value, returns "" when not found
+        # Multiline variable definition is not supported yet
+
+        buf = ""
+        with open(self._makeConf, 'r') as f:
+            buf = f.read()
+
+        m = re.search("^%s=\"(.*)\"$" % var_name, buf, re.MULTILINE)
+        if m is None:
+            return ""
+        varVal = m.group(1)
+
+        while True:
+            m = re.search("\\${(\\S+)?}", varVal)
+            if m is None:
+                break
+            varName2 = m.group(1)
+            varVal2 = self.get_make_conf_variable(self._makeConf, varName2)
+            if varVal2 is None:
+                varVal2 = ""
+
+            varVal = varVal.replace(m.group(0), varVal2)
+
+        return varVal
 
     def get_kernel_type(self):
         # fill cache

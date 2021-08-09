@@ -144,36 +144,6 @@ class KernelInstaller:
     def cleanup(self):
         pass
 
-    def _fetchItem(self, item):
-        for vcsType, url, localFn in item.get_distfiles():
-            localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
-            if vcsType in ["http", "ftp"]:
-                if os.path.exists(localFullFn):
-                    continue
-                robust_layer.wget.exec("-O", localFullFn, url)
-            elif vcsType == "git":
-                robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
-            else:
-                assert False
-
-    def _extractItem(self, item):
-        localFnSet = set()
-        for vcsType, url, localFn in item.get_distfiles():
-            if vcsType in ["http", "ftp"] and :
-                if os.path.exists(localFullFn):
-                    continue
-                robust_layer.wget.exec("-O", localFullFn, url)
-            elif vcsType == "git":
-                robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
-            else:
-                assert False
-            
-
-
-
-
-            localFnSet.add(localFn)
-
 
 
 
