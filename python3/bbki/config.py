@@ -23,7 +23,8 @@
 
 import os
 import re
-from . import Bbki
+from .bbki import Bbki
+from .bbki import BbkiConfigError
 from .util import Util
 
 
@@ -113,9 +114,9 @@ class Config:
 
         # return value according to cache
         if self._tKernelType is None:
-                raise InvalidConfigError("no kernel type specified")
+                raise BbkiConfigError("no kernel type specified")
         if self._tKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
-            raise InvalidConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
+            raise BbkiConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
         return self._tKernelType
 
     def get_kernel_addon_names(self):
@@ -163,9 +164,3 @@ class Config:
                 if Util.compareVerstr(item_verstr, m.group(1)) > 0:
                     return False
         return True
-
-
-class InvalidConfigError(Exception):
-
-    def __init__(self, message):
-        self.message = message
