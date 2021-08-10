@@ -99,7 +99,17 @@ class BbkiRepoError(Exception):
     pass
 
 
-class RepoCheckError(Exception):
+class BbkiFetchError(Exception):
+    pass
 
-    def __init__(self, message):
-        self.message = message
+
+class BbkiKernelInstallError(Exception):
+    pass
+
+
+class BbkiInitramfsInstallError(Exception):
+    pass
+
+
+class BbkiBootloaderInstallError(Exception):
+    pass

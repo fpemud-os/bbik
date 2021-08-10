@@ -38,10 +38,3 @@ from .bbki import BbkiRepoError
 from .config import Config
 from .repo import Repo, RepoItem
 from .kernel import KernelInstaller
-
-
-# FIXME
-class RepoCheckError(Exception):
-
-    def __init__(self, message):
-        self.message = message
