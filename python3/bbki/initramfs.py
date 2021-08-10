@@ -31,6 +31,7 @@ from collections import OrderedDict
 from .bbki import BbkiInitramfsInstallError
 from .util import Util
 from .util import TempChdir
+from .fslayout import FsLayout
 
 
 class InitramfsInstaller:
@@ -39,10 +40,9 @@ class InitramfsInstaller:
         self._bbki = bbki
         self._bootEntry = boot_entry
 
-        self.kernelModuleDir = "/lib/modules/%s" % (boot_entry.build_target.verstr)
-        self.firmwareDir = "/lib/firmware"
-
-        self.initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
+        self._fsLayout = FsLayout()
+        self._kernelModuleDir = self._fsLayout.get_kernel_modules_dir(boot_entry.build_target)
+        self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
         self.mntInfoDict = OrderedDict()
         self.mntInfoDict["root"] = None
@@ -59,12 +59,12 @@ class InitramfsInstaller:
         self.mntInfoDict[miType].mntOpt = mntOpt
 
     def install(self):
-        FmUtil.mkDirAndClear(self.initramfsTmpDir)
+        FmUtil.mkDirAndClear(self._initramfsTmpDir)
 
         # variables
         targetInitrdFile = self._bootEntry.initrd_file
         targetTarFile = self._bootEntry.initrd_tar_file
-        rootDir = self.initramfsTmpDir
+        rootDir = self._initramfsTmpDir
         etcDir = os.path.join(rootDir, "etc")
 
         # checking
@@ -87,8 +87,8 @@ class InitramfsInstaller:
         self._installDir("/usr/lib", rootDir)
         self._installDir("/usr/lib64", rootDir)
         self._installDir("/var", rootDir)
-        self._installDir(self.kernelModuleDir, rootDir)
-        self._installDir(self.firmwareDir, rootDir)
+        self._installDir(self._kernelModuleDir, rootDir)
+        self._installDir(self._fsLayout.firmware_dir, rootDir)
         os.makedirs(os.path.join(rootDir, "sysroot"))
         self._generatePasswd(os.path.join(etcDir, "passwd"))
         self._generateGroup(os.path.join(etcDir, "group"))
@@ -123,7 +123,7 @@ class InitramfsInstaller:
                     hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
                     with open(os.path.join(hostDevPath, "proc_name")) as f:
                         hostControllerName = f.read().rstrip()
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, hostControllerName)
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, hostControllerName)
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
@@ -138,30 +138,30 @@ class InitramfsInstaller:
             # get kernel module for block device driver
             for d in [x for x in blkDevInfoList if x.devType.endswith("_disk") or x.devType.endswith("_raid")]:
                 if d.devType == "scsi_disk":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "sd_mod")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "sd_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "virtio_pci")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "virtio_pci")
                     kmodList += r1
                     firmwareList += r2
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "virtio_blk")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "virtio_blk")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "xen_disk":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "xen-blkfront")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "xen-blkfront")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "nvme_disk":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "nvme")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "nvme")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "lvm2_raid":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "dm_mod")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "dm_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "bcache_raid":
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "bcache")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "bcache")
                     kmodList += r1
                     firmwareList += r2
                 else:
@@ -186,7 +186,7 @@ class InitramfsInstaller:
                     pass
                 elif d.fsType in ["ext2", "ext4", "xfs", "btrfs"]:
                     # coincide: fs type and module name are same
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, d.fsType)
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, d.fsType)
                     kmodList += r1
                     firmwareList += r2
                 elif d.fsType == "vfat":
@@ -194,21 +194,21 @@ class InitramfsInstaller:
                     with open(self._bootEntry.kernel_config_file) as f:
                         buf = f.read()
 
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "vfat")
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "vfat")
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_CODEPAGE is missing in kernel .config file")
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "nls_cp%s" % (m.group(1)))
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "nls_cp%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_IOCHARSET is missing in kernel .config file")
-                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self.kernelModuleDir, self.firmwareDir, "nls_%s" % (m.group(1)))
+                    r1, r2 = FmUtil.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._fsLayout.firmware_dir, "nls_%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
                 else:
@@ -323,15 +323,15 @@ class InitramfsInstaller:
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
-            dstdir = os.path.join(rootDir, self.kernelModuleDir[1:])
+            dstdir = os.path.join(rootDir, self._kernelModuleDir[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self.kernelModuleDir, dstdir, symlinks=True)
+            shutil.copytree(self._kernelModuleDir, dstdir, symlinks=True)
 
-            dstdir = os.path.join(rootDir, self.firmwareDir[1:])
+            dstdir = os.path.join(rootDir, self._fsLayout.firmware_dir[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self.firmwareDir, dstdir, symlinks=True)
+            shutil.copytree(self._fsLayout.firmware_dir, dstdir, symlinks=True)
 
             self._installBin("/bin/bash", rootDir)
             self._installBin("/bin/cat", rootDir)
@@ -377,17 +377,17 @@ class InitramfsInstaller:
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the usb drivers\"\n")
-                dstdir = os.path.join(self.kernelModuleDir, "kernel", "drivers", "usb")
+                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "usb")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the hid drivers\"\n")
-                dstdir = os.path.join(self.kernelModuleDir, "kernel", "drivers", "hid")
+                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "hid")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the input drivers\"\n")
-                dstdir = os.path.join(self.kernelModuleDir, "kernel", "drivers", "input")
+                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "input")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
