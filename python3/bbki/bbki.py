@@ -23,7 +23,9 @@
 
 from .config import Config
 from .repo import Repo
-from .repo import _BbkiFileExecutor
+from .repo import BbkiFileExecutor
+from .fslayout import BootEntry
+from .kernel import KernelBuildTarget
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
 
@@ -37,6 +39,7 @@ class Bbki:
 
     def __init__(self, cfgdir=None):
         self._cfg = Config(cfgdir)
+        self._fsLayout = FsLayout()
         self._repoList = [
             Repo(self._cfg.data_repo_dir),
         ]
@@ -48,6 +51,14 @@ class Bbki:
     @property
     def repositories(self):
         return self._repoList
+
+    def get_current_boot_entry(self):
+        self._fsLayout.find_current_boot_entry()
+
+    def get_pending_boot_entry(self):
+        item = self.get_kernel()
+        buildTarget = KernelBuildTarget.new_from_verstr("amd64", item.verstr())
+        return BootEntry(buildTarget)
 
     def get_kernel(self):
         items = self._repoList[0].get_items_by_type_name(self.ITEM_TYPE_KERNEL, self._cfg.get_kernel_type())

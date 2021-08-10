@@ -104,6 +104,7 @@ class KernelBuildTarget:
         ret._arch = arch
         ret._verstr = verstr
         return ret
+
     @staticmethod
     def new_from_kernel_srcdir(arch, kernel_srcdir):
         version = None
