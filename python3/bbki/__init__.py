@@ -47,5 +47,7 @@ from .repo import RepoItem
 
 from .kernel import KernelBuildTarget
 from .kernel import KernelInstaller
+
 from .initramfs import InitramfsInstaller
+
 from .bootloader import BootloaderInstaller
