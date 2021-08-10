@@ -25,6 +25,7 @@ from .config import Config
 from .repo import Repo
 from .repo import BbkiFileExecutor
 from .fslayout import BootEntry
+from .fslayout import FsLayout
 from .kernel import KernelBuildTarget
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
@@ -78,7 +79,7 @@ class Bbki:
         return ret
 
     def fetch(self, bbki_item):
-        _BbkiFileExecutor(bbki_item).exec_fetch()
+        BbkiFileExecutor(bbki_item).exec_fetch()
 
     def get_kernel_installer(self):
         return KernelInstaller(self)

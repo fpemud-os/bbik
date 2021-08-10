@@ -25,7 +25,7 @@ import re
 import robust_layer.simple_fops
 from .util import Util
 from .util import TempChdir
-from .repo import _BbkiFileExecutor
+from .repo import BbkiFileExecutor
 
 
 class KernelBuildTarget:
@@ -151,9 +151,9 @@ class KernelInstaller:
         self._addonItemList = kernel_addon_item_list
 
         self._executorDict = dict()
-        self._executorDict[kernel_item] = _BbkiFileExecutor(kernel_item)
+        self._executorDict[kernel_item] = BbkiFileExecutor(kernel_item)
         for item in kernel_addon_item_list:
-            self._executorDict[item] = _BbkiFileExecutor(item)
+            self._executorDict[item] = BbkiFileExecutor(item)
 
         # create tmpdirs
         self._executorDict[self._kernelItem].create_tmpdirs()
