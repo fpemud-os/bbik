@@ -83,7 +83,7 @@ class InitramfsInstaller:
         self.mntInfoDict[miType].fsType = None
         self.mntInfoDict[miType].mntOpt = mntOpt
 
-    def build(self):
+    def install(self):
         FmUtil.mkDirAndClear(self.initramfsTmpDir)
 
         # variables

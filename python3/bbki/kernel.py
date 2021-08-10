@@ -293,11 +293,12 @@ class KernelInstaller:
         with TempChdir(workDir):
             Util.shellCall("/usr/bin/make olddefconfig")
 
-    def build_kernel(self):
+    def build(self):
         self._executorDict[self._kernelItem].exec_kernel_build()
         for item in self._addonItemList:
             self._executorDict[item].exec_kernel_addon_build()
 
+    def install(self):
         self._executorDict[self._kernelItem].exec_kernel_install()
         for item in self._addonItemList:
             self._executorDict[item].exec_kernel_addon_install()
