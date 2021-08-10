@@ -22,7 +22,7 @@
 
 
 import os
-from .kernel import BuildTarget
+from .kernel import KernelBuildTarget
 
 
 class BootEntry:
@@ -36,33 +36,33 @@ class BootEntry:
 
     @property
     def kernel_file(self):
-        return os.path.join(_bootDir, "kernel-" + self._buildTarget.postfix)
+        return "/boot/kernel-" + self._buildTarget.postfix
 
     @property
     def kernel_config_file(self):
-        return os.path.join(_bootDir, "config-"+ self._buildTarget.postfix)
+        return "/boot/config-"+ self._buildTarget.postfix
 
     @property
     def kernel_config_rules_file(self):
-        return os.path.join(_bootDir, "config-" + self._buildTarget.postfix + ".rules")
+        return "/boot/config-" + self._buildTarget.postfix + ".rules"
 
     # FIXME: do we really need this?
     @property
     def kernelMapFile(self):
-        return os.path.join(_bootDir, "System.map-" + self._buildTarget.postfix)
+        return "/boot/System.map-" + self._buildTarget.postfix
 
     # FIXME: do we really need this?
     @property
     def kernelSrcSignatureFile(self):
-        return os.path.join(_bootDir, "signature-" + self._buildTarget.postfix)
+        return "/boot/signature-" + self._buildTarget.postfix
 
     @property
     def initrd_file(self):
-        return os.path.join(_bootDir, "initramfs-" + self._buildTarget.postfix)
+        return "/boot/initramfs-" + self._buildTarget.postfix
 
     @property
     def initrd_tar_file(self):
-        return os.path.join(_bootDir, "initramfs-files-" + self._buildTarget.postfix)
+        return "/boot/initramfs-files-" + self._buildTarget.postfix + ".tar.bz2"
 
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_file):
@@ -86,7 +86,7 @@ class BootEntry:
 
     @staticmethod
     def find_current(strict=True):
-        ret = [x for x in sorted(os.listdir(_bootDir)) if x.startswith("kernel-")]
+        ret = [x for x in sorted(os.listdir("/boot")) if x.startswith("kernel-")]
         if ret == []:
             return None
 
@@ -94,7 +94,7 @@ class BootEntry:
         for fn in reversed(ret):
             postfix = fn[len("kernel-"):]
             try:
-                buildTarget = BuildTarget.new_from_postfix(postfix)
+                buildTarget = KernelBuildTarget.new_from_postfix(postfix)
             except ValueError:
                 continue
 
@@ -108,6 +108,3 @@ class BootEntry:
             if not ret.has_initrd_files():
                 return None
         return ret
-
-
-_bootDir = "/boot"

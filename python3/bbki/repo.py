@@ -209,7 +209,7 @@ class RepoItem:
                 line = line.rstrip()
                 m = re.fullmatch(r'^(\S+)\(\) {', line)
                 if m is not None:
-                    if m.group(1) in BbkiFileExecutor.get_valid_bbki_functions():
+                    if m.group(1) in _BbkiFileExecutor.get_valid_bbki_functions():
                         self._tFuncList.append(m.group(1))
 
         if "fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
@@ -218,11 +218,11 @@ class RepoItem:
             raise BbkiRepoError("fetch() and SRC_URI_GIT are mutally exclusive")
 
 
-class BbkiFileExecutor:
+class _BbkiFileExecutor:
 
     @staticmethod
     def get_valid_bbki_functions():
-        return [m[len("exec_"):] for m in dir(BbkiFileExecutor) if not m.startswith("exec_")]
+        return [m[len("exec_"):] for m in dir(_BbkiFileExecutor) if not m.startswith("exec_")]
 
     def __init__(self, item):
         self._bbki = item._bbki
@@ -350,7 +350,7 @@ class BbkiFileExecutor:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
-                    dstTarget = BuildTarget.new_from_kernel_srcdir("amd64", self._trWorkDir)
+                    dstTarget = KernelBuildTarget.new_from_kernel_srcdir("amd64", self._trWorkDir)
                     bootEntry = BootEntry(dstTarget)
                     shutil.copy("arch/%s/boot/bzImage" % (dstTarget.arch), bootEntry.kernel_file)
                     shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME

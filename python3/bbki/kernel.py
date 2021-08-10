@@ -28,7 +28,7 @@ from .util import TempChdir
 from .repo import _BbkiFileExecutor
 
 
-class BuildTarget:
+class KernelBuildTarget:
 
     def __init__(self):
         self._arch = None
@@ -75,42 +75,6 @@ class BuildTarget:
         except ValueError:
             return self._verstr
 
-    # deprecated
-    @property
-    def kernel_filename(self):
-        return "kernel-" + self.postfix
-
-    # deprecated
-    @property
-    def kernel_config_filename(self):
-        return "config-" + self.postfix
-
-    # deprecated
-    @property
-    def kernel_config_rules_filename(self):
-        return "config-" + self.postfix + ".rules"
-
-    # deprecated
-    # FIXME: do we really need this?
-    @property
-    def kernelMapFilename(self):
-        return "System.map-" + self.postfix     
-
-    # deprecated
-    # FIXME: do we really need this?
-    @property
-    def kernelSrcSignatureFile(self):
-        return "signature-" + self.postfix      
-
-    @property
-    def initrd_filename(self):
-        return "initramfs-" + self.postfix
-
-    # deprecated
-    @property
-    def initrd_tar_filename(self):
-        return "initramfs-files-" + self.postfix + ".tar.bz2"
-
     @staticmethod
     def new_from_postfix(postfix):
         # postfix example: x86_64-3.9.11-gentoo-r1
@@ -122,7 +86,7 @@ class BuildTarget:
         if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
             raise ValueError("illegal postfix")
 
-        ret = BuildTarget()
+        ret = KernelBuildTarget()
         ret._arch = partList[0]
         ret._verstr = "-".join(partList[1:])
         return ret
@@ -136,7 +100,7 @@ class BuildTarget:
         if not Util.isValidKernelVer(partList[0]):          # FIXME: isValidKernelVer should be moved out from util
             raise ValueError("illegal verstr")
 
-        ret = BuildTarget()
+        ret = KernelBuildTarget()
         ret._arch = arch
         ret._verstr = verstr
         return ret
@@ -168,7 +132,7 @@ class BuildTarget:
             if m is not None:
                 extraversion = m.group(1)
 
-        ret = BuildTarget()
+        ret = KernelBuildTarget()
         ret._arch = arch
         if extraversion is not None:
             ret._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
@@ -201,7 +165,7 @@ class KernelInstaller:
         self._executorDict[self._kernelItem].remove_tmpdirs()
 
     def get_build_target(self):
-        return BuildTarget.new_from_verstr("amd64", self._kernelItem.verstr)
+        return KernelBuildTarget.new_from_verstr("amd64", self._kernelItem.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelItem].src_unpack()
