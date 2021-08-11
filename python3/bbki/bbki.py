@@ -21,6 +21,7 @@
 # THE SOFTWARE.
 
 
+import subprocess
 from .config import Config
 from .repo import Repo
 from .repo import BbkiFileExecutor
@@ -29,6 +30,8 @@ from .fslayout import FsLayout
 from .kernel import KernelInfo
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
+from .boot import Bootloader
+from .boot import BootloaderInstaller
 from python3.bbki import kernel
 
 
@@ -42,7 +45,7 @@ class Bbki:
     def __init__(self, cfgdir=None):
         self._cfg = Config(cfgdir)
         self._fsLayout = FsLayout()
-        self._bootLoader = BootLoader()
+        self._bootLoader = Bootloader()
         self._repoList = [
             Repo(self._cfg.data_repo_dir),
         ]
@@ -54,6 +57,11 @@ class Bbki:
     @property
     def repositories(self):
         return self._repoList
+
+    def check_running_environment(self):
+        ret = subprocess.run(["grub-editenv", "-V"], stdout=subprocess.DEVNUL, stderr=subprocess.DEVNUL)
+        if ret.returncode != 0:
+            raise BbkiSystemError("executable \"grub-editenv\" does not exist")
 
     def get_system_stable_flag(self):
         return self._bootLoader.get_stable_flag()

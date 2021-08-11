@@ -27,6 +27,7 @@ import pathlib
 import subprocess
 from .bbki import BbkiSystemError
 from .util import Util
+from .kernel import KernelInfo
 
 
 class BootEntry:
@@ -79,7 +80,7 @@ class BootEntry:
         return self._bbki == other._bbki and self._postfix == other._postfix and self._bootDir == other._bootDir
 
 
-class BootLoader:
+class Bootloader:
 
     def __init__(self, bbki):
         self._bbki = bbki
@@ -90,18 +91,20 @@ class BootLoader:
         self.rescueOsDir = "/boot/rescue"
         self.historyDir = "/boot/history"
 
-    def check_system(self):
-        ret = subprocess.run(["grub-editenv", "-V"], stdout=subprocess.DEVNUL, stderr=subprocess.DEVNUL)
-        if ret.returncode != 0:
-            raise BbkiSystemError("executable grub-editenv does not exist")
-
     def get_stable_flag(self):
         # we use grub environment variable to store stable status, our grub needs this status either
+        if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+            raise BbkiSystemError("bootloader is not installed")
+
         out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
         return re.search("^stable=", out, re.M) is not None
 
     def set_stable_flag(self, value):
         assert value is not None and isinstance(value, bool)
+
+        if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+            raise BbkiSystemError("bootloader is not installed")
+
         if value:
             Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
         else:
@@ -119,6 +122,9 @@ class BootLoader:
             return KernelInfo.new_from_postfix(m.group(1))
         else:
             return None
+
+
+class BootloaderInstaller:
 
     def updateBootloader(self, hwInfo, storageLayout, kernelInitCmd):
         if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:

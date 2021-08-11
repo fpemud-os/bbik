@@ -46,9 +46,10 @@ from .config import Config
 from .repo import Repo
 from .repo import RepoItem
 
-from .kernel import KernelBuildTarget
+from .kernel import KernelInfo
 from .kernel import KernelInstaller
 
 from .initramfs import InitramfsInstaller
 
-from .bootloader import BootloaderInstaller
+from .boot import BootEntry
+from .boot import BootloaderInstaller
