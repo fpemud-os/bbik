@@ -93,13 +93,27 @@ class FsLayout:
     def get_boot_history_dir(self):
         return "/boot/history"
 
+    def get_boot_rescue_os_dir(self):
+        return "/boot/rescue"
+
+    def get_boot_grub_dir(self):
+        return "/boot/grub"
+
+    def get_boot_grubcfg_file(self):
+        return "/boot/grub/grub.cfg"
+
     def get_kernel_modules_dir(self, build_target):
         return "/lib/modules/%s" % (build_target.verstr)
 
     def get_firmware_dir(self):
         return "/lib/firmware"
 
-    def find_current_boot_entry(self, strict=True):
+    def find_current_boot_entry(self):
+        buildTarget = KernelBuildTarget.current()
+
+
+
+    def find_pending_boot_entry(self, strict=True):
         ret = [x for x in sorted(os.listdir(self.get_boot_dir())) if x.startswith("kernel-")]
         if ret == []:
             return None

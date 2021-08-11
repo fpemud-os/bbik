@@ -41,6 +41,7 @@ class Bbki:
     def __init__(self, cfgdir=None):
         self._cfg = Config(cfgdir)
         self._fsLayout = FsLayout()
+        self._bootLoader = BootLoader()
         self._repoList = [
             Repo(self._cfg.data_repo_dir),
         ]
@@ -53,10 +54,26 @@ class Bbki:
     def repositories(self):
         return self._repoList
 
+    def is_stable(self):
+        return self._bootLoader.is_stable()
+
+    def set_stable(self, stable):
+        return self._bootLoader.set_stable(stable)
+
     def get_current_boot_entry(self):
         self._fsLayout.find_current_boot_entry()
 
     def get_pending_boot_entry(self):
+        if not os.path.exists(self._fsLayout.get_boot_grubcfg_file()):
+            return None
+
+        buf = pathlib.Path(self._fsLayout.get_boot_grubcfg_file()).read_text()
+
+
+
+
+
+
         item = self.get_kernel()
         buildTarget = KernelBuildTarget.new_from_verstr("amd64", item.verstr())
         return BootEntry(buildTarget)
@@ -101,6 +118,10 @@ class Bbki:
 
 
         assert False
+
+
+class BbkiSystemError(Exception):
+    pass
 
 
 class BbkiConfigError(Exception):

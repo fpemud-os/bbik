@@ -58,16 +58,15 @@ class InitramfsInstaller:
         self.mntInfoDict[miType].mntOpt = mntOpt
 
     def install(self):
+        if self.mntInfoDict["root"] is None:
+            raise BbkiInitramfsInstallError("mount information for root filesystem is not specified")
+
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
         os.makedirs(self._initramfsTmpDir)
 
         # variables
         rootDir = self._initramfsTmpDir
         etcDir = os.path.join(rootDir, "etc")
-
-        # checking
-        if self.mntInfoDict["root"] is None:
-            raise BbkiInitramfsInstallError("mount information for root filesystem is not specified")
 
         # create basic structure for initramfs directory
         self._installDir("/bin", rootDir)
