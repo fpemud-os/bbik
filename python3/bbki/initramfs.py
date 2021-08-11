@@ -36,11 +36,11 @@ from .util import TempChdir
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, boot_entry):
+    def __init__(self, bbki, kernel_info, boot_entry):
         self._bbki = bbki
         self._bootEntry = boot_entry
 
-        self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.build_target)
+        self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(kernel_info)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
         self.mntInfoDict = OrderedDict()

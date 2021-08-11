@@ -28,7 +28,7 @@ from .util import TempChdir
 from .repo import BbkiFileExecutor
 
 
-class KernelBuildTarget:
+class KernelInfo:
 
     def __init__(self):
         self._arch = None
@@ -75,10 +75,13 @@ class KernelBuildTarget:
         except ValueError:
             return self._verstr
 
+    def ___eq___(self, other):
+        return self._arch == other._arch and self._verstr == other._verstr
+
     @staticmethod
     def current():
         un = os.uname()
-        ret = KernelBuildTarget()
+        ret = KernelInfo()
         ret._arch = un.machine
         ret._verstr = un.release
         return ret
@@ -94,7 +97,7 @@ class KernelBuildTarget:
         if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
             raise ValueError("illegal postfix")
 
-        ret = KernelBuildTarget()
+        ret = KernelInfo()
         ret._arch = partList[0]
         ret._verstr = "-".join(partList[1:])
         return ret
@@ -108,7 +111,7 @@ class KernelBuildTarget:
         if not Util.isValidKernelVer(partList[0]):          # FIXME: isValidKernelVer should be moved out from util
             raise ValueError("illegal verstr")
 
-        ret = KernelBuildTarget()
+        ret = KernelInfo()
         ret._arch = arch
         ret._verstr = verstr
         return ret
@@ -141,7 +144,7 @@ class KernelBuildTarget:
             if m is not None:
                 extraversion = m.group(1)
 
-        ret = KernelBuildTarget()
+        ret = KernelInfo()
         ret._arch = arch
         if extraversion is not None:
             ret._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
@@ -174,7 +177,7 @@ class KernelInstaller:
         self._executorDict[self._kernelItem].remove_tmpdirs()
 
     def get_build_target(self):
-        return KernelBuildTarget.new_from_verstr("amd64", self._kernelItem.verstr)
+        return KernelInfo.new_from_verstr("amd64", self._kernelItem.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelItem].src_unpack()

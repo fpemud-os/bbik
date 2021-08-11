@@ -26,9 +26,10 @@ from .repo import Repo
 from .repo import BbkiFileExecutor
 from .fslayout import BootEntry
 from .fslayout import FsLayout
-from .kernel import KernelBuildTarget
+from .kernel import KernelInfo
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
+from python3.bbki import kernel
 
 
 class Bbki:
@@ -54,29 +55,30 @@ class Bbki:
     def repositories(self):
         return self._repoList
 
-    def is_stable(self):
-        return self._bootLoader.is_stable()
+    def get_system_stable_flag(self):
+        return self._bootLoader.get_stable_flag()
 
-    def set_stable(self, stable):
-        return self._bootLoader.set_stable(stable)
+    def set_system_stable_flag(self, stable):
+        return self._bootLoader.set_stable_flag(stable)
 
     def get_current_boot_entry(self):
-        self._fsLayout.find_current_boot_entry()
+        kernelInfo = KernelInfo.current()
+        for bHistoryEntry in [False, True]:
+            ret = BootEntry(self._bbki, kernelInfo, history_entry=bHistoryEntry)
+            if ret.has_kernel_files() and ret.has_initrd_files():
+                return ret
+        return None
 
     def get_pending_boot_entry(self):
-        if not os.path.exists(self._fsLayout.get_boot_grubcfg_file()):
+        kernelInfo = self._bootLoader.get_current_kernel_info()
+        if kernelInfo is not None:
+            ret = BootEntry(kernelInfo)
+            if ret.has_kernel_files() and ret.has_initrd_files():
+                return ret
+            else:
+                return None
+        else:
             return None
-
-        buf = pathlib.Path(self._fsLayout.get_boot_grubcfg_file()).read_text()
-
-
-
-
-
-
-        item = self.get_kernel()
-        buildTarget = KernelBuildTarget.new_from_verstr("amd64", item.verstr())
-        return BootEntry(buildTarget)
 
     def get_kernel(self):
         items = self._repoList[0].get_items_by_type_name(self.ITEM_TYPE_KERNEL, self._cfg.get_kernel_type())

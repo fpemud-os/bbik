@@ -23,9 +23,60 @@
 
 import os
 import re
+import pathlib
 import subprocess
 from .bbki import BbkiSystemError
 from .util import Util
+
+
+class BootEntry:
+
+    def __init__(self, bbki, kernel_info, history_entry=False):
+        self._bbki = bbki
+        self._postfix = kernel_info.postfix
+        if not history_entry:
+            self._bootDir = self._bbki._fsLayout.get_boot_dir()
+        else:
+            self._bootDir = self._bbki._fsLayout.get_boot_history_dir()
+
+    @property
+    def kernel_file(self):
+        return os.path.join(self._bootDir, "kernel-" + self._postfix)
+
+    @property
+    def kernel_config_file(self):
+        return os.path.join(self._bootDir, "config-"+ self._postfix)
+
+    @property
+    def kernel_config_rules_file(self):
+        return os.path.join(self._bootDir, "config-" + self._postfix + ".rules")
+
+    @property
+    def initrd_file(self):
+        return os.path.join(self._bootDir, "initramfs-" + self._postfix)
+
+    @property
+    def initrd_tar_file(self):
+        return os.path.join(self._bootDir, "initramfs-files-" + self._postfix + ".tar.bz2")
+
+    def has_kernel_files(self):
+        if not os.path.exists(self.kernel_file):
+            return False
+        if not os.path.exists(self.kernel_config_file):
+            return False
+        if not os.path.exists(self.kernel_config_rules_file):
+            return False
+        return True
+
+    def has_initrd_files(self):
+        if not os.path.exists(self.initrd_file):
+            return False
+        if not os.path.exists(self.initrd_tar_file):
+            return False
+        return True
+
+    def ___eq___(self, other):
+        return self._bbki == other._bbki and self._postfix == other._postfix and self._bootDir == other._bootDir
 
 
 class BootLoader:
@@ -33,6 +84,7 @@ class BootLoader:
     def __init__(self, bbki):
         self._bbki = bbki
 
+        self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
         self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grubenv")
 
         self.rescueOsDir = "/boot/rescue"
@@ -43,12 +95,12 @@ class BootLoader:
         if ret.returncode != 0:
             raise BbkiSystemError("executable grub-editenv does not exist")
 
-    def is_stable(self):
+    def get_stable_flag(self):
         # we use grub environment variable to store stable status, our grub needs this status either
         out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
         return re.search("^stable=", out, re.M) is not None
 
-    def set_stable(self, value):
+    def set_stable_flag(self, value):
         assert value is not None and isinstance(value, bool)
         if value:
             Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
@@ -56,6 +108,17 @@ class BootLoader:
             if not os.path.exists(self._grubEnvFile):
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
+
+    def get_current_kernel_info(self):
+        if not os.path.exists(self._grubCfgFile):
+            return None
+
+        buf = pathlib.Path(self._grubCfgFile).read_text()
+        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
+        if m is not None:
+            return KernelInfo.new_from_postfix(m.group(1))
+        else:
+            return None
 
     def updateBootloader(self, hwInfo, storageLayout, kernelInitCmd):
         if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:

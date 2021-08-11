@@ -33,6 +33,7 @@ __version__ = "0.0.1"
 
 
 from .bbki import Bbki
+from .bbki import BbkiSystemError
 from .bbki import BbkiConfigError
 from .bbki import BbkiRepoError
 from .bbki import BbkiFetchError

@@ -350,11 +350,11 @@ class BbkiFileExecutor:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
-                    dstTarget = KernelBuildTarget.new_from_kernel_srcdir("amd64", self._trWorkDir)
+                    dstTarget = KernelInfo.new_from_kernel_srcdir("amd64", self._trWorkDir)
                     bootEntry = BootEntry(dstTarget)
                     shutil.copy("arch/%s/boot/bzImage" % (dstTarget.arch), bootEntry.kernel_file)
-                    shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
+                    # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
 
