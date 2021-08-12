@@ -50,13 +50,12 @@ class Bbki:
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
 
-    def __init__(self, cfgdir=None, host_info=None):
+    def __init__(self, target_host_info, target_host_is_myself=True, cfgdir=None):
+        self._targetHostInfo = target_host_info
+        self._bForSelf = target_host_is_myself
+
         if cfgdir is None:
             cfgdir = "/etc/bbki"
-
-        self._bForSelf = (host_info is None)            # who we are building for, ourself or others
-        self._hostInfo = (host_info if host_info is not None else HostInfoUtil.getCurrentHostInfo())
-
         self._cfg = Config(cfgdir)
 
         if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
@@ -97,13 +96,9 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self, strict=True):
-        kernelInfo = Bootloader(self).get_current_kernel_info()
-        if kernelInfo is not None:
-            ret = BootEntry(kernelInfo)
-            if not strict or (ret.has_kernel_files() and ret.has_initrd_files()):
-                return ret
-            else:
-                return None
+        ret = Bootloader(self).get_current_boot_entry()
+        if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
+            return ret
         else:
             return None
 
@@ -136,26 +131,26 @@ class Bbki:
     def install_initramfs(self, boot_entry):
         assert boot_entry.has_kernel_files()
 
-        if not self._bForSelf or self._hostInfo.mount_point_list is None:
+        if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         obj = InitramfsInstaller(boot_entry)
         obj.install()
 
     def install_bootloader(self):
-        if not self._bForSelf or self._hostInfo.mount_point_list is None:
+        if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
 
     def reinstall_bootloader(self):
-        if not self._bForSelf or self._hostInfo.mount_point_list is None:
+        if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
 
     def update_bootloader(self):
-        if not self._bForSelf or self._hostInfo.mount_point_list is None:
+        if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass

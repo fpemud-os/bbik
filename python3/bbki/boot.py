@@ -118,14 +118,14 @@ class Bootloader:
         self._bbki = bbki
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
 
-    def get_current_kernel_info(self):
+    def get_current_boot_entry(self):
         if not os.path.exists(self._grubCfgFile):
             return None
 
         buf = pathlib.Path(self._grubCfgFile).read_text()
         m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
         if m is not None:
-            return KernelInfo.new_from_postfix(m.group(1))
+            return BootEntry(KernelInfo.new_from_postfix(m.group(1)))
         else:
             return None
 
@@ -199,6 +199,37 @@ class Bootloader:
 
     def _uefiGrubRemove(self):
         robust_layer.simple_fops.rm("/boot/EFI")
+        robust_layer.simple_fops.rm("/boot/grub")
+
+    def _biosGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
+        ret = FkmBootEntry.findCurrent()
+        if ret is None:
+            raise Exception("Invalid current boot item, strange?!")
+
+        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
+
+        # backup old directory
+        if os.path.exists("/boot/grub"):
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
+
+        # install /boot/grub directory
+        # install grub into disk MBR
+        FmUtil.cmdCall("/usr/sbin/grub-install", "--target=i386-pc", storageLayout.get_boot_disk())
+
+        # generate grub.cfg
+        self._genGrubCfg(storageLayout,
+                         ret.buildTarget,
+                         grubKernelOpt,
+                         hwInfo.grubExtraWaitTime,
+                         FmConst.kernelInitCmd)
+
+    def _biosGrubRemove(self, storageLayout):
+        # remove MBR
+        with open(storageLayout.get_boot_disk(), "wb+") as f:
+            f.write(FmUtil.newBuffer(0, 440))
+
+        # remove /boot/grub directory
         robust_layer.simple_fops.rm("/boot/grub")
 
 
@@ -339,37 +370,6 @@ class Bootloader:
         buf += '\n'
         return buf
 
-    def _biosGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
-        ret = FkmBootEntry.findCurrent()
-        if ret is None:
-            raise Exception("Invalid current boot item, strange?!")
-
-        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
-
-        # backup old directory
-        if os.path.exists("/boot/grub"):
-            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
-
-        # install /boot/grub directory
-        # install grub into disk MBR
-        FmUtil.cmdCall("/usr/sbin/grub-install", "--target=i386-pc", storageLayout.get_boot_disk())
-
-        # generate grub.cfg
-        self._genGrubCfg(storageLayout,
-                         ret.buildTarget,
-                         grubKernelOpt,
-                         hwInfo.grubExtraWaitTime,
-                         FmConst.kernelInitCmd)
-
-    def _biosGrubRemove(self, storageLayout):
-        # remove MBR
-        with open(storageLayout.get_boot_disk(), "wb+") as f:
-            f.write(FmUtil.newBuffer(0, 440))
-
-        # remove /boot/grub directory
-        robust_layer.simple_fops.rm("/boot/grub")
-
     def _getGrubRootDevCmd(self, devPath):
         if os.path.dirname(devPath) == "/dev/mapper" or devPath.startswith("/dev/dm-"):
             lvmInfo = FmUtil.getBlkDevLvmInfo(devPath)
@@ -393,29 +393,6 @@ class Bootloader:
                 return (fn, "jpg")
         return None
 
-
-class FkmMountBootDirRw:
-
-    def __init__(self, storageLayout):
-        self.storageLayout = storageLayout
-
-        if self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
-            FmUtil.cmdCall("/bin/mount", self.storageLayout.get_esp(), "/boot", "-o", "rw,remount")
-        elif self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
-            pass
-        else:
-            assert False
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
-            FmUtil.cmdCall("/bin/mount", self.storageLayout.get_esp(), "/boot", "-o", "ro,remount")
-        elif self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
-            pass
-        else:
-            assert False
 
 
 

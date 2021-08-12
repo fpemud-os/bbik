@@ -287,6 +287,26 @@ class Util:
         return result
 
     @staticmethod
+    def devPathPartitionToDiskAndPartitionId(partitionDevPath):
+        m = re.fullmatch("(/dev/sd[a-z])([0-9]+)", partitionDevPath)
+        if m is not None:
+            return (m.group(1), int(m.group(2)))
+        m = re.fullmatch("(/dev/xvd[a-z])([0-9]+)", partitionDevPath)
+        if m is not None:
+            return (m.group(1), int(m.group(2)))
+        m = re.fullmatch("(/dev/vd[a-z])([0-9]+)", partitionDevPath)
+        if m is not None:
+            return (m.group(1), int(m.group(2)))
+        m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p([0-9]+)", partitionDevPath)
+        if m is not None:
+            return (m.group(1), int(m.group(2)))
+        assert False
+
+    @staticmethod
+    def devPathPartitionToDisk(partitionDevPath):
+        return Util.devPathPartitionToDiskAndPartitionId(partitionDevPath)[0]
+
+    @staticmethod
     def getFilesByKmodAlias(kernelFile, kernelModuleDir, firmwareDir, kmodAlias):
         # Returns (kmodList, firmwareList), which is the list of the paths of files
         # need for kmodAlias, including dependencies
