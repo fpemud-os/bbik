@@ -72,15 +72,15 @@ class Repo:
             kernelDir = os.path.join(self._path, kernel_type)
             if os.path.exists(kernelDir):
                 for fn in os.listdir(kernelDir):
-                    ret.append(Bbki.ITEM_TYPE_KERNEL, fn)
+                    ret.append(Bbki.ATOM_TYPE_KERNEL, fn)
             kernelAddonDir = os.path.join(self._path, kernel_type + "-addon")
             if os.path.exists(kernelAddonDir):
                 for fn in os.listdir(kernelAddonDir):
-                    ret.append(Bbki.ITEM_TYPE_KERNEL_ADDON, fn)
+                    ret.append(Bbki.ATOM_TYPE_KERNEL_ADDON, fn)
         return ret
 
     def get_items_by_type_name(self, item_type, item_name):
-        assert item_type in [Bbki.ITEM_TYPE_KERNEL, Bbki.ITEM_TYPE_KERNEL_ADDON]
+        assert item_type in [Bbki.ATOM_TYPE_KERNEL, Bbki.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []
         dirpath = os.path.join(self._path, _format_catdir(item_type, self._bbki.kernel_type), item_name)
@@ -305,7 +305,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_build(self):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -332,7 +332,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_install(self):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -359,7 +359,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_addon_patch_kernel(self, kernel_item):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -380,7 +380,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_contribute_config_rules(self, kernel_item):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -401,7 +401,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_build(self, kernel_item):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -422,7 +422,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_install(self, kernel_item):
-        if self._item.item_type != Bbki.ITEM_TYPE_KERNEL_ADDON:
+        if self._item.item_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():                                                                
@@ -439,9 +439,9 @@ class BbkiFileExecutor:
 
 
 def _format_catdir(item_type, kernel_type):
-    if item_type == Bbki.ITEM_TYPE_KERNEL:
+    if item_type == Bbki.ATOM_TYPE_KERNEL:
         return kernel_type
-    elif item_type == Bbki.ITEM_TYPE_KERNEL_ADDON:
+    elif item_type == Bbki.ATOM_TYPE_KERNEL_ADDON:
         return kernel_type + "-addon"
     else:
         assert False
@@ -449,9 +449,9 @@ def _format_catdir(item_type, kernel_type):
 
 def _parse_catdir(catdir):
     if not catdir.endswith("-addon"):
-        return (Bbki.ITEM_TYPE_KERNEL, catdir)
+        return (Bbki.ATOM_TYPE_KERNEL, catdir)
     else:
-        return (Bbki.ITEM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
+        return (Bbki.ATOM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
 
 
 def _parse_bbki_filename(filename):

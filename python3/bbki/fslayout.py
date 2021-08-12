@@ -38,8 +38,8 @@ class FsLayout:
     def get_boot_grub_dir(self):
         return "/boot/grub"
 
-    def get_kernel_modules_dir(self, kernel_info):
-        return "/lib/modules/%s" % (kernel_info.verstr)
+    def get_kernel_modules_dir(self, kernel_verstr):
+        return "/lib/modules/%s" % (kernel_verstr)
 
     def get_firmware_dir(self):
         return "/lib/firmware"

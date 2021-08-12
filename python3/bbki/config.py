@@ -24,16 +24,21 @@
 import os
 import re
 from .bbki import Bbki
-from .bbki import BbkiConfigError
+from .bbki import ConfigError
 from .util import Util
+
+
+class BuildInfo:
+
+    def __init__(self):
+        self.arch = None
+        self.boot_mode = None
+        self.prefix = None
 
 
 class Config:
 
-    def __init__(self, cfgdir=None):
-        if cfgdir is None:
-            cfgdir = "/etc/bbki"
-
+    def __init__(self, cfgdir):
         self._makeConf = os.path.join(cfgdir, "make.conf")
 
         self._profileDir = os.path.join(cfgdir, "profile")
@@ -114,9 +119,9 @@ class Config:
 
         # return value according to cache
         if self._tKernelType is None:
-                raise BbkiConfigError("no kernel type specified")
+                raise ConfigError("no kernel type specified")
         if self._tKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
-            raise BbkiConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
+            raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
         return self._tKernelType
 
     def get_kernel_addon_names(self):

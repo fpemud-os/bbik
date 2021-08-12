@@ -34,31 +34,43 @@ class BootEntry:
 
     def __init__(self, bbki, kernel_info, history_entry=False):
         self._bbki = bbki
-        self._postfix = kernel_info.postfix
+        self._kernelInfo = kernel_info
         if not history_entry:
             self._bootDir = self._bbki._fsLayout.get_boot_dir()
         else:
             self._bootDir = self._bbki._fsLayout.get_boot_history_dir()
 
     @property
+    def arch(self):
+        return self._kernelInfo.arch
+
+    @property
+    def kernel_verstr(self):
+        return self._kernelInfo.verstr
+
+    @property
+    def kernel_ver(self):
+        return self._kernelInfo.ver
+
+    @property
     def kernel_file(self):
-        return os.path.join(self._bootDir, "kernel-" + self._postfix)
+        return os.path.join(self._bootDir, "kernel-" + self._kernelInfo.postfix)
 
     @property
     def kernel_config_file(self):
-        return os.path.join(self._bootDir, "config-"+ self._postfix)
+        return os.path.join(self._bootDir, "config-"+ self._kernelInfo.postfix)
 
     @property
     def kernel_config_rules_file(self):
-        return os.path.join(self._bootDir, "config-" + self._postfix + ".rules")
+        return os.path.join(self._bootDir, "config-" + self._kernelInfo.postfix + ".rules")
 
     @property
     def initrd_file(self):
-        return os.path.join(self._bootDir, "initramfs-" + self._postfix)
+        return os.path.join(self._bootDir, "initramfs-" + self._kernelInfo.postfix)
 
     @property
     def initrd_tar_file(self):
-        return os.path.join(self._bootDir, "initramfs-files-" + self._postfix + ".tar.bz2")
+        return os.path.join(self._bootDir, "initramfs-files-" + self._kernelInfo.postfix + ".tar.bz2")
 
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_file):
@@ -77,19 +89,15 @@ class BootEntry:
         return True
 
     def ___eq___(self, other):
-        return self._bbki == other._bbki and self._postfix == other._postfix and self._bootDir == other._bootDir
+        return self._bbki == other._bbki and self._kernelInfo.postfix == other._postfix and self._bootDir == other._bootDir
 
 
 class Bootloader:
 
     def __init__(self, bbki):
         self._bbki = bbki
-
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
         self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grubenv")
-
-        self.rescueOsDir = "/boot/rescue"
-        self.historyDir = "/boot/history"
 
     def get_stable_flag(self):
         # we use grub environment variable to store stable status, our grub needs this status either
@@ -126,7 +134,11 @@ class Bootloader:
 
 class BootloaderInstaller:
 
-    def updateBootloader(self, hwInfo, storageLayout, kernelInitCmd):
+    def __init__(self):
+        self.rescueOsDir = "/boot/rescue"
+        self.historyDir = "/boot/history"
+
+    def install(self, hwInfo, storageLayout, kernelInitCmd):
         if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
             self._uefiGrubInstall(hwInfo, storageLayout, kernelInitCmd)
         elif storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
@@ -134,7 +146,7 @@ class BootloaderInstaller:
         else:
             assert False
 
-    def removeBootloader(self, storageLayout):
+    def remove(self, storageLayout):
         if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
             self._uefiGrubRemove()
         elif storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
@@ -142,7 +154,7 @@ class BootloaderInstaller:
         else:
             assert False
 
-    def cleanBootloader(self):
+    def update(self):
         grubcfg = "/boot/grub/grub.cfg"
 
         lineList = []

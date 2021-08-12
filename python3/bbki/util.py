@@ -131,6 +131,15 @@ class Util:
         return ret.stdout.rstrip()
 
     @staticmethod
+    def cmdCallTestSuccess(cmd, *kargs):
+        ret = subprocess.run([cmd] + list(kargs),
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             universal_newlines=True)
+        if ret.returncode > 128:
+            time.sleep(1.0)
+        return (ret.returncode == 0)
+
+    @staticmethod
     def shellCall(cmd):
         # call command with shell to execute backstage job
         # scenarios are the same as FmUtil.cmdCall

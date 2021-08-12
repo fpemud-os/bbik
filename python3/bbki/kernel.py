@@ -22,6 +22,7 @@
 
 import os
 import re
+import pylkcutil
 import robust_layer.simple_fops
 from .util import Util
 from .util import TempChdir
@@ -79,14 +80,6 @@ class KernelInfo:
         return self._arch == other._arch and self._verstr == other._verstr
 
     @staticmethod
-    def current():
-        un = os.uname()
-        ret = KernelInfo()
-        ret._arch = un.machine
-        ret._verstr = un.release
-        return ret
-
-    @staticmethod
     def new_from_postfix(postfix):
         # postfix example: x86_64-3.9.11-gentoo-r1
         partList = postfix.split("-")
@@ -104,6 +97,11 @@ class KernelInfo:
 
     @staticmethod
     def new_from_verstr(arch, verstr):
+        if arch == "native":
+            arch = os.uname().machine
+        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
+            raise ValueError("illegal arch")
+
         # verstr example: 3.9.11-gentoo-r1
         partList = verstr.split("-")
         if len(partList) < 1:
@@ -118,6 +116,11 @@ class KernelInfo:
 
     @staticmethod
     def new_from_kernel_srcdir(arch, kernel_srcdir):
+        if arch == "native":
+            arch = os.uname().machine
+        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
+            raise ValueError("illegal arch")
+
         version = None
         patchlevel = None
         sublevel = None
@@ -253,21 +256,18 @@ class KernelInstaller:
             buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
             rulesDict[addon_item.name] = buf
 
-        # generate rules file
-        _generateKernelCfgRulesFile(kcfgRulesTmpFile, rulesDict)
-
         # debug feature
         if True:
             # killing CONFIG_VT is failed for now
             Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (kcfgRulesTmpFile))
 
         # generate the real ".config"
-        # FIXME
-        Util.cmdCall("/usr/libexec/fpemud-os-sysman/bugfix-generate-dotcfgfile.py", workDir, kcfgRulesTmpFile, dotCfgFile)
+        # FIXME: moved here from a seperate process, leakage?
+        pylkcutil.generator.generate(workDir, "allnoconfig+module", kcfgRulesTmpFile, output=dotCfgFile)
 
         # "make olddefconfig" may change the .config file further
         with TempChdir(workDir):
-            Util.shellCall("/usr/bin/make olddefconfig")
+            Util.shellCall("make olddefconfig")
 
     def build(self):
         self._executorDict[self._kernelItem].exec_kernel_build()
