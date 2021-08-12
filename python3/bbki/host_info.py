@@ -79,7 +79,7 @@ class HostInfo:
 class HostMountPointInfo:
 
     def __init__(self, mount_type, mount_point, dev_path, fs_type, mount_option=""):
-        assert self.MOUNT_TYPE_ROOT <= mount_type <= self.MOUNT_TYPE_OTHER
+        assert HostInfo.MOUNT_TYPE_ROOT <= mount_type <= HostInfo.MOUNT_TYPE_OTHER
         assert Util.isValidFsType(fs_type)
 
         self.mount_type = mount_type
