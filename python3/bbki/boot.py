@@ -24,8 +24,8 @@
 import os
 import re
 import pathlib
-import subprocess
-from .bbki import BbkiSystemError
+import robust_layer.simple_fops
+from .bbki import SystemError
 from .util import Util
 from .kernel import KernelInfo
 
@@ -68,7 +68,7 @@ class BootEntry:
     def kernel_config_filepath(self):
         return os.path.join(self._bootDir, self.kernel_config_filename)
 
-    @property
+    @propertys
     def kernel_config_rules_filename(self):
         return "config-" + self._kernelInfo.postfix + ".rules"
 
@@ -118,7 +118,7 @@ class Bootloader:
         self._bbki = bbki
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
 
-    def get_current_boot_entry(self):
+    def getCurrentBootEntry(self):
         if not os.path.exists(self._grubCfgFile):
             return None
 
@@ -129,21 +129,58 @@ class Bootloader:
         else:
             return None
 
-    def install(self, rootDev, bootDev, extraWaitTime, kernelInitCmd):
-        if self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
-            self._uefiGrubInstall(hwInfo, storageLayout, kernelInitCmd)
-        elif self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
-            self._biosGrubInstall(hwInfo, storageLayout, kernelInitCmd)
-        else:
-            assert False
+    def uefiGrubInstall(self, grubExtraWaitTime, storageLayout, kernelInitCmd):
+        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
 
-    def remove(self, storageLayout):
-        if self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
-            self._uefiGrubRemove()
-        elif self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
-            self._biosGrubRemove(storageLayout)
-        else:
-            assert False
+        # remove old directory
+        self.uefiGrubRemove()
+
+        # install /boot/grub and /boot/EFI directory
+        # install grub into ESP
+        # *NO* UEFI firmware variable is touched, so that we are portable
+        Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
+
+        # generate grub.cfg
+        self._genGrubCfg(storageLayout,
+                         ret.buildTarget,
+                         grubKernelOpt,
+                         grubExtraWaitTime,
+                         FmConst.kernelInitCmd)
+
+    def uefiGrubRemove(self):
+        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
+        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
+
+    def biosGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
+        ret = FkmBootEntry.findCurrent()
+        if ret is None:
+            raise Exception("Invalid current boot item, strange?!")
+
+        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
+
+        # backup old directory
+        if os.path.exists("/boot/grub"):
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
+
+        # install /boot/grub directory
+        # install grub into disk MBR
+        FmUtil.cmdCall("/usr/sbin/grub-install", "--target=i386-pc", storageLayout.get_boot_disk())
+
+        # generate grub.cfg
+        self._genGrubCfg(storageLayout,
+                         ret.buildTarget,
+                         grubKernelOpt,
+                         hwInfo.grubExtraWaitTime,
+                         FmConst.kernelInitCmd)
+
+    def biosGrubRemove(self, storageLayout):
+        # remove MBR
+        with open(storageLayout.get_boot_disk(), "wb+") as f:
+            f.write(FmUtil.newBuffer(0, 440))
+
+        # remove /boot/grub directory
+        robust_layer.simple_fops.rm("/boot/grub")
 
     def update(self):
         grubcfg = "/boot/grub/grub.cfg"
@@ -169,78 +206,12 @@ class Bootloader:
             for line in lineList2:
                 f.write(line + "\n")
 
-    def _uefiGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
-        # get variables
-        ret = FkmBootEntry.findCurrent()
-        if ret is None:
-            raise Exception("invalid current boot item, strange?!")
-
-        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
-
-        # backup old directory
-        if os.path.exists("/boot/grub"):
-            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
-        if os.path.exists("/boot/EFI"):
-            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/EFI", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "EFI"))
-
-        # install /boot/grub and /boot/EFI directory
-        # install grub into ESP
-        # *NO* UEFI firmware variable is touched, so that we are portable
-        FmUtil.cmdCall("/usr/sbin/grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=/boot", "--no-nvram")
-
-        # generate grub.cfg
-        self._genGrubCfg(storageLayout,
-                         ret.buildTarget,
-                         grubKernelOpt,
-                         hwInfo.grubExtraWaitTime,
-                         FmConst.kernelInitCmd)
-
-    def _uefiGrubRemove(self):
-        robust_layer.simple_fops.rm("/boot/EFI")
-        robust_layer.simple_fops.rm("/boot/grub")
-
-    def _biosGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
-        ret = FkmBootEntry.findCurrent()
-        if ret is None:
-            raise Exception("Invalid current boot item, strange?!")
-
-        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
-
-        # backup old directory
-        if os.path.exists("/boot/grub"):
-            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
-
-        # install /boot/grub directory
-        # install grub into disk MBR
-        FmUtil.cmdCall("/usr/sbin/grub-install", "--target=i386-pc", storageLayout.get_boot_disk())
-
-        # generate grub.cfg
-        self._genGrubCfg(storageLayout,
-                         ret.buildTarget,
-                         grubKernelOpt,
-                         hwInfo.grubExtraWaitTime,
-                         FmConst.kernelInitCmd)
-
-    def _biosGrubRemove(self, storageLayout):
-        # remove MBR
-        with open(storageLayout.get_boot_disk(), "wb+") as f:
-            f.write(FmUtil.newBuffer(0, 440))
-
-        # remove /boot/grub directory
-        robust_layer.simple_fops.rm("/boot/grub")
-
-
-
-
-    def _genGrubCfg(self, layout, buildTarget, grubKernelOpt, extraTimeout, initCmdline):
+    def _genGrubCfg(self, boot_mode, grubRootDev, buildTarget, grubKernelOpt, extraTimeout, initCmdline):
         buf = ''
-        if layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if boot_mode == Bbki.BOOT_MODE_EFI:
             grubRootDev = layout.get_esp()
             prefix = "/"
-        elif layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif boot_mode == Bbki.BOOT_MODE_BIOS:
             grubRootDev = layout.dev_rootfs
             prefix = "/boot"
         else:
@@ -257,9 +228,9 @@ class Bootloader:
         buf += '\n'
 
         # specify default menuentry and timeout
-        if layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if boot_mode == Bbki.BOOT_MODE_EFI:
             loadVideo = 'insmod efi_gop ; insmod efi_uga'
-        elif layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif boot_mode == Bbki.BOOT_MODE_BIOS:
             loadVideo = 'insmod vbe'
         else:
             assert False
@@ -332,12 +303,12 @@ class Bootloader:
         buf += '\n'
 
         # write menu entry for restarting to UEFI setup
-        if layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if boot_mode == Bbki.BOOT_MODE_EFI:
             buf += 'menuentry "Restart to UEFI setup" {\n'
             buf += '  fwsetup\n'
             buf += '}\n'
             buf += '\n'
-        elif layout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif boot_mode == Bbki.BOOT_MODE_BIOS:
             pass
         else:
             assert False
