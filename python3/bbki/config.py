@@ -28,14 +28,6 @@ from .bbki import ConfigError
 from .util import Util
 
 
-class BuildInfo:
-
-    def __init__(self):
-        self.arch = None
-        self.boot_mode = None
-        self.prefix = None
-
-
 class Config:
 
     def __init__(self, cfgdir):

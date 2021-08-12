@@ -21,12 +21,13 @@
 # THE SOFTWARE.
 
 
+import os
 import subprocess
 from .util import Util
-from .config import BuildInfo, Config
+from .config import HostInfo, Config
 from .repo import Repo
 from .repo import BbkiFileExecutor
-from .fslayout import FsLayout
+from .fslayout import FsLayoutLinux
 from .kernel import KernelInfo
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
@@ -39,33 +40,28 @@ class Bbki:
 
     KERNEL_TYPE_LINUX = "linux"
 
+    BOOT_MODE_EFI = "efi"
+    BOOT_MODE_BIOS = "bios"
+
+    FS_TYPE_VFAT = "vfat"
+    FS_TYPE_EXT4 = "ext4"
+    FS_TYPE_BTRFS = "btrfs"
+
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
 
-    BOOT_MODE_EFI = 1
-    BOOT_MODE_BIOS = 2
-
-    def __init__(self, cfgdir=None, build_info=None):
+    def __init__(self, cfgdir=None, host_info=None):
         if cfgdir is None:
             cfgdir = "/etc/bbki"
 
-        if build_info is None:
-            build_info = BuildInfo()
-        if build_info.arch == "native":
-            build_info.arch = os.uname().machine
-        if build_info.boot_mode == 
-
-            build_info.boot_mode = 
-
-
-
-        self.prefix = None
-
-
-
+        self._hostInfo = host_info
         self._cfg = Config(cfgdir)
-        self._fsLayout = FsLayout()
-        self._bootLoader = Bootloader()
+
+        if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
+            self._fsLayout = FsLayoutLinux(self)
+        else:
+            assert False
+
         self._repoList = [
             Repo(self._cfg.data_repo_dir),
         ]
@@ -81,20 +77,15 @@ class Bbki:
     def check_running_environment(self):
         if not Util.cmdCallTestSuccess("sed", "--version"):
             raise RunningEnvironmentError("executable \"sed\" does not exist")
-
         if not Util.cmdCallTestSuccess("make", "-V"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
-
         if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
 
-    def get_system_stable_flag(self):
-        return self._bootLoader.get_stable_flag()
-
-    def set_system_stable_flag(self, stable):
-        return self._bootLoader.set_stable_flag(stable)
-
     def get_current_boot_entry(self):
+        if self._hostInfo is not None:
+            return None
+
         un = os.uname()
         kernelInfo = KernelInfo(un.machine, un.release)
         for bHistoryEntry in [False, True]:
@@ -104,7 +95,7 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self):
-        kernelInfo = self._bootLoader.get_current_kernel_info()
+        kernelInfo = Bootloader(self).get_current_kernel_info()
         if kernelInfo is None:
             ret = BootEntry(kernelInfo)
             if ret.has_kernel_files() and ret.has_initrd_files():
@@ -135,35 +126,48 @@ class Bbki:
         BbkiFileExecutor(atom).exec_fetch()
 
     def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
-        assert kernel_atom is not None and kernel_atom.item_type == self.ATOM_TYPE_KERNEL
-        assert kernel_addon_atom_list is not None and all([x.item_type == self.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
+        assert kernel_atom.item_type == self.ATOM_TYPE_KERNEL
+        assert all([x.item_type == self.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, boot_entry):
-        obj = InitramfsInstaller(KernelInfo(kernel_atom.verstr), boot_entry)
+        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+            raise RunningEnvironmentError("no boot/root device specified")
+
+        obj = InitramfsInstaller(boot_entry)
         obj.install()
 
     def install_bootloader(self):
+        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+            raise RunningEnvironmentError("no boot/root device specified")
+
         pass
 
-    def update_bootloader_config(self):
+    def reinstall_bootloader(self):
+        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+            raise RunningEnvironmentError("no boot/root device specified")
+
+        pass
+
+    def update_bootloader(self):
+        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+            raise RunningEnvironmentError("no boot/root device specified")
+
         pass
 
     def check(self, autofix=False):
-        assert False
-
-    def remove(self):
         assert False
 
     def clean_boot_dir(self, pretend=False):
         assert False
 
     def clean_cache_dir(self, pretend=False):
-        DistfilesCache
-
-
         assert False
+
+    def remove(self):
+        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+            raise RunningEnvironmentError("no boot/root device specified")
 
 
 class RunningEnvironmentError(Exception):

@@ -21,7 +21,7 @@
 # THE SOFTWARE.
 
 
-class FsLayout:
+class FsLayoutLinux:
 
     def __init__(self, bbki):
         self._bbki = bbki

@@ -30,6 +30,10 @@ import subprocess
 class Util:
 
     @staticmethod
+    def isEfi():
+        return os.path.exists("/sys/firmware/efi")
+
+    @staticmethod
     def getBlkDevUuid(devPath):
         """UUID is also called FS-UUID, PARTUUID is another thing"""
 
@@ -55,6 +59,10 @@ class Util:
         ret = s.split(d)
         assert len(ret) == count
         return tuple(ret)
+
+    @staticmethod
+    def isValidFsType(fsType):
+        return True
 
     @staticmethod
     def isValidKernelArch(archStr):

@@ -45,46 +45,66 @@ class BootEntry:
         return self._kernelInfo.arch
 
     @property
-    def kernel_verstr(self):
-        return self._kernelInfo.verstr
-
-    @property
     def kernel_ver(self):
         return self._kernelInfo.ver
 
     @property
-    def kernel_file(self):
-        return os.path.join(self._bootDir, "kernel-" + self._kernelInfo.postfix)
+    def kernel_verstr(self):
+        return self._kernelInfo.verstr
 
     @property
-    def kernel_config_file(self):
-        return os.path.join(self._bootDir, "config-"+ self._kernelInfo.postfix)
+    def kernel_filename(self):
+        return "kernel-" + self._kernelInfo.postfix
 
     @property
-    def kernel_config_rules_file(self):
-        return os.path.join(self._bootDir, "config-" + self._kernelInfo.postfix + ".rules")
+    def kernel_filepath(self):
+        return os.path.join(self._bootDir, self.kernel_filename)
 
     @property
-    def initrd_file(self):
-        return os.path.join(self._bootDir, "initramfs-" + self._kernelInfo.postfix)
+    def kernel_config_filename(self):
+        return "config-"+ self._kernelInfo.postfix
 
     @property
-    def initrd_tar_file(self):
-        return os.path.join(self._bootDir, "initramfs-files-" + self._kernelInfo.postfix + ".tar.bz2")
+    def kernel_config_filepath(self):
+        return os.path.join(self._bootDir, self.kernel_config_filename)
+
+    @property
+    def kernel_config_rules_filename(self):
+        return "config-" + self._kernelInfo.postfix + ".rules"
+
+    @property
+    def kernel_config_rules_filepath(self):
+        return os.path.join(self._bootDir, self.kernel_config_rules_filename)
+
+    @property
+    def initrd_filename(self):
+        return "initramfs-" + self._kernelInfo.postfix
+
+    @property
+    def initrd_filepath(self):
+        return os.path.join(self._bootDir, self.initrd_filename)
+
+    @property
+    def initrd_tar_filename(self):
+        return "initramfs-files-" + self._kernelInfo.postfix + ".tar.bz2"
+
+    @property
+    def initrd_tar_filepath(self):
+        return os.path.join(self._bootDir, self.initrd_tar_filename)
 
     def has_kernel_files(self):
-        if not os.path.exists(self.kernel_file):
+        if not os.path.exists(self.kernel_filepath):
             return False
-        if not os.path.exists(self.kernel_config_file):
+        if not os.path.exists(self.kernel_config_filepath):
             return False
-        if not os.path.exists(self.kernel_config_rules_file):
+        if not os.path.exists(self.kernel_config_rules_filepath):
             return False
         return True
 
     def has_initrd_files(self):
-        if not os.path.exists(self.initrd_file):
+        if not os.path.exists(self.initrd_filepath):
             return False
-        if not os.path.exists(self.initrd_tar_file):
+        if not os.path.exists(self.initrd_tar_filepath):
             return False
         return True
 
@@ -97,28 +117,6 @@ class Bootloader:
     def __init__(self, bbki):
         self._bbki = bbki
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
-        self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grubenv")
-
-    def get_stable_flag(self):
-        # we use grub environment variable to store stable status, our grub needs this status either
-        if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
-            raise BbkiSystemError("bootloader is not installed")
-
-        out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
-        return re.search("^stable=", out, re.M) is not None
-
-    def set_stable_flag(self, value):
-        assert value is not None and isinstance(value, bool)
-
-        if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
-            raise BbkiSystemError("bootloader is not installed")
-
-        if value:
-            Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
-        else:
-            if not os.path.exists(self._grubEnvFile):
-                return
-            Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
     def get_current_kernel_info(self):
         if not os.path.exists(self._grubCfgFile):
@@ -131,25 +129,18 @@ class Bootloader:
         else:
             return None
 
-
-class BootloaderInstaller:
-
-    def __init__(self):
-        self.rescueOsDir = "/boot/rescue"
-        self.historyDir = "/boot/history"
-
-    def install(self, hwInfo, storageLayout, kernelInitCmd):
-        if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+    def install(self, rootDev, bootDev, extraWaitTime, kernelInitCmd):
+        if self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             self._uefiGrubInstall(hwInfo, storageLayout, kernelInitCmd)
-        elif storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
             self._biosGrubInstall(hwInfo, storageLayout, kernelInitCmd)
         else:
             assert False
 
     def remove(self, storageLayout):
-        if storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             self._uefiGrubRemove()
-        elif storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
             self._biosGrubRemove(storageLayout)
         else:
             assert False
@@ -177,6 +168,41 @@ class BootloaderInstaller:
         with open(grubcfg, "w") as f:
             for line in lineList2:
                 f.write(line + "\n")
+
+    def _uefiGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
+        # get variables
+        ret = FkmBootEntry.findCurrent()
+        if ret is None:
+            raise Exception("invalid current boot item, strange?!")
+
+        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
+
+        # backup old directory
+        if os.path.exists("/boot/grub"):
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
+        if os.path.exists("/boot/EFI"):
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            robust_layer.simple_fops.mv("/boot/EFI", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "EFI"))
+
+        # install /boot/grub and /boot/EFI directory
+        # install grub into ESP
+        # *NO* UEFI firmware variable is touched, so that we are portable
+        FmUtil.cmdCall("/usr/sbin/grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=/boot", "--no-nvram")
+
+        # generate grub.cfg
+        self._genGrubCfg(storageLayout,
+                         ret.buildTarget,
+                         grubKernelOpt,
+                         hwInfo.grubExtraWaitTime,
+                         FmConst.kernelInitCmd)
+
+    def _uefiGrubRemove(self):
+        robust_layer.simple_fops.rm("/boot/EFI")
+        robust_layer.simple_fops.rm("/boot/grub")
+
+
+
 
     def _genGrubCfg(self, layout, buildTarget, grubKernelOpt, extraTimeout, initCmdline):
         buf = ''
@@ -261,11 +287,11 @@ class BootloaderInstaller:
             buf += '\n'
 
         # write menu entry for history kernels
-        if os.path.exists(self.historyDir):
-            for kernelFile in sorted(os.listdir(self.historyDir), reverse=True):
+        if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
+            for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_history_dir()), reverse=True):
                 if kernelFile.startswith("kernel-"):
                     buildTarget = FkmBuildTarget.newFromKernelFilename(kernelFile)
-                    if os.path.exists(os.path.join(self.historyDir, buildTarget.initrdFile)):
+                    if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_history_dir(), buildTarget.initrdFile)):
                         buf += self._grubGetMenuEntryList("History", buildTarget, grubRootDev, os.path.join(prefix, "history"), grubKernelOpt)
 
         # write menu entry for restart
@@ -322,8 +348,8 @@ class BootloaderInstaller:
 
         # backup old directory
         if os.path.exists("/boot/grub"):
-            os.makedirs(self.historyDir, exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self.historyDir, "grub"))
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "grub"))
 
         # install /boot/grub directory
         # install grub into disk MBR
@@ -342,38 +368,6 @@ class BootloaderInstaller:
             f.write(FmUtil.newBuffer(0, 440))
 
         # remove /boot/grub directory
-        robust_layer.simple_fops.rm("/boot/grub")
-
-    def _uefiGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
-        # get variables
-        ret = FkmBootEntry.findCurrent()
-        if ret is None:
-            raise Exception("invalid current boot item, strange?!")
-
-        grubKernelOpt = "console=ttynull"       # only use console when debug boot process
-
-        # backup old directory
-        if os.path.exists("/boot/grub"):
-            os.makedirs(self.historyDir, exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/grub", os.path.join(self.historyDir, "grub"))
-        if os.path.exists("/boot/EFI"):
-            os.makedirs(self.historyDir, exist_ok=True)
-            robust_layer.simple_fops.mv("/boot/EFI", os.path.join(self.historyDir, "EFI"))
-
-        # install /boot/grub and /boot/EFI directory
-        # install grub into ESP
-        # *NO* UEFI firmware variable is touched, so that we are portable
-        FmUtil.cmdCall("/usr/sbin/grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=/boot", "--no-nvram")
-
-        # generate grub.cfg
-        self._genGrubCfg(storageLayout,
-                         ret.buildTarget,
-                         grubKernelOpt,
-                         hwInfo.grubExtraWaitTime,
-                         FmConst.kernelInitCmd)
-
-    def _uefiGrubRemove(self):
-        robust_layer.simple_fops.rm("/boot/EFI")
         robust_layer.simple_fops.rm("/boot/grub")
 
     def _getGrubRootDevCmd(self, devPath):
@@ -405,9 +399,9 @@ class FkmMountBootDirRw:
     def __init__(self, storageLayout):
         self.storageLayout = storageLayout
 
-        if self.storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             FmUtil.cmdCall("/bin/mount", self.storageLayout.get_esp(), "/boot", "-o", "rw,remount")
-        elif self.storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
             pass
         else:
             assert False
@@ -416,9 +410,35 @@ class FkmMountBootDirRw:
         return self
 
     def __exit__(self, type, value, traceback):
-        if self.storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_EFI:
+        if self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             FmUtil.cmdCall("/bin/mount", self.storageLayout.get_esp(), "/boot", "-o", "ro,remount")
-        elif self.storageLayout.boot_mode == strict_hdds.StorageLayout.BOOT_MODE_BIOS:
+        elif self.self._bbki._hostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
             pass
         else:
             assert False
+
+
+
+
+
+
+# def get_stable_flag(self):
+#     # we use grub environment variable to store stable status, our grub needs this status either
+#     if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+#         raise BbkiSystemError("bootloader is not installed")
+
+#     out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
+#     return re.search("^stable=", out, re.M) is not None
+
+# def set_stable_flag(self, value):
+#     assert value is not None and isinstance(value, bool)
+
+#     if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+#         raise BbkiSystemError("bootloader is not installed")
+
+#     if value:
+#         Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
+#     else:
+#         if not os.path.exists(self._grubEnvFile):
+#             return
+#         Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
