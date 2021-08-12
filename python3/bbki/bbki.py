@@ -22,9 +22,9 @@
 
 
 import os
-import subprocess
 from .util import Util
-from .config import HostInfo, Config
+from .host_info import HostInfoUtil
+from .config import Config
 from .repo import Repo
 from .repo import BbkiFileExecutor
 from .fslayout import FsLayoutLinux
@@ -54,7 +54,9 @@ class Bbki:
         if cfgdir is None:
             cfgdir = "/etc/bbki"
 
-        self._hostInfo = host_info
+        self._bForSelf = (host_info is None)            # who we are building for, ourself or others
+        self._hostInfo = (host_info if host_info is not None else HostInfoUtil.getCurrentHostInfo())
+
         self._cfg = Config(cfgdir)
 
         if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
@@ -83,7 +85,7 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
 
     def get_current_boot_entry(self):
-        if self._hostInfo is not None:
+        if not self._bForSelf:
             return None
 
         un = os.uname()
@@ -94,11 +96,11 @@ class Bbki:
                 return ret
         return None
 
-    def get_pending_boot_entry(self):
+    def get_pending_boot_entry(self, strict=True):
         kernelInfo = Bootloader(self).get_current_kernel_info()
-        if kernelInfo is None:
+        if kernelInfo is not None:
             ret = BootEntry(kernelInfo)
-            if ret.has_kernel_files() and ret.has_initrd_files():
+            if not strict or (ret.has_kernel_files() and ret.has_initrd_files()):
                 return ret
             else:
                 return None
@@ -132,26 +134,28 @@ class Bbki:
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, boot_entry):
-        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+        assert boot_entry.has_kernel_files()
+
+        if not self._bForSelf or self._hostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         obj = InitramfsInstaller(boot_entry)
         obj.install()
 
     def install_bootloader(self):
-        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+        if not self._bForSelf or self._hostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
 
     def reinstall_bootloader(self):
-        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+        if not self._bForSelf or self._hostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
 
     def update_bootloader(self):
-        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
+        if not self._bForSelf or self._hostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
@@ -166,8 +170,7 @@ class Bbki:
         assert False
 
     def remove(self):
-        if self._hostInfo is not None and self._hostInfo.mount_point_list is None:
-            raise RunningEnvironmentError("no boot/root device specified")
+        assert False
 
 
 class RunningEnvironmentError(Exception):
