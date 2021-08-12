@@ -96,7 +96,7 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self, strict=True):
-        ret = Bootloader(self).get_current_boot_entry()
+        ret = Bootloader(self).getCurrentBootEntry()
         if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
             return ret
         else:

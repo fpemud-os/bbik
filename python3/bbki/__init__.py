@@ -41,7 +41,7 @@ from .bbki import KernelInstallError
 from .bbki import InitramfsInstallError
 from .bbki import BootloaderInstallError
 
-from .config import BuildInfo
+from .config import HostInfo
 from .config import Config
 
 from .repo import Repo
