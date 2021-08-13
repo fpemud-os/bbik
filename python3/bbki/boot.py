@@ -112,7 +112,7 @@ class BootEntry:
         return self._bbki == other._bbki and self._kernelInfo.postfix == other._postfix and self._bootDir == other._bootDir
 
 
-class Bootloader:
+class BootLoader:
 
     def __init__(self, bbki):
         self._bbki = bbki

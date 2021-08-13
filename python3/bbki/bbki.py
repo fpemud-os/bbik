@@ -23,17 +23,16 @@
 
 import os
 from .util import Util
-from .host_info import HostInfoUtil
-from .fs_layout import FsLayoutLinux
 from .config import Config
+from .fs_layout import FsLayoutLinux
 from .repo import Repo
 from .repo import BbkiFileExecutor
 from .kernel import KernelInfo
+from .kernel import KernelInstance
 from .kernel import KernelInstaller
-from .initramfs import InitramfsInstaller
+from .initramfs import Initramfs
 from .boot import BootEntry
-from .boot import Bootloader
-from .boot import BootloaderInstaller
+from .boot import BootLoader
 
 
 class Bbki:
@@ -83,8 +82,7 @@ class Bbki:
         if not self._bForSelf:
             return None
 
-        un = os.uname()
-        kernelInfo = KernelInfo(un.machine, un.release)
+        kernelInfo = KernelInfo.new_from_verstr("native", os.uname().release)
         for bHistoryEntry in [False, True]:
             ret = BootEntry(self._bbki, kernelInfo, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
@@ -92,9 +90,16 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self, strict=True):
-        ret = Bootloader(self).getCurrentBootEntry()
+        ret = BootLoader(self).getCurrentBootEntry()
         if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
             return ret
+        else:
+            return None
+
+    def get_kernel_instance(self):
+        bootEntry = self.get_pending_boot_entry()
+        if bootEntry is not None:
+            return KernelInstance(bootEntry)
         else:
             return None
 
@@ -124,13 +129,11 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, boot_entry):
-        assert boot_entry.has_kernel_files()
-
+    def install_initramfs(self, kernel_instance):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
-        obj = InitramfsInstaller(boot_entry)
+        obj = Initramfs(kernel_instance)
         obj.install()
 
     def install_bootloader(self):
@@ -150,10 +153,6 @@ class Bbki:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
-
-    def get_kernel(self, kernel_verstr):
-        return Kernel(kernel_verstr)
-
 
     def check(self, autofix=False):
         assert False

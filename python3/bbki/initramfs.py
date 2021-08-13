@@ -36,13 +36,12 @@ from .host_info import HostDiskScsiDisk, HostInfo
 from .host_info import HostInfoUtil
 
 
-class InitramfsInstaller:
+class Initramfs:
 
-    def __init__(self, bbki, boot_entry):
+    def __init__(self, bbki, kernel_instance):
         self._bbki = bbki
-        self._bootEntry = boot_entry
-
-        self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.kernel_verstr)
+        self._kernel = kernel_instance
+        self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(self._kernel.verstr)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
         self.mntInfoDict = OrderedDict()
@@ -108,7 +107,7 @@ class InitramfsInstaller:
                     hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
                     with open(os.path.join(hostDevPath, "proc_name")) as f:
                         hostControllerName = f.read().rstrip()
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, hostControllerName)
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, hostControllerName)
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
@@ -123,30 +122,30 @@ class InitramfsInstaller:
             # get kernel module for block device driver
             for d in [x for x in blkDevInfoList if x.devType.endswith("_disk") or x.devType.endswith("_raid")]:
                 if d.devType == "scsi_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "sd_mod")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "sd_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "virtio_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_pci")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_pci")
                     kmodList += r1
                     firmwareList += r2
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_blk")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_blk")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "xen_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "xen-blkfront")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "xen-blkfront")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "nvme_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nvme")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nvme")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "lvm2_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "dm_mod")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "dm_mod")
                     kmodList += r1
                     firmwareList += r2
                 elif d.devType == "bcache_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "bcache")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "bcache")
                     kmodList += r1
                     firmwareList += r2
                 else:
@@ -171,29 +170,29 @@ class InitramfsInstaller:
                     pass
                 elif d.fsType in ["ext4", "btrfs"]:
                     # coincide: fs type and module name are same
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, d.fsType)
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, d.fsType)
                     kmodList += r1
                     firmwareList += r2
                 elif d.fsType == "vfat":
                     buf = ""
-                    with open(self._bootEntry.kernel_config_file) as f:
+                    with open(self._kernel.boot_entry.kernel_config_file) as f:
                         buf = f.read()
 
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "vfat")
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "vfat")
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_CODEPAGE is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_cp%s" % (m.group(1)))
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_cp%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
 
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
                     if m is None:
                         raise Exception("CONFIG_FAT_DEFAULT_IOCHARSET is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self._bootEntry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_%s" % (m.group(1)))
+                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_%s" % (m.group(1)))
                     kmodList += r1
                     firmwareList += r2
                 else:
@@ -380,11 +379,11 @@ class InitramfsInstaller:
             cmdStr = "/usr/bin/find . -print0 "
             cmdStr += "| /bin/cpio --null -H newc -o "
             cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
-            cmdStr += "> \"%s\" " % (self._bootEntry.initrd_file)
+            cmdStr += "> \"%s\" " % (self._kernel.boot_entry.initrd_file)
             Util.shellCall(cmdStr)
 
             # tar file
-            with tarfile.open(self._bootEntry.initrd_tar_file, "w:bz2") as f:
+            with tarfile.open(self._kernel.boot_entry.initrd_tar_file, "w:bz2") as f:
                 for fn in glob.glob("*"):
                     f.add(fn)
 
@@ -651,7 +650,7 @@ class InitramfsInstaller:
             "VFAT_FS": "m",
         }
 
-        buf = pathlib.Path(self._bootEntry.kernel_config_file).read_text()
+        buf = pathlib.Path(self._kernel.boot_entry.kernel_config_file).read_text()
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))

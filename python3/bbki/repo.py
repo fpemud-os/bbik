@@ -29,7 +29,7 @@ import inspect
 import urllib.parse
 import robust_layer.simple_git
 from . import Bbki
-from . import BbkiRepoError
+from . import RepoError
 from .util import TempChdir, Util
 
 
@@ -58,7 +58,7 @@ class Repo:
             if autofix:
                 self.create()
             else:
-                raise BbkiRepoError("repository does not exist")
+                raise RepoError("repository does not exist")
 
     # def query_items(self):
     #     ret = []
@@ -213,9 +213,9 @@ class RepoItem:
                         self._tFuncList.append(m.group(1))
 
         if "fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
-            raise BbkiRepoError("fetch() and SRC_URI are mutally exclusive")
+            raise RepoError("fetch() and SRC_URI are mutally exclusive")
         if "fetch" in self._tFuncList and "SRC_URI_GIT" in self._tVarDict:
-            raise BbkiRepoError("fetch() and SRC_URI_GIT are mutally exclusive")
+            raise RepoError("fetch() and SRC_URI_GIT are mutally exclusive")
 
 
 class BbkiFileExecutor:

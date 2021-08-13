@@ -21,9 +21,9 @@
 # THE SOFTWARE.
 
 import os
+from python3.bbki.boot import BootEntry
 import re
 import pylkcutil
-import robust_layer.simple_fops
 from .util import Util
 from .util import TempChdir
 from .repo import BbkiFileExecutor
@@ -34,11 +34,6 @@ class KernelInfo:
     def __init__(self):
         self._arch = None
         self._verstr = None
-
-    @property
-    def name(self):
-        # string, eg: "linux-x86_64-3.9.11-gentoo-r1"
-        return "linux-" + self._arch + "-" + self._verstr
 
     @property
     def postfix(self):
@@ -156,33 +151,46 @@ class KernelInfo:
         return ret
 
 
-class Kernel:
+class KernelInstance:
 
-    def __init__(self, bbki, kernel_verstr):
+    def __init__(self, bbki, boot_entry):
         self._bbki = bbki
-        self._verstr = kernel_verstr
-        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._verstr)
+        self._bootEntry = boot_entry
+        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.kernel_verstr)
+        assert self._bootEntry.has_kernel_files() and os.path.exists(self._modulesDir)
 
-    def exists(self):
-        BootEntry()
+    @property
+    def arch(self):
+        return self._bootEntry.arch
 
+    @property
+    def ver(self):
+        return self._bootEntry.kernel_ver
 
-    def get_kernel_module_filenames(self, kmod_alias):
-        return [x[len(self._modulesDir):] for x in self.get_kernel_module_filepaths(kmod_alias)]
+    @property
+    def verstr(self):
+        return self._bootEntry.kernel_verstr
 
-    def get_kernel_module_filepaths(self, kmod_alias):
+    @property
+    def boot_entry(self):
+        return self._bootEntry
+
+    def get_kernel_module_filenames(self, kmod_alias, with_deps=False):
+        return [x[len(self._modulesDir):] for x in self.get_kernel_module_filepaths(kmod_alias, with_deps)]
+
+    def get_kernel_module_filepaths(self, kmod_alias, with_deps=False):
         kmodList = dict()                                     # use dict to remove duplication while keeping order
         ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))     # FIXME: why encode is neccessary?
-        self._getKmodAndDeps(ctx, kmod_alias, kmodList)
+        self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
         return list(kmodList.fromkeys())
 
-    def _getKmodAndDeps(self, ctx, kmodAlias, result):
+    def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
         kmodObjList = list(ctx.lookup(kmodAlias))
         if len(kmodObjList) > 0:
             assert len(kmodObjList) == 1
             kmodObj = kmodObjList[0]
 
-            if "depends" in kmodObj.info and kmodObj.info["depends"] != "":
+            if withDeps and "depends" in kmodObj.info and kmodObj.info["depends"] != "":
                 for kmodAlias in kmodObj.info["depends"].split(","):
                     self._getKmodAndDeps(ctx, kmodAlias, result)
 
@@ -193,42 +201,42 @@ class Kernel:
 
 class KernelInstaller:
 
-    def __init__(self, bbki, kernel_item, kernel_addon_item_list):
+    def __init__(self, bbki, kernel_atom, kernel_atom_item_list):
         self._bbki = bbki
 
-        self._kernelItem = kernel_item
-        self._addonItemList = kernel_addon_item_list
+        self._kernelAtom = kernel_atom
+        self._addonAtomList = kernel_atom_item_list
 
         self._executorDict = dict()
-        self._executorDict[kernel_item] = BbkiFileExecutor(kernel_item)
-        for item in kernel_addon_item_list:
+        self._executorDict[kernel_atom] = BbkiFileExecutor(kernel_atom)
+        for item in kernel_atom_item_list:
             self._executorDict[item] = BbkiFileExecutor(item)
 
         # create tmpdirs
-        self._executorDict[self._kernelItem].create_tmpdirs()
-        for item in self._addonItemList:
+        self._executorDict[self._kernelAtom].create_tmpdirs()
+        for item in self._addonAtomList:
             self._executorDict[item].create_tmpdirs()
 
     def dispose(self):
-        for item in reversed(self._addonItemList):
+        for item in reversed(self._addonAtomList):
             self._executorDict[item].remove_tmpdirs()
-        self._executorDict[self._kernelItem].remove_tmpdirs()
+        self._executorDict[self._kernelAtom].remove_tmpdirs()
 
     def get_build_target(self):
-        return KernelInfo.new_from_verstr("amd64", self._kernelItem.verstr)
+        return KernelInfo.new_from_verstr("amd64", self._kernelAtom.verstr)
 
     def unpack(self):
-        self._executorDict[self._kernelItem].src_unpack()
-        for item in self._addonItemList:
+        self._executorDict[self._kernelAtom].src_unpack()
+        for item in self._addonAtomList:
             self._executorDict[item].exec_src_unpack()
 
     def patch_kernel(self):
-        for addon_item in self._addonItemList:
-            self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelItem)
+        for addon_item in self._addonAtomList:
+            self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom)
 
     def generate_kernel_dotcfg(self):
         rulesDict = dict()
-        workDir = self._executorDict[self._kernelItem].get_workdir()
+        workDir = self._executorDict[self._kernelAtom].get_workdir()
         kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
         dotCfgFile = os.path.join(workDir, ".config")
 
@@ -287,7 +295,7 @@ class KernelInstaller:
             rulesDict["head"] = buf
 
         # addon rules
-        for addon_item in self._addonItemList:
+        for addon_item in self._addonAtomList:
             buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
             rulesDict[addon_item.name] = buf
 
@@ -305,11 +313,11 @@ class KernelInstaller:
             Util.shellCall("make olddefconfig")
 
     def build(self):
-        self._executorDict[self._kernelItem].exec_kernel_build()
-        for item in self._addonItemList:
+        self._executorDict[self._kernelAtom].exec_kernel_build()
+        for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_build()
 
     def install(self):
-        self._executorDict[self._kernelItem].exec_kernel_install()
-        for item in self._addonItemList:
+        self._executorDict[self._kernelAtom].exec_kernel_install()
+        for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
