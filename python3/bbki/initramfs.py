@@ -99,6 +99,7 @@ class Initramfs:
         kmodList = OrderedSet()
         if True:
             kaliasList = OrderedSet()
+
             for disk in diskList:
                 if isinstance(disk, HostDiskLvmLv):
                     kaliasList.add("dm_mod")

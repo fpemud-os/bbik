@@ -21,8 +21,8 @@
 # THE SOFTWARE.
 
 import os
-from python3.bbki.boot import BootEntry
 import re
+import kmod
 import pylkcutil
 from .util import Util
 from .util import TempChdir
