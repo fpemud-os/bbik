@@ -30,6 +30,14 @@ from .util import Util
 
 class Config:
 
+    DEFAULT_CONFIG_DIR = "/etc/bbki"
+
+    DEFAULT_DATA_DIR = "/var/lib/bbki"
+
+    DEFAULT_CACHE_DIR = "/var/cache/bbki"
+
+    DEFAULT_TMP_DIR = "/var/tmp/bbki"
+
     def __init__(self, cfgdir):
         self._makeConf = os.path.join(cfgdir, "make.conf")
 
@@ -42,14 +50,14 @@ class Config:
         self._cfgKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
         self._cfgMaskDir = os.path.join(cfgdir, "bbki.mask")
 
-        self._dataDir = "/var/lib/bbki"
+        self._dataDir = Config.DEFAULT_DATA_DIR
         self._dataRepoDir = os.path.join(self._dataDir, "repo")
 
-        self._cacheDir = "/var/cache/bbki"
+        self._cacheDir = Config.DEFAULT_CACHE_DIR
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
 
-        self._tmpDir = "/var/tmp/bbki"
+        self._tmpDir = Config.DEFAULT_TMP_DIR
 
         self._tKernelType = None
         self._tKernelAddonNameList = None

@@ -45,12 +45,10 @@ class Bbki:
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
 
-    def __init__(self, target_host_info, target_host_is_myself=True, cfgdir=None):
+    def __init__(self, target_host_info, target_host_is_myself=True, cfgdir=Config.DEFAULT_CONFIG_DIR):
         self._targetHostInfo = target_host_info
         self._bForSelf = target_host_is_myself
 
-        if cfgdir is None:
-            cfgdir = "/etc/bbki"
         self._cfg = Config(cfgdir)
 
         if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
