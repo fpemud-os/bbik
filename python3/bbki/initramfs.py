@@ -29,7 +29,7 @@ import tarfile
 import pathlib
 import robust_layer.simple_fops
 from collections import OrderedDict
-from .bbki import BbkiInitramfsInstallError
+from .bbki import InitramfsInstallError
 from .util import Util
 from .util import TempChdir
 
@@ -59,7 +59,7 @@ class InitramfsInstaller:
 
     def install(self):
         if self.mntInfoDict["root"] is None:
-            raise BbkiInitramfsInstallError("mount information for root filesystem is not specified")
+            raise InitramfsInstallError("mount information for root filesystem is not specified")
 
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
         os.makedirs(self._initramfsTmpDir)
@@ -531,7 +531,7 @@ class InitramfsInstaller:
         # lvm2_raid
         lvmInfo = Util.getBlkDevLvmInfo(devPath)
         if lvmInfo is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "lvm2_raid"
             bdi.fsType = Util.getBlkDevFsType(devPath)
@@ -553,7 +553,7 @@ class InitramfsInstaller:
                 if m is None:
                     m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "mbr_partition"
             bdi.fsType = Util.getBlkDevFsType(devPath)
@@ -563,7 +563,7 @@ class InitramfsInstaller:
         # scsi_disk
         m = re.fullmatch("/dev/sd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "scsi_disk"
             bdi.fsType = Util.getBlkDevFsType(devPath).lower()
@@ -573,7 +573,7 @@ class InitramfsInstaller:
         # xen_disk
         m = re.fullmatch("/dev/xvd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "xen_disk"
             bdi.fsType = Util.getBlkDevFsType(devPath).lower()
@@ -582,7 +582,7 @@ class InitramfsInstaller:
         # virtio_disk
         m = re.fullmatch("/dev/vd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "virtio_disk"
             bdi.fsType = Util.getBlkDevFsType(devPath).lower()
@@ -591,7 +591,7 @@ class InitramfsInstaller:
         # nvme_disk
         m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "nvme_disk"
             bdi.fsType = Util.getBlkDevFsType(devPath).lower()
@@ -600,7 +600,7 @@ class InitramfsInstaller:
         # bcache
         m = re.fullmatch("/dev/bcache[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
+            bdi = BlkDevInfo()
             bdi.devPath = devPath
             bdi.devType = "bcache_raid"
             bdi.fsType = Util.getBlkDevFsType(devPath).lower()
@@ -666,7 +666,7 @@ class InitramfsInstaller:
         buf = pathlib.Path(self._bootEntry.kernel_config_file).read_text()
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
-                raise BbkiInitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
+                raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
 
 
 class _MntInfo:
@@ -676,11 +676,3 @@ class _MntInfo:
         self.fsType = None                # str
         self.mntOpt = None                # str
 
-
-class _BlkDevInfo:
-
-    def __init__(self):
-        self.devPath = None               # str
-        self.devType = None               # enum, "scsi_disk", "virtio_disk", "xen_disk", "nvme_disk", lvm2_raid", "bcache_raid", "mbr_partition", "gpt_partition"
-        self.fsType = None                # enum, "", "lvm2_member", "bcache", "ext4", "btrfs", "vfat"
-        self.param = dict()

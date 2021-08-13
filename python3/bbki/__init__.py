@@ -41,6 +41,16 @@ from .bbki import KernelInstallError
 from .bbki import InitramfsInstallError
 from .bbki import BootloaderInstallError
 
+
+from .host_info import HostInfo
+from .host_info import HostMountPoint
+from .host_info import HostDiskStackNode
+from .host_info import HostDiskStackNodeLvmLv
+from .host_info import HostDiskStackNodeBcache
+from .host_info import HostDiskStackNodeHarddisk
+from .host_info import HostDiskStackNodePartition
+
+
 from .config import HostInfo
 from .config import Config
 
