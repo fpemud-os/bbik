@@ -175,14 +175,33 @@ class KernelInstance:
     def boot_entry(self):
         return self._bootEntry
 
-    def get_kernel_module_filenames(self, kmod_alias, with_deps=False):
-        return [x[len(self._modulesDir):] for x in self.get_kernel_module_filepaths(kmod_alias, with_deps)]
+    def get_kmod_filenames(self, kmod_alias, with_deps=False):
+        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]
 
-    def get_kernel_module_filepaths(self, kmod_alias, with_deps=False):
-        kmodList = dict()                                     # use dict to remove duplication while keeping order
-        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))     # FIXME: why encode is neccessary?
+    def get_kmod_filepaths(self, kmod_alias, with_deps=False):
+        kmodList = dict()                                           # use dict to remove duplication while keeping order
+        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
         self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
         return list(kmodList.fromkeys())
+
+    def get_firmware_filenames(self, kmod_filepath):
+        return self._getFirmwareImpl(kmod_filepath, True)
+
+    def get_firmware_filepaths(self, kmod_filepath):
+        return self._getFirmwareImpl(kmod_filepath, False)
+
+    def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
+        # python-kmod bug: can only recognize the last firmware in modinfo
+        # so use the command output of modinfo directly
+        ret = []
+        for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
+            m = re.fullmatch("firmware: +(\\S.*)", line)
+            if m is not None:
+                if bReturnNameOrPath:
+                    ret.append(m.group(1))
+                else:
+                    ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
+        return ret
 
     def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
         kmodObjList = list(ctx.lookup(kmodAlias))

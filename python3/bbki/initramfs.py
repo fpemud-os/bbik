@@ -28,11 +28,18 @@ import shutil
 import tarfile
 import pathlib
 import robust_layer.simple_fops
-from collections import OrderedDict
+from ordered_set import OrderedSet
 from .bbki import InitramfsInstallError
 from .util import Util
 from .util import TempChdir
-from .host_info import HostDiskScsiDisk, HostInfo
+from .host_info import HostMountPoint
+from .host_info import HostDiskLvmLv
+from .host_info import HostDiskBcache
+from .host_info import HostDiskNvmeDisk
+from .host_info import HostDiskScsiDisk
+from .host_info import HostDiskXenDisk
+from .host_info import HostDiskVirtioDisk
+from .host_info import HostDiskPartition
 from .host_info import HostInfoUtil
 
 
@@ -44,15 +51,11 @@ class Initramfs:
         self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(self._kernel.verstr)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
-        self.mntInfoDict = OrderedDict()
-        self.mntInfoDict["root"] = None
-        self.mntInfoDict["boot"] = None
-
         # trick: initramfs debug is seldomly needed
         self.trickDebug = False
 
     def install(self):
-        if HostInfoUtil.getMountPointByType(self._bbki._hostInfo, HostInfo.MOUNT_TYPE_ROOT) is None:
+        if HostInfoUtil.getMountPointByType(self._bbki._hostInfo, HostMountPoint.MOUNT_TYPE_ROOT) is None:
             raise InitramfsInstallError("mount information for root filesystem is not specified")
 
         # prepare tmpdir
@@ -85,122 +88,55 @@ class Initramfs:
         self._generatePasswd(os.path.join(etcDir, "passwd"))
         self._generateGroup(os.path.join(etcDir, "group"))
 
-        # get kernel module and firmware file list (order is important)
-        kmodList = dict()
-        firmwareList = dict()
-        for mp in self._bbki._hostInfo.mount_point_list:
-            for rootDisk in mp.underlay_disk_list:
-                for disk in anytree.PostOrderIter(rootDisk):
-                    if isinstance(disk, HostDiskScsiDisk):
-                        kmodList
-
-
-
-
+        # get kernel module file list (order is important)
+        kmodList = OrderedSet()
         if True:
-
-
-
-            # get kernel module for block device host controller
-            for d in [x for x in blkDevInfoList if x.devType.endswith("_disk")]:
-                if d.devType == "scsi_disk":
-                    hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
-                    with open(os.path.join(hostDevPath, "proc_name")) as f:
-                        hostControllerName = f.read().rstrip()
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, hostControllerName)
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "virtio_disk":
-                    pass
-                elif d.devType == "xen_disk":
-                    pass
-                elif d.devType == "nvme_disk":
-                    pass
-                else:
-                    assert False
-
-            # get kernel module for block device driver
-            for d in [x for x in blkDevInfoList if x.devType.endswith("_disk") or x.devType.endswith("_raid")]:
-                if d.devType == "scsi_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "sd_mod")
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "virtio_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_pci")
-                    kmodList += r1
-                    firmwareList += r2
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "virtio_blk")
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "xen_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "xen-blkfront")
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "nvme_disk":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nvme")
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "lvm2_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "dm_mod")
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.devType == "bcache_raid":
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "bcache")
-                    kmodList += r1
-                    firmwareList += r2
-                else:
-                    assert False
-
-            # get kernel module for partition format
-            for d in [x for x in blkDevInfoList if x.devType.endswith("_partition")]:
-                if d.devType == "mbr_partition":
-                    pass                            # currently, partition support is compiled in kernel
-                elif d.devType == "gpt_partition":
-                    pass                            # currently, partition support is compiled in kernel
-                else:
-                    assert False
-
-            # get kernel module for filesystem
-            for d in blkDevInfoList:
-                if d.fsType == "":
-                    pass
-                elif d.fsType == "lvm2_member":
-                    pass
-                elif d.fsType == "bcache":
-                    pass
-                elif d.fsType in ["ext4", "btrfs"]:
-                    # coincide: fs type and module name are same
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, d.fsType)
-                    kmodList += r1
-                    firmwareList += r2
-                elif d.fsType == "vfat":
-                    buf = ""
-                    with open(self._kernel.boot_entry.kernel_config_file) as f:
-                        buf = f.read()
-
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "vfat")
-                    kmodList += r1
-                    firmwareList += r2
-
+            kaliasList = OrderedSet()
+            for mp in self._bbki._hostInfo.mount_point_list:
+                for rootDisk in mp.underlay_disk_list:
+                    for disk in anytree.PostOrderIter(rootDisk):
+                        if isinstance(disk, HostDiskLvmLv):
+                            kaliasList.add("dm_mod")
+                        elif isinstance(disk, HostDiskScsiDisk):
+                            kaliasList.add(disk.host_controller_name)
+                            kaliasList.add("sd_mod")
+                        elif isinstance(disk, HostDiskNvmeDisk):
+                            kaliasList.add("nvme")
+                        elif isinstance(disk, HostDiskXenDisk):
+                            kaliasList.add("xen-blkfront")
+                        elif isinstance(disk, HostDiskVirtioDisk):
+                            kaliasList.add("virtio_pci")
+                            kaliasList.add("virtio_blk")
+                        elif isinstance(disk, HostDiskBcache):
+                            kaliasList.add("bcache")
+                        elif isinstance(disk, HostDiskPartition):
+                            pass        # get kernel module for partition format
+                        else:
+                            assert False
+                if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
+                    buf = pathlib.Path(self._kernel.boot_entry.kernel_config_filepath).read_text()
+                    kaliasList.add("vfat")
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
-                    if m is None:
-                        raise Exception("CONFIG_FAT_DEFAULT_CODEPAGE is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_cp%s" % (m.group(1)))
-                    kmodList += r1
-                    firmwareList += r2
-
+                    if m is not None:
+                        kaliasList.add("nls_cp%s" % (m.group(1)))
+                    else:
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_CODEPAGE is missing in \"%s\"" % (self._kernel.boot_entry.kernel_config_filepath))
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
-                    if m is None:
-                        raise Exception("CONFIG_FAT_DEFAULT_IOCHARSET is missing in kernel .config file")
-                    r1, r2 = Util.getFilesByKmodAlias(self._kernel.boot_entry.kernel_file, self._kernelModuleDir, self._bbki._fsLayout.firmware_dir, "nls_%s" % (m.group(1)))
-                    kmodList += r1
-                    firmwareList += r2
+                    if m is not None:
+                        kaliasList.add("nls_%s" % (m.group(1)))
+                    else:
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._kernel.boot_entry.kernel_config_filepath))
+                elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS]:
+                    kaliasList.add(mp.fs_type)
                 else:
                     assert False
+            for kalias in kaliasList:
+                kmodList |= OrderedSet(self._kernel.get_kmod_filepaths(kalias, with_deps=True))
 
-            # remove duplications
-            kmodList = Util.removeDuplication(kmodList)
-            firmwareList = Util.removeDuplication(firmwareList)
+        # get firmware file list
+        firmwareList = OrderedSet()
+        for kmod in kmodList:
+            firmwareList |= OrderedSet(self._kernel.get_firmware_filepaths(kmod))
 
         # install kmod files
         for f in kmodList:
@@ -214,94 +150,61 @@ class Initramfs:
         if len(kmodList) > 0:
             self._installBin("/sbin/insmod", rootDir)
 
+        # disk list
+        diskList = OrderedSet()
+        for mp in self._bbki._hostInfo.mount_point_list:
+            for rootDisk in mp.underlay_disk_list:
+                for disk in anytree.PostOrderIter(rootDisk):
+                    diskList.add(disk)
+
         # get block device preparation operation list
-        blkOpList = []
-        for d in blkDevInfoList:
-            if d.devType == "scsi_disk":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
-                pass
-            elif d.devType == "virtio_disk":
-                pass
-            elif d.devType == "xen_disk":
-                pass
-            elif d.devType == "nvme_disk":
-                pass
-            elif d.devType == "lvm2_raid":
-                blkOpList.append("lvm-lv-activate %s %s %s" % (Util.getBlkDevUuid(d.devPath), d.param["vg_name"], d.param["lv_name"]))
-            elif d.devType == "bcache_raid":
-                for cacheDev in d.param["cache_dev_list"]:
-                    item = "bcache-cache-device-activate %s" % (Util.getBlkDevUuid(cacheDev))
-                    if item not in blkOpList:
-                        blkOpList.append(item)
-                blkOpList.append("bcache-backing-device-activate %s %s" % (Util.getBlkDevUuid(d.devPath), Util.getBlkDevUuid(d.param["backing_dev"])))
-            elif d.devType == "mbr_partition":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
-                pass
-            elif d.devType == "gpt_partition":
-                # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
-                pass
-            else:
-                assert False
-
-        # install files for block device preparation
-        self._installFilesBlkid(rootDir)
-        for d in blkDevInfoList:
-            if d.devType == "scsi_disk":
-                pass
-            elif d.devType == "virtio_disk":
-                pass
-            elif d.devType == "xen_disk":
-                pass
-            elif d.devType == "nvme_disk":
-                pass
-            elif d.devType == "lvm2_raid":
-                self._installFilesLvm(rootDir)
-            elif d.devType == "bcache_raid":
-                pass
-            elif d.devType == "mbr_partition":
-                pass
-            elif d.devType == "gpt_partition":
-                pass
-            else:
-                assert False
-
-        # get fsck opertaion list
-        fsckOpList = []
+        blkOpList = OrderedSet()
         if True:
-            for d in blkDevInfoList:
-                if d.fsType == "":
+            for disk in diskList:
+                if isinstance(disk, HostDiskLvmLv):
+                    blkOpList.add("lvm-lv-activate %s %s %s" % (disk.uuid, disk.vg_name, disk.lv_name))
+                elif isinstance(disk, HostDiskBcache):
+                    for cacheDev in disk.cache_dev_list:
+                        blkOpList.add("bcache-cache-device-activate %s" % (cacheDev.uuid))
+                    blkOpList.add("bcache-backing-device-activate %s %s" % (disk.uuid, disk.backing_dev.uuid))
+                elif isinstance(disk, HostDiskScsiDisk):
+                    # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
                     pass
-                elif d.fsType == "lvm2_member":
+                elif isinstance(disk, HostDiskNvmeDisk):
                     pass
-                elif d.fsType == "bcache":
+                elif isinstance(disk, HostDiskXenDisk):
                     pass
-                elif d.fsType in ["ext4", "vfat"]:
-                    fsckOpList.append("fsck %s %s" % (d.fsType, Util.getBlkDevUuid(d.devPath)))
-                elif d.fsType in ["btrfs"]:
+                elif isinstance(disk, HostDiskVirtioDisk):
+                    pass
+                elif isinstance(disk, HostDiskPartition):
+                    # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
                     pass
                 else:
                     assert False
 
-        # install fsck binaries
-        for d in blkDevInfoList:
-            if d.fsType == "":
+        # install files for block device preparation
+        self._installFilesBlkid(rootDir)
+        for disk in diskList:
+            if isinstance(disk, HostDiskLvmLv):
+                self._installFilesLvm(rootDir)
+            elif isinstance(disk, HostDiskBcache):
                 pass
-            elif d.fsType == "lvm2_member":
+            elif isinstance(disk, HostDiskScsiDisk):
                 pass
-            elif d.fsType == "bcache":
+            elif isinstance(disk, HostDiskNvmeDisk):
                 pass
-            elif d.fsType == "ext4":
-                self._installBin("/sbin/e2fsck", rootDir)
-            elif d.fsType == "btrfs":
+            elif isinstance(disk, HostDiskXenDisk):
                 pass
-            elif d.fsType == "vfat":
-                self._installBin("/usr/sbin/fsck.fat", rootDir)
+            elif isinstance(disk, HostDiskVirtioDisk):
+                pass
+            elif isinstance(disk, HostDiskPartition):
+                pass
             else:
                 assert False
 
         # install init executable to initramfs
         self._installInit(rootDir)
-        self._installStartupRc(rootDir, kmodList, blkOpList, fsckOpList, self.mntInfoDict, FmConst.kernelInitCmd)
+        self._installStartupRc(rootDir, kmodList, blkOpList, self.mntInfoDict, FmConst.kernelInitCmd)
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
@@ -462,7 +365,7 @@ class Initramfs:
     def _installInit(self, rootDir):
         self._installBinFromInitDataDir("init", rootDir, "")
 
-    def _installStartupRc(self, rootDir, kmodList, blkOpList, fsckOpList, mntInfoDict, initCmdline):
+    def _installStartupRc(self, rootDir, kmodList, blkOpList, mntInfoDict, initCmdline):
         buf = ""
 
         # write comments
@@ -480,12 +383,6 @@ class Initramfs:
         # prepare block devices
         if len(blkOpList) > 0:
             for k in blkOpList:
-                buf += "%s\n" % (k)
-            buf += "\n"
-
-        # do filesystem checking
-        if len(fsckOpList) > 0:
-            for k in fsckOpList:
                 buf += "%s\n" % (k)
             buf += "\n"
 
@@ -513,101 +410,6 @@ class Initramfs:
         # write cfg file
         with open(os.path.join(rootDir, "startup.rc"), "w") as f:
             f.write(buf)
-
-    def _getBlkDevInfoList(self, devPath):
-        # lvm2_raid
-        lvmInfo = Util.getBlkDevLvmInfo(devPath)
-        if lvmInfo is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "lvm2_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
-            assert bdi.fsType != ""
-            bdi.param["vg_name"] = lvmInfo[0]
-            bdi.param["lv_name"] = lvmInfo[1]
-
-            retList = []
-            for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
-                retList += self._getBlkDevInfoList(slaveDevPath)
-            return retList + [bdi]
-
-        # mbr_partition
-        m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
-        if m is None:
-            m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
-            if m is None:
-                m = re.fullmatch("(/dev/vd[a-z])[0-9]+", devPath)
-                if m is None:
-                    m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "mbr_partition"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
-            assert bdi.fsType != ""
-            return self._getBlkDevInfoList(m.group(1)) + [bdi]
-
-        # scsi_disk
-        m = re.fullmatch("/dev/sd[a-z]", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "scsi_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            bdi.param["scsi_host_path"] = Util.scsiGetHostControllerPath(devPath)
-            return [bdi]
-
-        # xen_disk
-        m = re.fullmatch("/dev/xvd[a-z]", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "xen_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
-
-        # virtio_disk
-        m = re.fullmatch("/dev/vd[a-z]", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "virtio_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
-
-        # nvme_disk
-        m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "nvme_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
-
-        # bcache
-        m = re.fullmatch("/dev/bcache[0-9]+", devPath)
-        if m is not None:
-            bdi = BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "bcache_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            assert bdi.fsType != ""
-
-            retList = []
-
-            slist = Util.bcacheGetSlaveDevPathList(devPath)
-            assert (len(slist) >= 1)
-            bdi.param["cache_dev_list"] = slist[0:-1]
-            bdi.param["backing_dev"] = slist[-1]
-
-            for devPath in slist:
-                retList += self._getBlkDevInfoList(devPath)
-
-            return retList + [bdi]
-
-        # unknown
-        print("devPath = %s" % (devPath))
-        assert False
 
     def _copyToInitrd(self, filename, rootDir):
         assert os.path.isabs(filename)
@@ -638,7 +440,6 @@ class Initramfs:
             os.makedirs(dstdir)
         Util.cmdCall("/bin/cp", "-f", filename, dstfile)
 
-
     def _checkDotCfgFile(self):
         symDict = {
             "RD_XZ": "y",
@@ -654,12 +455,3 @@ class Initramfs:
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
-
-
-class _MntInfo:
-
-    def __init__(self):
-        self.devPath = None               # str
-        self.fsType = None                # str
-        self.mntOpt = None                # str
-

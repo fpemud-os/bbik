@@ -59,11 +59,13 @@ class HostInfo:
         # self.mount_point_list
         if mount_point_list is not None:
             if boot_mode == Bbki.BOOT_MODE_EFI:
+                assert len(mount_point_list) >= 2
+                assert mount_point_list[0].mount_type == HostMountPoint.MOUNT_TYPE_ROOT
+                assert mount_point_list[1].mount_type == HostMountPoint.MOUNT_TYPE_BOOT and mount_point_list[1].uuid == Util.getBlkDevUuid(self.boot_disk)
                 assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_ROOT]) == 1
-                ret = [x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]
-                assert len(ret) == 1
-                assert self.boot_disk == Util.devPathPartitionToDisk(ret[0])
+                assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]) == 1
             elif boot_mode == Bbki.BOOT_MODE_BIOS:
+                assert mount_point_list[0].mount_type == HostMountPoint.MOUNT_TYPE_ROOT
                 assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]) == 0
                 assert self.boot_disk is not None
@@ -76,24 +78,25 @@ class HostInfo:
 
 class HostMountPoint:
 
-    MOUNT_TYPE_ROOT = 1
-    MOUNT_TYPE_BOOT = 2
-    MOUNT_TYPE_OTHER = 3
+    MOUNT_TYPE_ROOT = "root"
+    MOUNT_TYPE_BOOT = "boot"
+    MOUNT_TYPE_OTHER = "other"
 
     FS_TYPE_VFAT = "vfat"
-    FS_TYPE_EXT4 = "ext4"
+    FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, mount_type, mount_point, dev_path, fs_type, mount_option="", underlay_disks=[]):
-        assert self.MOUNT_TYPE_ROOT <= mount_type <= self.MOUNT_TYPE_OTHER
+    def __init__(self, mount_type, mount_point, uuid, fs_type, mount_option="", underlay_disks=[]):
+        assert mount_type in [self.MOUNT_TYPE_ROOT, self.MOUNT_TYPE_BOOT, self.MOUNT_TYPE_OTHER]
         assert os.path.isabs(mount_point)
         assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
         assert isinstance(mount_point, str)
-        assert all([any([isinstance(ud, x) for x in [HostDiskLvmLv, HostDiskBcache, HostDiskScsiDisk, HostDiskHarddisk, HostDiskPartition]]) for ud in underlay_disks])
+        for ud in underlay_disks:
+            assert any([isinstance(ud, x) for x in [HostDiskLvmLv, HostDiskBcache, HostDiskScsiDisk, HostDiskNvmeDisk, HostDiskXenDisk, HostDiskVirtioDisk, HostDiskPartition]])
 
         self.mount_type = mount_type
         self.mount_point = mount_point
-        self.dev_path = dev_path
+        self.uuid = uuid                            # FS-UUID, not PART-UUID
         self.fs_type = fs_type
         self.mount_option = mount_option            # FIXME
         self.underlay_disks = underlay_disks
@@ -101,51 +104,74 @@ class HostMountPoint:
 
 class HostDiskLvmLv(anytree.node.nodemixin.NodeMixin):
 
-    def __init__(self, dev_path, vg_name, lv_name, parent=None):
+    def __init__(self, uuid, vg_name, lv_name, parent=None):
         super().__init__(parent=parent)
-        self.dev_path = dev_path
+        self.uuid = uuid
         self.vg_name = vg_name
         self.lv_name = lv_name
+
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
 
 
 class HostDiskBcache(anytree.node.nodemixin.NodeMixin):
 
-    def __init__(self, dev_path, cache_dev_list, backing_dev, parent=None):
+    def __init__(self, uuid, parent=None):
         super().__init__(parent=parent)
-        self.dev_path = dev_path
-        self.cache_dev_list = cache_dev_list
-        self.backing_dev = backing_dev
+        self.uuid = uuid
+        self.cache_dev_list = []
+        self.backing_dev = None
+
+    def add_cache_dev(self, disk):
+        self.cache_dev_list.append(disk)
+
+    def add_backing_dev(self, disk):
+        assert self.backing_dev is None
+        self.backing_dev = disk
+
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
 
 
 class HostDiskScsiDisk(anytree.node.nodemixin.NodeMixin):
 
-    def __init__(self, dev_path, host_controller_name, parent=None):
-        assert re.fullmatch("/dev/sd[a-z]", dev_path)
-
+    def __init__(self, uuid, host_controller_name, parent=None):
         super().__init__(parent=parent)
-        self.dev_path = dev_path
+        self.uuid = uuid
         self.host_controller_name = host_controller_name
 
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
 
-class HostDiskHarddisk(anytree.node.nodemixin.NodeMixin):
 
-    DEV_TYPE_NVME = 2
-    DEV_TYPE_XEN = 3
-    DEV_TYPE_VIRTIO = 4
+class HostDiskNvmeDisk(anytree.node.nodemixin.NodeMixin):
 
-    def __init__(self, dev_path, dev_type, parent=None):
-        assert self.DEV_TYPE_NVME <= dev_type <= self.DEV_TYPE_VIRTIO
-
+    def __init__(self, uuid, parent=None):
         super().__init__(parent=parent)
-        self.dev_path = dev_path
+        self.uuid = uuid
 
-        if re.fullmatch("/dev/xvd[a-z]", dev_path):
-            self.dev_type = self.DEV_TYPE_XEN
-        if re.fullmatch("/dev/vd[a-z]", dev_path):
-            self.dev_type = self.DEV_TYPE_VIRTIO
-        if re.fullmatch("/dev/nvme[0-9]+n[0-9]+", dev_path):
-            self.dev_type = self.DEV_TYPE_NVME
-        raise ValueError("unknown block device type")
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
+
+
+class HostDiskXenDisk(anytree.node.nodemixin.NodeMixin):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(parent=parent)
+        self.uuid = uuid
+
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
+
+
+class HostDiskVirtioDisk(anytree.node.nodemixin.NodeMixin):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(parent=parent)
+        self.uuid = uuid
+
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
 
 
 class HostDiskPartition(anytree.node.nodemixin.NodeMixin):
@@ -153,12 +179,15 @@ class HostDiskPartition(anytree.node.nodemixin.NodeMixin):
     PART_TYPE_MBR = 1
     PART_TYPE_GPT = 2
 
-    def __init__(self, dev_path, part_type, parent=None):
+    def __init__(self, uuid, part_type, parent=None):
         assert self.PART_TYPE_MBR <= part_type <= self.PART_TYPE_GPT
 
         super().__init__(parent=parent)
-        self.dev_path = dev_path
+        self.uuid = uuid
         self.part_type = part_type
+
+    def ___eq___(self, other):
+        return self.uuid == other.uuid
 
 
 class HostInfoUtil:
@@ -268,3 +297,10 @@ class HostInfoUtil:
 
 #     return [partNode, espNode]
 
+
+# hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
+# with open(os.path.join(hostDevPath, "proc_name")) as f:
+#     hostControllerName = f.read().rstrip()
+
+
+# Util.getBlkDevUuid(cacheDev)
