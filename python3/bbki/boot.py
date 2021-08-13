@@ -68,7 +68,7 @@ class BootEntry:
     def kernel_config_filepath(self):
         return os.path.join(self._bootDir, self.kernel_config_filename)
 
-    @propertys
+    @property
     def kernel_config_rules_filename(self):
         return "config-" + self._kernelInfo.postfix + ".rules"
 

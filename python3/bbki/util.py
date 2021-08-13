@@ -347,24 +347,6 @@ class Util:
 
         return (kmodList, firmwareList)
 
-    @staticmethod
-    def _getFilesByKmodAliasGetKmodDepsList(ctx, kmodObj):
-        if "depends" not in kmodObj.info or kmodObj.info["depends"] == "":
-            return []
-
-        ret = []
-        for kmodAlias in kmodObj.info["depends"].split(","):
-            mList = list(ctx.lookup(kmodAlias))
-            if len(mList) == 0:
-                continue
-            assert len(mList) == 1
-
-            ret += Util._getFilesByKmodAliasGetKmodDepsList(ctx, mList[0])
-            if mList[0].path is not None:
-                # this module is built into the kernel
-                ret.append(mList[0].path)
-        return ret
-
 
 
 class TempChdir:

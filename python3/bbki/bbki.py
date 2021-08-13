@@ -24,10 +24,10 @@
 import os
 from .util import Util
 from .host_info import HostInfoUtil
+from .fs_layout import FsLayoutLinux
 from .config import Config
 from .repo import Repo
 from .repo import BbkiFileExecutor
-from .fslayout import FsLayoutLinux
 from .kernel import KernelInfo
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
@@ -42,10 +42,6 @@ class Bbki:
 
     BOOT_MODE_EFI = "efi"
     BOOT_MODE_BIOS = "bios"
-
-    FS_TYPE_VFAT = "vfat"
-    FS_TYPE_EXT4 = "ext4"
-    FS_TYPE_BTRFS = "btrfs"
 
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
@@ -154,6 +150,10 @@ class Bbki:
             raise RunningEnvironmentError("no boot/root device specified")
 
         pass
+
+    def get_kernel(self, kernel_verstr):
+        return Kernel(kernel_verstr)
+
 
     def check(self, autofix=False):
         assert False

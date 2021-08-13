@@ -156,6 +156,41 @@ class KernelInfo:
         return ret
 
 
+class Kernel:
+
+    def __init__(self, bbki, kernel_verstr):
+        self._bbki = bbki
+        self._verstr = kernel_verstr
+        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._verstr)
+
+    def exists(self):
+        BootEntry()
+
+
+    def get_kernel_module_filenames(self, kmod_alias):
+        return [x[len(self._modulesDir):] for x in self.get_kernel_module_filepaths(kmod_alias)]
+
+    def get_kernel_module_filepaths(self, kmod_alias):
+        kmodList = dict()                                     # use dict to remove duplication while keeping order
+        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))     # FIXME: why encode is neccessary?
+        self._getKmodAndDeps(ctx, kmod_alias, kmodList)
+        return list(kmodList.fromkeys())
+
+    def _getKmodAndDeps(self, ctx, kmodAlias, result):
+        kmodObjList = list(ctx.lookup(kmodAlias))
+        if len(kmodObjList) > 0:
+            assert len(kmodObjList) == 1
+            kmodObj = kmodObjList[0]
+
+            if "depends" in kmodObj.info and kmodObj.info["depends"] != "":
+                for kmodAlias in kmodObj.info["depends"].split(","):
+                    self._getKmodAndDeps(ctx, kmodAlias, result)
+
+            if kmodObj.path is not None:
+                # this module is not built into the kernel
+                result[kmodObj.path] = None
+
+
 class KernelInstaller:
 
     def __init__(self, bbki, kernel_item, kernel_addon_item_list):

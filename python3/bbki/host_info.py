@@ -30,10 +30,6 @@ from .util import Util
 
 class HostInfo:
 
-    MOUNT_TYPE_ROOT = 1
-    MOUNT_TYPE_BOOT = 2
-    MOUNT_TYPE_OTHER = 3
-
     def __init__(self, arch, boot_mode, boot_disk, mount_point_list):
         self.arch = None
         self.boot_mode = None
@@ -80,54 +76,69 @@ class HostInfo:
 
 class HostMountPoint:
 
-    def __init__(self, mount_type, mount_point, dev_path, fs_type, mount_option="", disk_stack=[]):
-        assert HostInfo.MOUNT_TYPE_ROOT <= mount_type <= HostInfo.MOUNT_TYPE_OTHER
-        assert Util.isValidFsType(fs_type)
+    MOUNT_TYPE_ROOT = 1
+    MOUNT_TYPE_BOOT = 2
+    MOUNT_TYPE_OTHER = 3
+
+    FS_TYPE_VFAT = "vfat"
+    FS_TYPE_EXT4 = "ext4"
+    FS_TYPE_BTRFS = "btrfs"
+
+    def __init__(self, mount_type, mount_point, dev_path, fs_type, mount_option="", underlay_disks=[]):
+        assert self.MOUNT_TYPE_ROOT <= mount_type <= self.MOUNT_TYPE_OTHER
+        assert os.path.isabs(mount_point)
+        assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
+        assert isinstance(mount_point, str)
+        assert all([any([isinstance(ud, x) for x in [HostDiskLvmLv, HostDiskBcache, HostDiskScsiDisk, HostDiskHarddisk, HostDiskPartition]]) for ud in underlay_disks])
 
         self.mount_type = mount_type
         self.mount_point = mount_point
         self.dev_path = dev_path
         self.fs_type = fs_type
-        self.mount_option = ""              # FIXME
-        self.disk_stack = disk_stack
+        self.mount_option = mount_option            # FIXME
+        self.underlay_disks = underlay_disks
 
 
-class HostDiskStackNode(anytree.node.nodemixin.NodeMixin):
-
-    def __init__(self, dev_path, parent=None):
-        super().__init__(parent=parent)
-        self.dev_path = dev_path
-
-
-class HostDiskStackNodeLvmLv(HostDiskStackNode):
+class HostDiskLvmLv(anytree.node.nodemixin.NodeMixin):
 
     def __init__(self, dev_path, vg_name, lv_name, parent=None):
-        super().__init__(dev_path, parent=parent)
+        super().__init__(parent=parent)
+        self.dev_path = dev_path
         self.vg_name = vg_name
         self.lv_name = lv_name
 
 
-class HostDiskStackNodeBcache(HostDiskStackNode):
+class HostDiskBcache(anytree.node.nodemixin.NodeMixin):
 
     def __init__(self, dev_path, cache_dev_list, backing_dev, parent=None):
-        super().__init__(dev_path, parent=parent)
+        super().__init__(parent=parent)
+        self.dev_path = dev_path
         self.cache_dev_list = cache_dev_list
         self.backing_dev = backing_dev
 
 
-class HostDiskStackNodeHarddisk(HostDiskStackNode):
+class HostDiskScsiDisk(anytree.node.nodemixin.NodeMixin):
 
-    DEV_TYPE_SCSI = 1
+    def __init__(self, dev_path, host_controller_name, parent=None):
+        assert re.fullmatch("/dev/sd[a-z]", dev_path)
+
+        super().__init__(parent=parent)
+        self.dev_path = dev_path
+        self.host_controller_name = host_controller_name
+
+
+class HostDiskHarddisk(anytree.node.nodemixin.NodeMixin):
+
     DEV_TYPE_NVME = 2
     DEV_TYPE_XEN = 3
     DEV_TYPE_VIRTIO = 4
 
     def __init__(self, dev_path, dev_type, parent=None):
-        assert self.DEV_TYPE_SCSI <= dev_type <= self.DEV_TYPE_VIRTIO
-        super().__init__(dev_path, parent=parent)
+        assert self.DEV_TYPE_NVME <= dev_type <= self.DEV_TYPE_VIRTIO
 
-        if re.fullmatch("/dev/sd[a-z]", dev_path):
-            self.dev_type = self.DEV_TYPE_SCSI
+        super().__init__(parent=parent)
+        self.dev_path = dev_path
+
         if re.fullmatch("/dev/xvd[a-z]", dev_path):
             self.dev_type = self.DEV_TYPE_XEN
         if re.fullmatch("/dev/vd[a-z]", dev_path):
@@ -137,27 +148,41 @@ class HostDiskStackNodeHarddisk(HostDiskStackNode):
         raise ValueError("unknown block device type")
 
 
-class HostDiskStackNodePartition(HostDiskStackNode):
+class HostDiskPartition(anytree.node.nodemixin.NodeMixin):
 
     PART_TYPE_MBR = 1
     PART_TYPE_GPT = 2
 
     def __init__(self, dev_path, part_type, parent=None):
         assert self.PART_TYPE_MBR <= part_type <= self.PART_TYPE_GPT
-        super().__init__(dev_path, parent=parent)
+
+        super().__init__(parent=parent)
+        self.dev_path = dev_path
         self.part_type = part_type
 
 
-# FIXME:
-class BlkDevInfo:
+class HostInfoUtil:
 
-    def __init__(self):
-        self.devPath = None               # str
-        self.devType = None               # enum, "scsi_disk", "virtio_disk", "xen_disk", "nvme_disk", "lvm2_raid", "bcache_raid", "mbr_partition", "gpt_partition"
-        self.fsType = None                # enum, "", "lvm2_member", "bcache", "ext4", "btrfs", "vfat"
-        self.param = dict()
+    @staticmethod
+    def getMountPointByType(hostInfo, mountType):
+        assert hostInfo.mount_point_list is not None
+        assert mountType in [HostMountPoint.MOUNT_TYPE_ROOT, HostMountPoint.MOUNT_TYPE_BOOT]
 
+        for m in hostInfo.mount_point_list:
+            if m.mount_type == mountType:
+                return m
+        return None
 
+    @staticmethod
+    def getMountPointListByType(hostInfo, mountType):
+        assert hostInfo.mount_point_list is not None
+        assert mountType in [HostMountPoint.MOUNT_TYPE_OTHER]
+
+        ret = []
+        for m in hostInfo.mount_point_list:
+            if m.mount_type == mountType:
+                ret.append(m)
+        return re
 
 
 

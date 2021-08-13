@@ -32,6 +32,8 @@ from collections import OrderedDict
 from .bbki import InitramfsInstallError
 from .util import Util
 from .util import TempChdir
+from .host_info import HostDiskScsiDisk, HostInfo
+from .host_info import HostInfoUtil
 
 
 class InitramfsInstaller:
@@ -50,17 +52,11 @@ class InitramfsInstaller:
         # trick: initramfs debug is seldomly needed
         self.trickDebug = False
 
-    def setMntInfo(self, miType, devPath, mntOpt):
-        assert miType in list(self.mntInfoDict.keys())
-        self.mntInfoDict[miType] = _MntInfo()
-        self.mntInfoDict[miType].devPath = devPath
-        self.mntInfoDict[miType].fsType = None
-        self.mntInfoDict[miType].mntOpt = mntOpt
-
     def install(self):
-        if self.mntInfoDict["root"] is None:
+        if HostInfoUtil.getMountPointByType(self._bbki._hostInfo, HostInfo.MOUNT_TYPE_ROOT) is None:
             raise InitramfsInstallError("mount information for root filesystem is not specified")
 
+        # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
         os.makedirs(self._initramfsTmpDir)
 
@@ -89,31 +85,23 @@ class InitramfsInstaller:
         os.makedirs(os.path.join(rootDir, "sysroot"))
         self._generatePasswd(os.path.join(etcDir, "passwd"))
         self._generateGroup(os.path.join(etcDir, "group"))
-        os.symlink("/proc/self/mounts", os.path.join(etcDir, "mtab"))
-
-        # get block device list
-        blkDevInfoList = []
-        if True:
-            # get all block devices
-            tmpList = []
-            for t, mi in list(self.mntInfoDict.items()):
-                if mi is not None:
-                    tmpList += self._getBlkDevInfoList(mi.devPath)
-                    # fill mntInfo.fsType
-                    assert tmpList[-1].fsType in ["ext4", "btrfs", "vfat"]
-                    self.mntInfoDict[t].fsType = tmpList[-1].fsType
-
-            # remove duplication
-            nameSet = set()
-            for i in tmpList:
-                if i.devPath not in nameSet:
-                    nameSet.add(i.devPath)
-                    blkDevInfoList.append(i)
 
         # get kernel module and firmware file list (order is important)
-        kmodList = []
-        firmwareList = []
+        kmodList = dict()
+        firmwareList = dict()
+        for mp in self._bbki._hostInfo.mount_point_list:
+            for rootDisk in mp.underlay_disk_list:
+                for disk in anytree.PostOrderIter(rootDisk):
+                    if isinstance(disk, HostDiskScsiDisk):
+                        kmodList
+
+
+
+
         if True:
+
+
+
             # get kernel module for block device host controller
             for d in [x for x in blkDevInfoList if x.devType.endswith("_disk")]:
                 if d.devType == "scsi_disk":
