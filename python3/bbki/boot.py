@@ -112,7 +112,7 @@ class BootEntry:
         return self._bbki == other._bbki and self._kernelInfo.postfix == other._postfix and self._bootDir == other._bootDir
 
 
-class BootLoader:
+class BootLoaderGrub:
 
     def __init__(self, bbki):
         self._bbki = bbki
@@ -129,11 +129,11 @@ class BootLoader:
         else:
             return None
 
-    def uefiGrubInstall(self, grubExtraWaitTime, storageLayout, kernelInitCmd):
+    def uefi_install(self, grubExtraWaitTime, storageLayout, kernelInitCmd):
         grubKernelOpt = "console=ttynull"       # only use console when debug boot process
 
         # remove old directory
-        self.uefiGrubRemove()
+        self.uefi_remove()
 
         # install /boot/grub and /boot/EFI directory
         # install grub into ESP
@@ -147,11 +147,11 @@ class BootLoader:
                          grubExtraWaitTime,
                          FmConst.kernelInitCmd)
 
-    def uefiGrubRemove(self):
+    def uefi_remove(self):
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
-    def biosGrubInstall(self, hwInfo, storageLayout, kernelInitCmd):
+    def bios_install(self, hwInfo, storageLayout, kernelInitCmd):
         ret = FkmBootEntry.findCurrent()
         if ret is None:
             raise Exception("Invalid current boot item, strange?!")
@@ -174,7 +174,7 @@ class BootLoader:
                          hwInfo.grubExtraWaitTime,
                          FmConst.kernelInitCmd)
 
-    def biosGrubRemove(self, storageLayout):
+    def bios_remove(self, storageLayout):
         # remove MBR
         with open(storageLayout.get_boot_disk(), "wb+") as f:
             f.write(FmUtil.newBuffer(0, 440))
