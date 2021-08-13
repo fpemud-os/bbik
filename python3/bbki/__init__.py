@@ -43,9 +43,13 @@ from .bbki import BootloaderInstallError
 
 from .host_info import HostInfo
 from .host_info import HostMountPoint
+from .host_info import HostDisk
 from .host_info import HostDiskLvmLv
 from .host_info import HostDiskBcache
-from .host_info import HostDiskHarddisk
+from .host_info import HostDiskScsiDisk
+from .host_info import HostDiskNvmeDisk
+from .host_info import HostDiskXenDisk
+from .host_info import HostDiskVirtioDisk
 from .host_info import HostDiskPartition
 
 from .config import Config

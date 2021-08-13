@@ -91,8 +91,7 @@ class HostMountPoint:
         assert os.path.isabs(mount_point)
         assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
         assert isinstance(mount_point, str)
-        for ud in underlay_disks:
-            assert any([isinstance(ud, x) for x in [HostDiskLvmLv, HostDiskBcache, HostDiskScsiDisk, HostDiskNvmeDisk, HostDiskXenDisk, HostDiskVirtioDisk, HostDiskPartition]])
+        assert all([isinstance(x, HostDisk) for x in underlay_disks])
 
         self.mount_type = mount_type
         self.mount_point = mount_point
@@ -103,23 +102,28 @@ class HostMountPoint:
         self.underlay_disks = underlay_disks
 
 
-class HostDiskLvmLv(anytree.node.nodemixin.NodeMixin):
+class HostDisk(anytree.node.nodemixin.NodeMixin):
 
-    def __init__(self, uuid, vg_name, lv_name, parent=None):
+    def __init__(self, uuid, parent):
         super().__init__(parent=parent)
         self.uuid = uuid
+
+    def ___eq___(self, other):
+        return type(self) == type(other) and self.uuid == other.uuid
+
+
+class HostDiskLvmLv(HostDisk):
+
+    def __init__(self, uuid, vg_name, lv_name, parent=None):
+        super().__init__(uuid, parent)
         self.vg_name = vg_name
         self.lv_name = lv_name
 
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
 
-
-class HostDiskBcache(anytree.node.nodemixin.NodeMixin):
+class HostDiskBcache(HostDisk):
 
     def __init__(self, uuid, parent=None):
-        super().__init__(parent=parent)
-        self.uuid = uuid
+        super().__init__(uuid, parent)
         self.cache_dev_list = []
         self.backing_dev = None
 
@@ -130,52 +134,33 @@ class HostDiskBcache(anytree.node.nodemixin.NodeMixin):
         assert self.backing_dev is None
         self.backing_dev = disk
 
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
 
-
-class HostDiskScsiDisk(anytree.node.nodemixin.NodeMixin):
+class HostDiskScsiDisk(HostDisk):
 
     def __init__(self, uuid, host_controller_name, parent=None):
-        super().__init__(parent=parent)
-        self.uuid = uuid
+        super().__init__(uuid, parent)
         self.host_controller_name = host_controller_name
 
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
 
-
-class HostDiskNvmeDisk(anytree.node.nodemixin.NodeMixin):
+class HostDiskNvmeDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
-        super().__init__(parent=parent)
-        self.uuid = uuid
-
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
+        super().__init__(uuid, parent)
 
 
-class HostDiskXenDisk(anytree.node.nodemixin.NodeMixin):
+class HostDiskXenDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
-        super().__init__(parent=parent)
-        self.uuid = uuid
-
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
+        super().__init__(uuid, parent)
 
 
-class HostDiskVirtioDisk(anytree.node.nodemixin.NodeMixin):
+class HostDiskVirtioDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
-        super().__init__(parent=parent)
-        self.uuid = uuid
-
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
+        super().__init__(uuid, parent)
 
 
-class HostDiskPartition(anytree.node.nodemixin.NodeMixin):
+class HostDiskPartition(HostDisk):
 
     PART_TYPE_MBR = 1
     PART_TYPE_GPT = 2
@@ -183,12 +168,8 @@ class HostDiskPartition(anytree.node.nodemixin.NodeMixin):
     def __init__(self, uuid, part_type, parent=None):
         assert self.PART_TYPE_MBR <= part_type <= self.PART_TYPE_GPT
 
-        super().__init__(parent=parent)
-        self.uuid = uuid
+        super().__init__(uuid, parent)
         self.part_type = part_type
-
-    def ___eq___(self, other):
-        return self.uuid == other.uuid
 
 
 class HostInfoUtil:
