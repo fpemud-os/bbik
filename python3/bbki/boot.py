@@ -83,6 +83,14 @@ class BootEntry:
     def initrd_filepath(self):
         return os.path.join(self._bootDir, self.initrd_filename)
 
+    @property
+    def initrd_tar_filename(self):
+        return "initramfs-files-" + self._kernelInfo.postfix + ".tar.bz2"
+
+    @property
+    def initrd_tar_filepath(self):
+        return os.path.join(self._bootDir, self.initrd_tar_filename)
+
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_filepath):
             return False
@@ -94,6 +102,8 @@ class BootEntry:
 
     def has_initrd_files(self):
         if not os.path.exists(self.initrd_filepath):
+            return False
+        if not os.path.exists(self.initrd_tar_filepath):
             return False
         return True
 
