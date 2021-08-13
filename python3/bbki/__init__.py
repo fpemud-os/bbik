@@ -51,6 +51,7 @@ from .host_info import HostDiskNvmeDisk
 from .host_info import HostDiskXenDisk
 from .host_info import HostDiskVirtioDisk
 from .host_info import HostDiskPartition
+from .host_info import HostAuxOs
 
 from .config import Config
 
