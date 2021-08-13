@@ -97,6 +97,7 @@ class HostMountPoint:
         self.mount_type = mount_type
         self.mount_point = mount_point
         self.uuid = uuid                            # FS-UUID, not PART-UUID
+                                                    # FIXME: for lvm, self.uuid = "lvm/vgName-lvName"
         self.fs_type = fs_type
         self.mount_option = mount_option            # FIXME
         self.underlay_disks = underlay_disks

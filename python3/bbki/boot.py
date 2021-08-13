@@ -25,7 +25,6 @@ import os
 import re
 import pathlib
 import robust_layer.simple_fops
-from .bbki import SystemError
 from .util import Util
 from .kernel import KernelInfo
 
@@ -109,7 +108,7 @@ class BootEntry:
         return True
 
     def ___eq___(self, other):
-        return self._bbki == other._bbki and self._kernelInfo.postfix == other._postfix and self._bootDir == other._bootDir
+        return self._bbki == other._bbki and self._kernelInfo == other._kernelInfo and self._bootDir == other._bootDir
 
 
 class BootLoaderGrub:

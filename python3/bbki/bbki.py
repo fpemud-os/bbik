@@ -75,8 +75,8 @@ class Bbki:
             raise RunningEnvironmentError("executable \"sed\" does not exist")
         if not Util.cmdCallTestSuccess("make", "-V"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
-        if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
-            raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
+        if not Util.cmdCallTestSuccess("grub-install", "-V"):
+            raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
     def get_current_boot_entry(self):
         if not self._bForSelf:
@@ -139,6 +139,9 @@ class Bbki:
     def install_bootloader(self):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
+        obj = BootLoaderGrub(self)
+
+
 
         pass
 
