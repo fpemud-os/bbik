@@ -88,31 +88,38 @@ class Initramfs:
         self._generatePasswd(os.path.join(etcDir, "passwd"))
         self._generateGroup(os.path.join(etcDir, "group"))
 
+        # deduplicated disk list
+        diskList = OrderedSet()
+        for mp in self._bbki._hostInfo.mount_point_list:
+            for rootDisk in mp.underlay_disk_list:
+                for disk in anytree.PostOrderIter(rootDisk):
+                    diskList.add(disk)
+
         # get kernel module file list (order is important)
         kmodList = OrderedSet()
         if True:
             kaliasList = OrderedSet()
+            for disk in diskList:
+                if isinstance(disk, HostDiskLvmLv):
+                    kaliasList.add("dm_mod")
+                elif isinstance(disk, HostDiskScsiDisk):
+                    kaliasList.add(disk.host_controller_name)
+                    kaliasList.add("sd_mod")
+                elif isinstance(disk, HostDiskNvmeDisk):
+                    kaliasList.add("nvme")
+                elif isinstance(disk, HostDiskXenDisk):
+                    kaliasList.add("xen-blkfront")
+                elif isinstance(disk, HostDiskVirtioDisk):
+                    kaliasList.add("virtio_pci")
+                    kaliasList.add("virtio_blk")
+                elif isinstance(disk, HostDiskBcache):
+                    kaliasList.add("bcache")
+                elif isinstance(disk, HostDiskPartition):
+                    pass        # get kernel module for partition format
+                else:
+                    assert False
+
             for mp in self._bbki._hostInfo.mount_point_list:
-                for rootDisk in mp.underlay_disk_list:
-                    for disk in anytree.PostOrderIter(rootDisk):
-                        if isinstance(disk, HostDiskLvmLv):
-                            kaliasList.add("dm_mod")
-                        elif isinstance(disk, HostDiskScsiDisk):
-                            kaliasList.add(disk.host_controller_name)
-                            kaliasList.add("sd_mod")
-                        elif isinstance(disk, HostDiskNvmeDisk):
-                            kaliasList.add("nvme")
-                        elif isinstance(disk, HostDiskXenDisk):
-                            kaliasList.add("xen-blkfront")
-                        elif isinstance(disk, HostDiskVirtioDisk):
-                            kaliasList.add("virtio_pci")
-                            kaliasList.add("virtio_blk")
-                        elif isinstance(disk, HostDiskBcache):
-                            kaliasList.add("bcache")
-                        elif isinstance(disk, HostDiskPartition):
-                            pass        # get kernel module for partition format
-                        else:
-                            assert False
                 if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
                     buf = pathlib.Path(self._kernel.boot_entry.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
@@ -130,6 +137,7 @@ class Initramfs:
                     kaliasList.add(mp.fs_type)
                 else:
                     assert False
+
             for kalias in kaliasList:
                 kmodList |= OrderedSet(self._kernel.get_kmod_filepaths(kalias, with_deps=True))
 
@@ -149,13 +157,6 @@ class Initramfs:
         # install insmod binary
         if len(kmodList) > 0:
             self._installBin("/sbin/insmod", rootDir)
-
-        # disk list
-        diskList = OrderedSet()
-        for mp in self._bbki._hostInfo.mount_point_list:
-            for rootDisk in mp.underlay_disk_list:
-                for disk in anytree.PostOrderIter(rootDisk):
-                    diskList.add(disk)
 
         # get block device preparation operation list
         blkOpList = OrderedSet()

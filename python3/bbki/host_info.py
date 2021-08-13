@@ -30,11 +30,12 @@ from .util import Util
 
 class HostInfo:
 
-    def __init__(self, arch, boot_mode, boot_disk, mount_point_list):
+    def __init__(self, arch, boot_mode, boot_disk, mount_point_list, aux_os_list):
         self.arch = None
         self.boot_mode = None
         self.boot_disk = None
         self.mount_point_list = None
+        self.aux_os_list = None
 
         # self.arch
         if arch == "native":
@@ -74,6 +75,9 @@ class HostInfo:
             self.mount_point_list = mount_point_list
         else:
             assert self.boot_disk is None
+
+        # self.aux_os_list
+        self.aux_os_list = aux_os_list
 
 
 class HostMountPoint:
@@ -170,6 +174,15 @@ class HostDiskPartition(HostDisk):
 
         super().__init__(uuid, parent)
         self.part_type = part_type
+
+
+class HostAuxOs:
+
+    def __init__(self, name, partition, boot_partition, chainloader_number):
+        self.name = name
+        self.partition = partition
+        self.boot_partition = boot_partition
+        self.chainloader_number = chainloader_number
 
 
 class HostInfoUtil:

@@ -131,29 +131,27 @@ class Bbki:
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
-        obj = Initramfs(kernel_instance)
-        obj.install()
+        Initramfs(kernel_instance).install()
 
     def install_bootloader(self):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
-        obj = BootLoaderGrub(self)
 
-
-
-        pass
+        BootLoaderGrub(self).install()
 
     def reinstall_bootloader(self):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
-        pass
+        obj = BootLoaderGrub(self)
+        obj.remove()
+        obj.install()
 
     def update_bootloader(self):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
-        pass
+        BootLoaderGrub(self).update()
 
     def check(self, autofix=False):
         assert False
@@ -165,7 +163,7 @@ class Bbki:
         assert False
 
     def remove(self):
-        assert False
+        BootLoaderGrub(self).remove()
 
 
 class RunningEnvironmentError(Exception):
