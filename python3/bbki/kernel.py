@@ -26,6 +26,7 @@ import kmod
 import pylkcutil
 from .util import Util
 from .util import TempChdir
+from .boot_entry import BootEntry
 from .repo import BbkiFileExecutor
 
 
@@ -52,8 +53,8 @@ class KernelInstaller:
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelAtom].remove_tmpdirs()
 
-    def get_build_target(self):
-        return KernelInfo.new_from_verstr("amd64", self._kernelAtom.verstr)
+    def get_target_boot_entry(self):
+        return BootEntry.new_from_verstr("native", self._kernelAtom.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelAtom].src_unpack()
@@ -158,6 +159,10 @@ class BootEntryWrapper:
     def __init__(self, boot_entry):
         self._bootEntry = boot_entry
         self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
+
+    @property
+    def modules_dir(self):
+        return self._modulesDir
 
     @property
     def src_arch(self):

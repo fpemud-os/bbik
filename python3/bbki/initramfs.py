@@ -41,20 +41,22 @@ from .host_info import HostDiskXenDisk
 from .host_info import HostDiskVirtioDisk
 from .host_info import HostDiskPartition
 from .host_info import HostInfoUtil
+from .kernel import BootEntryWrapper
 
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, kernel_instance):
+    def __init__(self, bbki, boot_entry):
         self._bbki = bbki
-        self._kernel = kernel_instance
-        self._kernelModuleDir = self._bbki._fsLayout.get_kernel_modules_dir(self._kernel.verstr)
+        self._be = boot_entry
+        self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
         # trick: initramfs debug is seldomly needed
         self.trickDebug = False
 
     def install(self):
+        self._checkDotCfgFile()
         if HostInfoUtil.getMountPointByType(self._bbki._hostInfo, HostMountPoint.MOUNT_TYPE_ROOT) is None:
             raise InitramfsInstallError("mount information for root filesystem is not specified")
 
@@ -82,7 +84,7 @@ class InitramfsInstaller:
         self._installDir("/usr/lib", rootDir)
         self._installDir("/usr/lib64", rootDir)
         self._installDir("/var", rootDir)
-        self._installDir(self._kernelModuleDir, rootDir)
+        self._installDir(self._beWrapper.modules_dir, rootDir)
         self._installDir(self._bbki._fsLayout.firmware_dir, rootDir)
         os.makedirs(os.path.join(rootDir, "sysroot"))
         self._generatePasswd(os.path.join(etcDir, "passwd"))
@@ -122,30 +124,30 @@ class InitramfsInstaller:
 
             for mp in self._bbki._hostInfo.mount_point_list:
                 if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
-                    buf = pathlib.Path(self._kernel.boot_entry.kernel_config_filepath).read_text()
+                    buf = pathlib.Path(self._be.boot_entry.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
                     if m is not None:
                         kaliasList.add("nls_cp%s" % (m.group(1)))
                     else:
-                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_CODEPAGE is missing in \"%s\"" % (self._kernel.boot_entry.kernel_config_filepath))
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_CODEPAGE is missing in \"%s\"" % (self._be.boot_entry.kernel_config_filepath))
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
                     if m is not None:
                         kaliasList.add("nls_%s" % (m.group(1)))
                     else:
-                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._kernel.boot_entry.kernel_config_filepath))
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._be.boot_entry.kernel_config_filepath))
                 elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS]:
                     kaliasList.add(mp.fs_type)
                 else:
                     assert False
 
             for kalias in kaliasList:
-                kmodList |= OrderedSet(self._kernel.get_kmod_filepaths(kalias, with_deps=True))
+                kmodList |= OrderedSet(self._be.get_kmod_filepaths(kalias, with_deps=True))
 
         # get firmware file list
         firmwareList = OrderedSet()
         for kmod in kmodList:
-            firmwareList |= OrderedSet(self._kernel.get_firmware_filepaths(kmod))
+            firmwareList |= OrderedSet(self._be.get_firmware_filepaths(kmod))
 
         # install kmod files
         for f in kmodList:
@@ -210,10 +212,10 @@ class InitramfsInstaller:
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
-            dstdir = os.path.join(rootDir, self._kernelModuleDir[1:])
+            dstdir = os.path.join(rootDir, self._beWrapper.modules_dir[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self._kernelModuleDir, dstdir, symlinks=True)
+            shutil.copytree(self._beWrapper.modules_dir, dstdir, symlinks=True)
 
             dstdir = os.path.join(rootDir, self._bbki._fsLayout.firmware_dir[1:])
             if os.path.exists(dstdir):
@@ -264,17 +266,17 @@ class InitramfsInstaller:
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the usb drivers\"\n")
-                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "usb")
+                dstdir = os.path.join(self._beWrapper.modules_dir, "kernel", "drivers", "usb")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the hid drivers\"\n")
-                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "hid")
+                dstdir = os.path.join(self._beWrapper.modules_dir, "kernel", "drivers", "hid")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the input drivers\"\n")
-                dstdir = os.path.join(self._kernelModuleDir, "kernel", "drivers", "input")
+                dstdir = os.path.join(self._beWrapper.modules_dir, "kernel", "drivers", "input")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
@@ -284,11 +286,11 @@ class InitramfsInstaller:
             cmdStr = "/usr/bin/find . -print0 "
             cmdStr += "| /bin/cpio --null -H newc -o "
             cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
-            cmdStr += "> \"%s\" " % (self._kernel.boot_entry.initrd_file)
+            cmdStr += "> \"%s\" " % (self._be.boot_entry.initrd_file)
             Util.shellCall(cmdStr)
 
             # tar file
-            with tarfile.open(self._kernel.boot_entry.initrd_tar_file, "w:bz2") as f:
+            with tarfile.open(self._be.boot_entry.initrd_tar_file, "w:bz2") as f:
                 for fn in glob.glob("*"):
                     f.add(fn)
 
@@ -451,7 +453,7 @@ class InitramfsInstaller:
             "VFAT_FS": "m",
         }
 
-        buf = pathlib.Path(self._kernel.boot_entry.kernel_config_file).read_text()
+        buf = pathlib.Path(self._be.boot_entry.kernel_config_file).read_text()
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
