@@ -168,7 +168,7 @@ class BootEntry:
     @property
     def initrd_filename(self):
         # string, eg: "initramfs-x86_64-3.9.11-gentoo-r1"
-        return "initramfs-" + self._kernelTarget.postfix
+        return "initramfs-" + self.postfix
 
     @property
     def initrd_filepath(self):
@@ -178,7 +178,7 @@ class BootEntry:
     @property
     def initrd_tar_filename(self):
         # string, eg: "initramfs-x86_64-3.9.11-gentoo-r1.tar.bz2"
-        return "initramfs-files-" + self._kernelTarget.postfix + ".tar.bz2"
+        return "initramfs-files-" + self.postfix + ".tar.bz2"
 
     @property
     def initrd_tar_filepath(self):
