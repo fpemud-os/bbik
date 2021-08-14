@@ -28,7 +28,6 @@ import robust_layer.simple_fops
 from .bbki import Bbki
 from .util import Util
 from .boot_entry import BootEntry
-from .kernel import KernelInfo
 
 
 class BootLoaderGrub:
