@@ -133,7 +133,7 @@ class BootEntry:
     @property
     def kernel_filename(self):
         # string, eg: "kernel-x86_64-3.9.11-gentoo-r1"
-        return "kernel-" + self._kernelTarget.postfix
+        return "kernel-" + self.postfix
 
     @property
     def kernel_filepath(self):
@@ -143,7 +143,7 @@ class BootEntry:
     @property
     def kernel_config_filename(self):
         # string, eg: "config-x86_64-3.9.11-gentoo-r1"
-        return "config-"+ self._kernelTarget.postfix
+        return "config-"+ self.postfix
 
     @property
     def kernel_config_filepath(self):
@@ -153,7 +153,7 @@ class BootEntry:
     @property
     def kernel_config_rules_filename(self):
         # string, eg: "config-x86_64-3.9.11-gentoo-r1.rules"
-        return "config-" + self._kernelTarget.postfix + ".rules"
+        return "config-" + self.postfix + ".rules"
 
     @property
     def kernel_config_rules_filepath(self):
@@ -194,6 +194,8 @@ class BootEntry:
             return False
         if not os.path.exists(self._bbki._fsLayout.get_kernel_modules_dir(self._verstr)):
             return False
+        if not os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
+            return False
         return True
 
     def has_initrd_files(self):
@@ -204,4 +206,4 @@ class BootEntry:
         return True
 
     def ___eq___(self, other):
-        return self._bbki == other._bbki and self._kernelTarget == other._kernelInfo and self._bootDir == other._bootDir
+        return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
