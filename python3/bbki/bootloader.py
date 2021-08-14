@@ -202,7 +202,7 @@ class BootLoaderGrub:
             buf = ''
             buf += 'menuentry "Rescue OS" {\n'
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-            buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath(self.)),
+            buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()),
                                                              grubRootDevUuid,
                                                              _prefixedPath(self._bbki._fsLayout.get_boot_rescue_dir()))
             buf += '  initrd %s\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_initrd_filepath()))
@@ -275,7 +275,7 @@ def _getBootEntryList(dirpath):
     ret = []
     for kernelFile in sorted(os.listdir(dirpath), reverse=True):
         if kernelFile.startswith("kernel-"):
-            ret.append(BootEntry.new_from_postfix(kernelFile[len("kernel-"):]))
+            ret.append(BootEntry.new_from_postfix("native", kernelFile[len("kernel-"):]))
     return ret
 
 
