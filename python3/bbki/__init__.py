@@ -56,7 +56,7 @@ from .host_info import HostAuxOs
 from .config import Config
 
 from .repo import Repo
-from .repo import RepoItem
+from .repo import RepoAtom
 
 from .boot_entry import BootEntry
 

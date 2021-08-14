@@ -63,8 +63,8 @@ class Cleaner:
     def findDeprecatedFiles(self, destructive=False):
         keepFiles = set()
         for repo in self._bbki.repositories:
-            for itemType, itemName in repo.query_item_type_name():
-                items = repo.get_items_by_type_name(itemType, itemName)
+            for atomType, atomName in repo.query_atom_type_name():
+                items = repo.get_items_by_type_name(atomType, atomName)
                 if destructive:
                     items = [items[-1]]
                 for item in items:

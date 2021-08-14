@@ -117,8 +117,8 @@ class Bbki:
         BbkiFileExecutor(atom).exec_fetch()
 
     def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
-        assert kernel_atom.item_type == self.ATOM_TYPE_KERNEL
-        assert all([x.item_type == self.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
+        assert kernel_atom.atom_type == self.ATOM_TYPE_KERNEL
+        assert all([x.atom_type == self.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
