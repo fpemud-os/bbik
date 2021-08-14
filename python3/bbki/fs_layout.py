@@ -35,6 +35,12 @@ class FsLayoutLinux:
     def get_boot_rescue_os_dir(self):
         return "/boot/rescue"
 
+    def get_boot_rescue_os_kernel_filepath(self):
+        return "/boot/rescue/vmlinuz"
+
+    def get_boot_rescue_os_initrd_filepath(self):
+        return "/boot/rescue/initrd.img"
+
     def get_boot_grub_dir(self):
         return "/boot/grub"
 

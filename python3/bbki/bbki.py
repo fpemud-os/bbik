@@ -96,6 +96,9 @@ class Bbki:
         else:
             return None
 
+    def has_rescue_os(self):
+        return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
+
     def get_kernel_atom(self):
         items = self._repoList[0].get_items_by_type_name(self.ATOM_TYPE_KERNEL, self._cfg.get_kernel_type())
         items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
