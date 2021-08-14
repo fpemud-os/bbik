@@ -29,6 +29,7 @@ from .bbki import Bbki
 from .bbki import BootloaderInstallError
 from .util import Util
 from .boot_entry import BootEntry
+from .boot_entry import BootEntryUtils
 
 
 class BootLoaderGrub:
@@ -115,29 +116,13 @@ class BootLoaderGrub:
         buf = ''
         if self._bbki._targetHostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
-            prefix = "/"
+            _prefixedPath = _prefixedPathEfi
         elif self._bbki._targetHostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[0].dev_uuid       # MOUNT_TYPE_ROOT
-            prefix = "/boot"
+            _prefixedPath = _prefixedPathBios
         else:
             assert False
         initName, initCmdline = self._bbki.config.get_system_init_info()
-
-        def _grubRootDevCmd(devUuid):
-            if devUuid.startswith("lvm/"):
-                return "set root=(%s)" % (devUuid)
-            else:
-                return "search --fs-uuid --no-floppy --set %s" % (devUuid)
-
-        def _getBootEntryList(dirpath):
-            ret = []
-            for kernelFile in sorted(os.listdir(dirpath), reverse=True):
-                if kernelFile.startswith("kernel-"):
-                    ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
-            return ret
-
-        def _prefixedPath(path):
-            return re.sub(r'^/boot', prefix, path)
 
         # deal with recordfail variable
         buf += 'load_env\n'
@@ -179,7 +164,7 @@ class BootLoaderGrub:
 
         # write menu entry for main kernel
         if True:
-            bootEntryList = _getBootEntryList(self._bbki._fsLayout.get_boot_dir())
+            bootEntryList = BootEntryUtils(self._bbki).getBootEntryList()
             if len(bootEntryList) == 0:
                 raise BootloaderInstallError("no main boot entry")
             if len(bootEntryList) > 1:
@@ -232,7 +217,7 @@ class BootLoaderGrub:
 
         # write menu entry for history kernels
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
-            for bootEntry in _getBootEntryList(self._bbki._fsLayout.get_boot_history_dir()):
+            for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(True):
                 if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
                     buf = ''
                     buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
@@ -275,6 +260,22 @@ class BootLoaderGrub:
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
             f.write(buf)
+
+
+def _prefixedPathEfi(path):
+    assert path.startswith("/boot/")
+    return path[len("/boot"):]
+
+
+def _prefixedPathBios(path):
+    return path
+
+
+def _grubRootDevCmd(devUuid):
+    if devUuid.startswith("lvm/"):
+        return "set root=(%s)" % (devUuid)
+    else:
+        return "search --fs-uuid --no-floppy --set %s" % (devUuid)
 
 
 # def get_stable_flag(self):

@@ -207,3 +207,22 @@ class BootEntry:
 
     def ___eq___(self, other):
         return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
+
+
+class BootEntryUtils:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+
+    def getBootEntryList(self, history_entry=False):
+        if not history_entry:
+            dirpath = self._bbki._fsLayout.get_boot_dir()
+        else:
+            dirpath = self._bbki._fsLayout.get_boot_history_dir()
+
+        ret = []
+        for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+            if kernelFile.startswith("kernel-"):
+                ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
+        return ret
+
