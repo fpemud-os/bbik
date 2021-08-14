@@ -26,6 +26,7 @@ import re
 import pathlib
 import robust_layer.simple_fops
 from .bbki import Bbki
+from .bbki import BootloaderInstallError
 from .util import Util
 from .boot_entry import BootEntry
 
@@ -44,7 +45,7 @@ class BootLoaderGrub:
             self._grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
             self._grubKernelInitCmdline = self._grubKernelInitCmdline.strip()
 
-    def getCurrentBootEntry(self):
+    def getMainBootEntry(self):
         if not os.path.exists(self._grubCfgFile):
             return None
 
@@ -55,11 +56,11 @@ class BootLoaderGrub:
         else:
             return None
 
-    def install(self, bootEntry):
+    def install(self):
         if self._bbki._targetHostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
-            self._uefiInstall(bootEntry)
+            self._uefiInstall()
         elif self._bbki._targetHostInfo.boot_mode == Bbki.BOOT_MODE_BIOS:
-            self._biosInstall(bootEntry)
+            self._biosInstall()
         else:
             assert False
 
@@ -71,10 +72,10 @@ class BootLoaderGrub:
         else:
             assert False
 
-    def update(self, bootEntry):
-        self.__genGrubCfg(bootEntry)
+    def update(self):
+        self.__genGrubCfg()
 
-    def _uefiInstall(self, bootEntry):
+    def _uefiInstall(self):
         # remove old directory
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
@@ -85,13 +86,13 @@ class BootLoaderGrub:
         Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
 
         # generate grub.cfg
-        self.__genGrubCfg(bootEntry)
+        self.__genGrubCfg()
 
     def _uefiRemove(self):
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
-    def _biosInstall(self, bootEntry):
+    def _biosInstall(self):
         # remove old directory
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
@@ -100,7 +101,7 @@ class BootLoaderGrub:
         Util.cmdCall("grub-install", "--target=i386-pc", self._bbki._targetHostInfo.boot_disk)
 
         # generate grub.cfg
-        self.__genGrubCfg(bootEntry)
+        self.__genGrubCfg()
 
     def _biosRemove(self):
         # remove MBR
@@ -110,7 +111,7 @@ class BootLoaderGrub:
         # remove /boot/grub directory
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
-    def __genGrubCfg(self, bootEntry):
+    def __genGrubCfg(self):
         buf = ''
         if self._bbki._targetHostInfo.boot_mode == Bbki.BOOT_MODE_EFI:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
@@ -121,12 +122,6 @@ class BootLoaderGrub:
         else:
             assert False
         initName, initCmdline = self._bbki.config.get_system_init_info()
-
-        def _grubRootDevCmd(devUuid):
-            if devUuid.startswith("lvm/"):
-                return "set root=(%s)" % (devUuid)
-            else:
-                return "search --fs-uuid --no-floppy --set %s" % (devUuid)
 
         def _prefixedPath(path):
             return re.sub(r'^/boot', prefix, path)
@@ -164,41 +159,52 @@ class BootLoaderGrub:
 
         # write comments
         buf += '# These options are recorded in initramfs\n'
-        buf += '#   rootfs=%s\n' % grubRootDevUuid
+        buf += '#   rootfs=%s\n' % (grubRootDevUuid)
         if initCmdline != "":
             buf += '#   init=%s\n' % (initCmdline)
         buf += '\n'
 
-        # write menu entry for stable main kernel
-        buf += 'menuentry "Stable: Linux-%s" {\n' % (bootEntry.postfix)
-        buf += '  set gfxpayload=keep\n'
-        buf += '  set recordfail=1\n'
-        buf += '  save_env recordfail\n'
-        buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-        buf += '  linux %s quiet %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
-        buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
-        buf += '}\n'
-        buf += '\n'
-
         # write menu entry for main kernel
-        buf = ''
-        buf += 'menuentry "Current: Linux-" {\n' % (bootEntry.postfix)
-        buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-        buf += '  echo "Loading Linux kernel ..."\n'
-        buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
-        buf += '  echo "Loading initial ramdisk ..."\n'
-        buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
-        buf += '}\n'
-        buf += '\n'
+        if True:
+            bootEntryList = _getBootEntryList(self._bbki._fsLayout.get_boot_dir())
+            if len(bootEntryList) == 0:
+                raise BootloaderInstallError("no main boot entry")
+            if len(bootEntryList) > 1:
+                raise BootloaderInstallError("multiple main boot entries")
+
+            bootEntry = bootEntryList[0]
+            if not bootEntry.has_kernel_files() or not bootEntry.has_initrd_files():
+                raise BootloaderInstallError("broken main boot entry")
+
+            buf += 'menuentry "Stable: Linux-%s" {\n' % (bootEntry.postfix)
+            buf += '  set gfxpayload=keep\n'
+            buf += '  set recordfail=1\n'
+            buf += '  save_env recordfail\n'
+            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
+            buf += '  linux %s quiet %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+            buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
+            buf += '}\n'
+            buf += '\n'
+
+            # write menu entry for main kernel
+            buf = ''
+            buf += 'menuentry "Current: Linux-%s" {\n' % (bootEntry.postfix)
+            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
+            buf += '  echo "Loading Linux kernel ..."\n'
+            buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+            buf += '  echo "Loading initial ramdisk ..."\n'
+            buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
+            buf += '}\n'
+            buf += '\n'
 
         # write menu entry for rescue os
         if os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_dir()):
             buf = ''
             buf += 'menuentry "Rescue OS" {\n'
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-            buf += '  echo "Loading Linux kernel ..."\n'
-            buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()), grubRootDevUuid, _prefixedPath(self._bbki._fsLayout.get_boot_rescue_dir()))
-            buf += '  echo "Loading initial ramdisk ..."\n'
+            buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath(self.)),
+                                                             grubRootDevUuid,
+                                                             _prefixedPath(self._bbki._fsLayout.get_boot_rescue_dir()))
             buf += '  initrd %s\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_initrd_filepath()))
             buf += '}\n'
             buf += '\n'
@@ -213,19 +219,22 @@ class BootLoaderGrub:
 
         # write menu entry for history kernels
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
-            for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_history_dir()), reverse=True):
-                if kernelFile.startswith("kernel-"):
-                    bootEntry = BootEntry.new_from_postfix(kernelFile[len("kernel-"):])
-                    if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
-                        buf = ''
-                        buf += 'menuentry "History: Linux-" {\n' % (bootEntry.postfix)
-                        buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-                        buf += '  echo "Loading Linux kernel ..."\n'
-                        buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
-                        buf += '  echo "Loading initial ramdisk ..."\n'
-                        buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
-                        buf += '}\n'
-                        buf += '\n'
+            for bootEntry in _getBootEntryList(self._bbki._fsLayout.get_boot_history_dir()):
+                if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
+                    buf = ''
+                    buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
+                    buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
+                    buf += '  echo "Loading Linux kernel ..."\n'
+                    buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+                    buf += '  echo "Loading initial ramdisk ..."\n'
+                    buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
+                    buf += '}\n'
+                    buf += '\n'
+                else:
+                    buf = ''
+                    buf += 'menuentry "History: Linux-%s (Broken)" {\n' % (bootEntry.postfix)
+                    buf += '}\n'
+                    buf += '\n'
 
         # write menu entry for restart
         buf += 'menuentry "Restart" {\n'
@@ -253,6 +262,21 @@ class BootLoaderGrub:
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
             f.write(buf)
+
+
+def _grubRootDevCmd(devUuid):
+    if devUuid.startswith("lvm/"):
+        return "set root=(%s)" % (devUuid)
+    else:
+        return "search --fs-uuid --no-floppy --set %s" % (devUuid)
+
+
+def _getBootEntryList(dirpath):
+    ret = []
+    for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+        if kernelFile.startswith("kernel-"):
+            ret.append(BootEntry.new_from_postfix(kernelFile[len("kernel-"):]))
+    return ret
 
 
 # def get_stable_flag(self):
