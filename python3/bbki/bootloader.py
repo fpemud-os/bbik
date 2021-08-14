@@ -44,7 +44,7 @@ class BootLoaderGrub:
         buf = pathlib.Path(self._grubCfgFile).read_text()
         m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
         if m is not None:
-            return BootEntry(KernelInfo.new_from_postfix(m.group(1)))
+            return BootEntry.new_from_postfix(self._bbki, m.group(1))
         else:
             return None
 
