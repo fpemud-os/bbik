@@ -30,6 +30,12 @@ import subprocess
 class Util:
 
     @staticmethod
+    def removeDirContentExclude(dirPath, excludeList):
+        for fn in os.listdir(dirPath):
+            if fn not in excludeList:
+                robust_layer.simple_fops.rm(os.path.join(dirPath, fn))
+
+    @staticmethod
     def newBuffer(ch, li):
         ret = bytearray()
         i = 0
@@ -52,16 +58,6 @@ class Util:
             return m.group(1)
         else:
             return ""
-
-    @staticmethod
-    def removeDuplication(theList):
-        ret = []
-        theSet = set()
-        for k in theList:
-            if k not in theSet:
-                ret.append(k)
-                theSet.add(k)
-        return ret
 
     @staticmethod
     def splitToTuple(s, d, count):

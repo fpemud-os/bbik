@@ -44,8 +44,11 @@ class FsLayoutLinux:
     def get_boot_rescue_os_initrd_filepath(self):
         return "/boot/rescue/initrd.img"
 
-    def get_kernel_modules_dir(self, kernel_verstr):
-        return "/lib/modules/%s" % (kernel_verstr)
+    def get_kernel_modules_dir(self, kernel_verstr=None):
+        if kernel_verstr is None:
+            return "/lib/modules"
+        else:
+            return "/lib/modules/%s" % (kernel_verstr)
 
     def get_firmware_dir(self):
         return "/lib/firmware"
