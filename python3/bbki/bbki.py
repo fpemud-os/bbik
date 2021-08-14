@@ -195,7 +195,7 @@ class Bbki:
         # filter files in /lib/firmware
         pass
 
-    def clean_cache(self, pretend=False):
+    def clean_distfiles(self, pretend=False):
         assert False
 
     def remove(self):
