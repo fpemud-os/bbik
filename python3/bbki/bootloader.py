@@ -123,6 +123,19 @@ class BootLoaderGrub:
             assert False
         initName, initCmdline = self._bbki.config.get_system_init_info()
 
+        def _grubRootDevCmd(devUuid):
+            if devUuid.startswith("lvm/"):
+                return "set root=(%s)" % (devUuid)
+            else:
+                return "search --fs-uuid --no-floppy --set %s" % (devUuid)
+
+        def _getBootEntryList(dirpath):
+            ret = []
+            for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+                if kernelFile.startswith("kernel-"):
+                    ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
+            return ret
+
         def _prefixedPath(path):
             return re.sub(r'^/boot', prefix, path)
 
@@ -262,21 +275,6 @@ class BootLoaderGrub:
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
             f.write(buf)
-
-
-def _grubRootDevCmd(devUuid):
-    if devUuid.startswith("lvm/"):
-        return "set root=(%s)" % (devUuid)
-    else:
-        return "search --fs-uuid --no-floppy --set %s" % (devUuid)
-
-
-def _getBootEntryList(dirpath):
-    ret = []
-    for kernelFile in sorted(os.listdir(dirpath), reverse=True):
-        if kernelFile.startswith("kernel-"):
-            ret.append(BootEntry.new_from_postfix("native", kernelFile[len("kernel-"):]))
-    return ret
 
 
 # def get_stable_flag(self):
