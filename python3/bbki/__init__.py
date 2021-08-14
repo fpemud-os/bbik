@@ -62,6 +62,6 @@ from .boot_entry import BootEntry
 
 from .kernel import KernelInstaller
 
-from .initramfs import Initramfs
+from .initramfs import InitramfsInstaller
 
 from .bootloader import BootLoaderGrub
