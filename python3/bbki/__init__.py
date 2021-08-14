@@ -54,6 +54,7 @@ from .host_info import HostDiskPartition
 from .host_info import HostAuxOs
 
 from .config import Config
+from .config import EtcDirConfig
 
 from .repo import Repo
 from .repo import RepoAtom

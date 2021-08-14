@@ -23,7 +23,6 @@
 
 import os
 from .util import Util
-from .config import Config
 from .fs_layout import FsLayoutLinux
 from .repo import Repo
 from .repo import BbkiFileExecutor
@@ -48,11 +47,10 @@ class Bbki:
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
 
-    def __init__(self, target_host_info, target_host_is_myself=True, cfgdir=Config.DEFAULT_CONFIG_DIR):
+    def __init__(self, target_host_info, target_host_is_myself=True, cfg=None):
         self._targetHostInfo = target_host_info
         self._bForSelf = target_host_is_myself
-
-        self._cfg = Config(cfgdir)
+        self._cfg = cfg
 
         if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
             self._fsLayout = FsLayoutLinux(self)
@@ -90,7 +88,7 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self, strict=True):
-        ret = BootLoaderGrub(self).getCurrentBootEntry()
+        ret = BootLoaderGrub(self).getMainBootEntry()
         if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
             return ret
         else:

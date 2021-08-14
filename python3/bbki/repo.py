@@ -325,7 +325,7 @@ class BbkiFileExecutor:
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
                     optList = []
                     optList.append("CFLAGS=\"-Wno-error\"")
-                    optList.append(self._bbki.config.get_make_conf_variable("MAKEOPTS"))
+                    optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
                     Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
                     Util.shellCall("/usr/bin/make %s modules" % (" ".join(optList)))
                 else:

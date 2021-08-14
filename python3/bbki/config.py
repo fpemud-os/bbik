@@ -31,6 +31,46 @@ from .util import Util
 
 class Config:
 
+    @property
+    def data_repo_dir(self):
+        raise NotImplementedError()
+
+    @property
+    def cache_distfiles_dir(self):
+        raise NotImplementedError()
+
+    @property
+    def cache_distfiles_ro_dir_list(self):
+        raise NotImplementedError()
+
+    @property
+    def tmp_dir(self):
+        raise NotImplementedError()
+
+    def get_build_variable(self, var_name):
+        raise NotImplementedError()
+
+    def get_kernel_type(self):
+        raise NotImplementedError()
+
+    def get_kernel_addon_names(self):
+        raise NotImplementedError()
+
+    def get_system_init_info(self):
+        raise NotImplementedError()
+
+    def get_bootloader_extra_time(self):
+        raise NotImplementedError()
+
+    def get_kernel_extra_init_cmdline(self):
+        raise NotImplementedError()
+
+    def check_version_mask(self, item_fullname, item_verstr):
+        raise NotImplementedError()
+
+
+class EtcDirConfig(Config):
+
     DEFAULT_CONFIG_DIR = "/etc/bbki"
 
     DEFAULT_DATA_DIR = "/var/lib/bbki"
@@ -39,7 +79,7 @@ class Config:
 
     DEFAULT_TMP_DIR = "/var/tmp/bbki"
 
-    def __init__(self, cfgdir):
+    def __init__(self, cfgdir=DEFAULT_CONFIG_DIR):
         self._makeConf = os.path.join(cfgdir, "make.conf")
 
         self._profileDir = os.path.join(cfgdir, "profile")
@@ -53,14 +93,14 @@ class Config:
         self._cfgOptionsFile = os.path.join(cfgdir, "bbki.options")
         self._cfgMaskDir = os.path.join(cfgdir, "bbki.mask")
 
-        self._dataDir = Config.DEFAULT_DATA_DIR
+        self._dataDir = self.DEFAULT_DATA_DIR
         self._dataRepoDir = os.path.join(self._dataDir, "repo")
 
-        self._cacheDir = Config.DEFAULT_CACHE_DIR
+        self._cacheDir = self.DEFAULT_CACHE_DIR
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
 
-        self._tmpDir = Config.DEFAULT_TMP_DIR
+        self._tmpDir = self.DEFAULT_TMP_DIR
 
         self._tKernelType = None
         self._tKernelAddonNameList = None
@@ -83,31 +123,8 @@ class Config:
     def tmp_dir(self):
         return self._tmpDir
 
-    def get_make_conf_variable(self, var_name):
-        # Returns variable value, returns "" when not found
-        # Multiline variable definition is not supported yet
-
-        buf = ""
-        with open(self._makeConf, 'r') as f:
-            buf = f.read()
-
-        m = re.search("^%s=\"(.*)\"$" % var_name, buf, re.MULTILINE)
-        if m is None:
-            return ""
-        varVal = m.group(1)
-
-        while True:
-            m = re.search("\\${(\\S+)?}", varVal)
-            if m is None:
-                break
-            varName2 = m.group(1)
-            varVal2 = self.get_make_conf_variable(self._makeConf, varName2)
-            if varVal2 is None:
-                varVal2 = ""
-
-            varVal = varVal.replace(m.group(0), varVal2)
-
-        return varVal
+    def get_build_variable(self, var_name):
+        return self._getMakeConfVariable(var_name)
 
     def get_kernel_type(self):
         # fill cache
@@ -209,6 +226,32 @@ class Config:
                         line = line[1:]
                         ret.remove(line)
         self._tKernelAddonNameList = sorted(list(ret))
+
+    def _getMakeConfVariable(self, varName):
+        # Returns variable value, returns "" when not found
+        # Multiline variable definition is not supported yet
+
+        buf = ""
+        with open(self._makeConf, 'r') as f:
+            buf = f.read()
+
+        m = re.search("^%s=\"(.*)\"$" % varName, buf, re.MULTILINE)
+        if m is None:
+            return ""
+        varVal = m.group(1)
+
+        while True:
+            m = re.search("\\${(\\S+)?}", varVal)
+            if m is None:
+                break
+            varName2 = m.group(1)
+            varVal2 = self._getMakeConfVariable(self._makeConf, varName2)
+            if varVal2 is None:
+                varVal2 = ""
+
+            varVal = varVal.replace(m.group(0), varVal2)
+
+        return varVal
 
     def _filltOptions(self):
         if self._tOptions is not None:
