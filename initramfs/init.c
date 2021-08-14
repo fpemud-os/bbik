@@ -1363,54 +1363,6 @@ int bcacheActivateBackingDeviceCommand(char * cmd, char *end) {
     return 0;
 }
 
-int fsckCommand(char * cmd, char * end) {
-    char * fstype;
-    char * uuid;
-    char * device;
-
-    if (!(cmd = getArg(cmd, end, &fstype))) {
-        fprintf(stderr, "fsck: missing fstype\n");
-        return 1;
-    }
-
-    if (!(cmd = getArg(cmd, end, &uuid))) {
-        fprintf(stderr, "fsck: missing uuid\n");
-        return 1;
-    }
-
-    if (cmd < end) {
-        fprintf(stderr, "fsck: unexpected arguments\n");
-        return 1;
-    }
-
-    device = blkid_evaluate_tag("UUID", uuid, &mycache);
-    if (device == NULL) {
-        fprintf(stderr, "fsck: failed to get device by UUID %s\n", uuid);
-        return 1;
-    }
-
-    if (strcmp(fstype, "ext2") == 0 || strcmp(fstype, "ext4") == 0) {
-        if (!quiet) {
-            return runBinary3("/sbin/e2fsck", "-p", "-v", device);
-        } else {
-            return runBinary2("/sbin/e2fsck", "-p", device);
-        }
-    } else if (strcmp(fstype, "xfs") == 0) {
-        return runBinary1("/sbin/fsck.xfs", device);
-    } else if (strcmp(fstype, "vfat") == 0) {
-        /* fsck.fat is unable to check for any real errors */
-        if (!quiet) {
-            runBinary2("/usr/sbin/fsck.fat", "-av", device);
-        } else {
-            runBinary2("/usr/sbin/fsck.fat", "-a", device);
-        }
-        return 0;
-    }
-
-    fprintf(stderr, "fsck: unknown fstype %s\n", fstype);
-    return 1;
-}
-
 int findlodevCommand(char * cmd, char * end) {
     char devName[20];
     int devNum;
@@ -1550,9 +1502,6 @@ int runStartup() {
         }
         else if (COMMAND_COMPARE("bcache-backing-device-activate", start, chptr)) {
             rc = bcacheActivateBackingDeviceCommand(chptr, end);
-        }
-        else if (COMMAND_COMPARE("fsck", start, chptr)) {
-            rc = fsckCommand(chptr, end);
         }
         else {
             *chptr = '\0';

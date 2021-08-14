@@ -60,8 +60,6 @@ from .repo import RepoItem
 
 from .boot_entry import BootEntry
 
-from .kernel import KernelInfo
-from .kernel import KernelInstance
 from .kernel import KernelInstaller
 
 from .initramfs import Initramfs

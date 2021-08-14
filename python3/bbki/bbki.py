@@ -27,12 +27,10 @@ from .config import Config
 from .fs_layout import FsLayoutLinux
 from .repo import Repo
 from .repo import BbkiFileExecutor
-from .kernel import KernelInfo
-from .kernel import KernelInstance
+from .boot_entry import BootEntry
 from .kernel import KernelInstaller
-from .initramfs import Initramfs
-from .boot import BootEntry
-from .boot import BootLoaderGrub
+from .initramfs import InitramfsInstaller
+from .bootloader import BootLoaderGrub
 
 
 class Bbki:
@@ -85,9 +83,8 @@ class Bbki:
         if not self._bForSelf:
             return None
 
-        kernelInfo = KernelInfo.new_from_verstr("native", os.uname().release)
         for bHistoryEntry in [False, True]:
-            ret = BootEntry(self._bbki, kernelInfo, history_entry=bHistoryEntry)
+            ret = BootEntry.new_from_verstr(self._bbki, "native", os.uname().release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
         return None
@@ -96,13 +93,6 @@ class Bbki:
         ret = BootLoaderGrub(self).getCurrentBootEntry()
         if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
             return ret
-        else:
-            return None
-
-    def get_kernel_instance(self):
-        bootEntry = self.get_pending_boot_entry()
-        if bootEntry is not None:
-            return KernelInstance(bootEntry)
         else:
             return None
 
@@ -132,11 +122,11 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, kernel_instance):
+    def install_initramfs(self, boot_entry):
         if self._targetHostInfo.boot_disk is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
-        Initramfs(kernel_instance).install()
+        InitramfsInstaller(self, boot_entry).install()
 
     def install_bootloader(self):
         if self._targetHostInfo.boot_disk is None:

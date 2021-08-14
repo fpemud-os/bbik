@@ -43,7 +43,7 @@ from .host_info import HostDiskPartition
 from .host_info import HostInfoUtil
 
 
-class Initramfs:
+class InitramfsInstaller:
 
     def __init__(self, bbki, kernel_instance):
         self._bbki = bbki

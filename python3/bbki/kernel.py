@@ -29,195 +29,6 @@ from .util import TempChdir
 from .repo import BbkiFileExecutor
 
 
-class KernelInfo:
-
-    def __init__(self):
-        self._arch = None
-        self._verstr = None
-
-    @property
-    def postfix(self):
-        # string, eg: "x86_64-3.9.11-gentoo-r1"
-        return self._arch + "-" + self._verstr
-
-    @property
-    def arch(self):
-        # string, eg: "x86_64".
-        return self._arch
-
-    @property
-    def src_arch(self):
-        # FIXME: what's the difference with arch?
-
-        if self._arch == "i386" or self._arch == "x86_64":
-            return "x86"
-        elif self._arch == "sparc32" or self._arch == "sparc64":
-            return "sparc"
-        elif self._arch == "sh":
-            return "sh64"
-        else:
-            return self._arch
-
-    @property
-    def verstr(self):
-        # string, eg: "3.9.11-gentoo-r1"
-        return self._verstr
-
-    @property
-    def ver(self):
-        # string, eg: "3.9.11"
-        try:
-            return self._verstr[:self._verstr.index("-")]
-        except ValueError:
-            return self._verstr
-
-    def ___eq___(self, other):
-        return self._arch == other._arch and self._verstr == other._verstr
-
-    @staticmethod
-    def new_from_postfix(postfix):
-        # postfix example: x86_64-3.9.11-gentoo-r1
-        partList = postfix.split("-")
-        if len(partList) < 2:
-            raise ValueError("illegal postfix")
-        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal postfix")
-        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
-            raise ValueError("illegal postfix")
-
-        ret = KernelInfo()
-        ret._arch = partList[0]
-        ret._verstr = "-".join(partList[1:])
-        return ret
-
-    @staticmethod
-    def new_from_verstr(arch, verstr):
-        if arch == "native":
-            arch = os.uname().machine
-        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal arch")
-
-        # verstr example: 3.9.11-gentoo-r1
-        partList = verstr.split("-")
-        if len(partList) < 1:
-            raise ValueError("illegal verstr")
-        if not Util.isValidKernelVer(partList[0]):          # FIXME: isValidKernelVer should be moved out from util
-            raise ValueError("illegal verstr")
-
-        ret = KernelInfo()
-        ret._arch = arch
-        ret._verstr = verstr
-        return ret
-
-    @staticmethod
-    def new_from_kernel_srcdir(arch, kernel_srcdir):
-        if arch == "native":
-            arch = os.uname().machine
-        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal arch")
-
-        version = None
-        patchlevel = None
-        sublevel = None
-        extraversion = None
-        with open(os.path.join(kernel_srcdir, "Makefile")) as f:
-            buf = f.read()
-
-            m = re.search("VERSION = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            version = int(m.group(1))
-
-            m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            patchlevel = int(m.group(1))
-
-            m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            sublevel = int(m.group(1))
-
-            m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
-            if m is not None:
-                extraversion = m.group(1)
-
-        ret = KernelInfo()
-        ret._arch = arch
-        if extraversion is not None:
-            ret._verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
-        else:
-            ret._verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
-        return ret
-
-
-class KernelInstance:
-
-    def __init__(self, bbki, boot_entry):
-        self._bbki = bbki
-        self._bootEntry = boot_entry
-        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.kernel_verstr)
-        assert self._bootEntry.has_kernel_files() and os.path.exists(self._modulesDir)
-
-    @property
-    def arch(self):
-        return self._bootEntry.arch
-
-    @property
-    def ver(self):
-        return self._bootEntry.kernel_ver
-
-    @property
-    def verstr(self):
-        return self._bootEntry.kernel_verstr
-
-    @property
-    def boot_entry(self):
-        return self._bootEntry
-
-    def get_kmod_filenames(self, kmod_alias, with_deps=False):
-        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]
-
-    def get_kmod_filepaths(self, kmod_alias, with_deps=False):
-        kmodList = dict()                                           # use dict to remove duplication while keeping order
-        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
-        self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
-        return list(kmodList.fromkeys())
-
-    def get_firmware_filenames(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, True)
-
-    def get_firmware_filepaths(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, False)
-
-    def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
-        # python-kmod bug: can only recognize the last firmware in modinfo
-        # so use the command output of modinfo directly
-        ret = []
-        for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
-            m = re.fullmatch("firmware: +(\\S.*)", line)
-            if m is not None:
-                if bReturnNameOrPath:
-                    ret.append(m.group(1))
-                else:
-                    ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
-        return ret
-
-    def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
-        kmodObjList = list(ctx.lookup(kmodAlias))
-        if len(kmodObjList) > 0:
-            assert len(kmodObjList) == 1
-            kmodObj = kmodObjList[0]
-
-            if withDeps and "depends" in kmodObj.info and kmodObj.info["depends"] != "":
-                for kmodAlias in kmodObj.info["depends"].split(","):
-                    self._getKmodAndDeps(ctx, kmodAlias, result)
-
-            if kmodObj.path is not None:
-                # this module is not built into the kernel
-                result[kmodObj.path] = None
-
-
 class KernelInstaller:
 
     def __init__(self, bbki, kernel_atom, kernel_atom_item_list):
@@ -340,3 +151,65 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].exec_kernel_install()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
+
+
+class BootEntryWrapper:
+
+    def __init__(self, boot_entry):
+        self._bootEntry = boot_entry
+        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
+
+    @property
+    def src_arch(self):
+        # FIXME: what's the difference with arch?
+
+        if self._bootEntry.arch == "i386" or self._bootEntry.arch == "x86_64":
+            return "x86"
+        elif self._bootEntry.arch == "sparc32" or self._bootEntry.arch == "sparc64":
+            return "sparc"
+        elif self._bootEntry.arch == "sh":
+            return "sh64"
+        else:
+            return self._bootEntry.arch
+
+    def get_kmod_filenames(self, kmod_alias, with_deps=False):
+        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]
+
+    def get_kmod_filepaths(self, kmod_alias, with_deps=False):
+        kmodList = dict()                                           # use dict to remove duplication while keeping order
+        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
+        self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
+        return list(kmodList.fromkeys())
+
+    def get_firmware_filenames(self, kmod_filepath):
+        return self._getFirmwareImpl(kmod_filepath, True)
+
+    def get_firmware_filepaths(self, kmod_filepath):
+        return self._getFirmwareImpl(kmod_filepath, False)
+
+    def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
+        # python-kmod bug: can only recognize the last firmware in modinfo
+        # so use the command output of modinfo directly
+        ret = []
+        for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
+            m = re.fullmatch("firmware: +(\\S.*)", line)
+            if m is not None:
+                if bReturnNameOrPath:
+                    ret.append(m.group(1))
+                else:
+                    ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
+        return ret
+
+    def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
+        kmodObjList = list(ctx.lookup(kmodAlias))
+        if len(kmodObjList) > 0:
+            assert len(kmodObjList) == 1
+            kmodObj = kmodObjList[0]
+
+            if withDeps and "depends" in kmodObj.info and kmodObj.info["depends"] != "":
+                for kmodAlias in kmodObj.info["depends"].split(","):
+                    self._getKmodAndDeps(ctx, kmodAlias, result)
+
+            if kmodObj.path is not None:
+                # this module is not built into the kernel
+                result[kmodObj.path] = None

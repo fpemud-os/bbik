@@ -222,7 +222,7 @@ class BootLoaderGrub:
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
             for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_history_dir()), reverse=True):
                 if kernelFile.startswith("kernel-"):
-                    bootEntry = FkmBuildTarget.newFromKernelFilename(kernelFile)
+                    bootEntry = BootEntry.new_from_postfix(kernelFile[len("kernel-"):])
                     if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_history_dir(), bootEntry.initrdFile)):
                         buf += self.__grubGetMenuEntryList("History", bootEntry, self._bbki._targetHostInfo.boot_disk, os.path.join(prefix, "history"), grubKernelOpt)
 
