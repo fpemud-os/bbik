@@ -62,7 +62,7 @@ class HostInfo:
             if boot_mode == Bbki.BOOT_MODE_EFI:
                 assert len(mount_point_list) >= 2
                 assert mount_point_list[0].mount_type == HostMountPoint.MOUNT_TYPE_ROOT
-                assert mount_point_list[1].mount_type == HostMountPoint.MOUNT_TYPE_BOOT and mount_point_list[1].uuid == Util.getBlkDevUuid(self.boot_disk)
+                assert mount_point_list[1].mount_type == HostMountPoint.MOUNT_TYPE_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(self.boot_disk)
                 assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]) == 1
             elif boot_mode == Bbki.BOOT_MODE_BIOS:
@@ -90,16 +90,17 @@ class HostMountPoint:
     FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, mount_type, mount_point, uuid, fs_type, mount_option="", underlay_disks=[]):
+    def __init__(self, mount_type, mount_point, dev_uuid, fs_type, mount_option="", underlay_disks=[]):
         assert mount_type in [self.MOUNT_TYPE_ROOT, self.MOUNT_TYPE_BOOT, self.MOUNT_TYPE_OTHER]
         assert os.path.isabs(mount_point)
+        assert isinstance(dev_uuid, str)
         assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
         assert isinstance(mount_point, str)
         assert all([isinstance(x, HostDisk) for x in underlay_disks])
 
         self.mount_type = mount_type
         self.mount_point = mount_point
-        self.uuid = uuid                            # FS-UUID, not PART-UUID
+        self.dev_uuid = dev_uuid                    # FS-UUID, not PART-UUID
                                                     # FIXME: for lvm, self.uuid = "lvm/vgName-lvName"
         self.fs_type = fs_type
         self.mount_option = mount_option            # FIXME
@@ -178,10 +179,9 @@ class HostDiskPartition(HostDisk):
 
 class HostAuxOs:
 
-    def __init__(self, name, partition, boot_partition, chainloader_number):
+    def __init__(self, name, partition_uuid, chainloader_number):
         self.name = name
-        self.partition = partition
-        self.boot_partition = boot_partition
+        self.partition_uuid = partition_uuid
         self.chainloader_number = chainloader_number
 
 
