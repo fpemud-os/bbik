@@ -34,8 +34,15 @@ class BootLoaderGrub:
 
     def __init__(self, bbki):
         self._bbki = bbki
+
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
-        self._grubKernelOpt = "console=ttynull"                                             # only use console when debug boot process
+
+        self._grubKernelInitCmdline = ""
+        if True:
+            self._grubKernelInitCmdline += " console=ttynull"                                               # global data: only use console when debug boot process
+            self._grubKernelInitCmdline += " %s" % (self._bbki._targetHostInfo.aux_kernel_init_cmdline)     # host level extra data
+            self._grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
+            self._grubKernelInitCmdline = self._grubKernelInitCmdline.rstrip()
 
     def getCurrentBootEntry(self):
         if not os.path.exists(self._grubCfgFile):
@@ -95,7 +102,7 @@ class BootLoaderGrub:
         # generate grub.cfg
         self.__genGrubCfg(bootEntry)
 
-    def _biosRemove(self, storageLayout):
+    def _biosRemove(self):
         # remove MBR
         with open(self._bbki._targetHostInfo.boot_disk, "wb+") as f:
             f.write(Util.newBuffer(0, 440))
@@ -165,7 +172,7 @@ class BootLoaderGrub:
         buf += '  set recordfail=1\n'
         buf += '  save_env recordfail\n'
         buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-        buf += '  linux %s quiet %s\n' % (os.path.join(prefix, bootEntry.kernel_filename), self._grubKernelOpt)
+        buf += '  linux %s quiet %s\n' % (os.path.join(prefix, bootEntry.kernel_filename), self._grubKernelInitCmdline)
         buf += '  initrd %s\n' % (os.path.join(prefix, bootEntry.initrd_filename))
         buf += '}\n'
         buf += '\n'
@@ -175,7 +182,7 @@ class BootLoaderGrub:
         buf += 'menuentry "Current: Linux-" {\n' % (bootEntry.postfix)
         buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
         buf += '  echo "Loading Linux kernel ..."\n'
-        buf += '  linux %s %s\n' % (os.path.join(prefix, bootEntry.kernel_filename), self._grubKernelOpt)
+        buf += '  linux %s %s\n' % (os.path.join(prefix, bootEntry.kernel_filename), self._grubKernelInitCmdline)
         buf += '  echo "Loading initial ramdisk ..."\n'
         buf += '  initrd %s\n' % (os.path.join(prefix, bootEntry.initrd_filename))
         buf += '}\n'
@@ -210,7 +217,7 @@ class BootLoaderGrub:
                         buf += 'menuentry "History: Linux-" {\n' % (bootEntry.postfix)
                         buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
                         buf += '  echo "Loading Linux kernel ..."\n'
-                        buf += '  linux %s %s\n' % (os.path.join(prefix, "history", bootEntry.kernel_filename), self._grubKernelOpt)
+                        buf += '  linux %s %s\n' % (os.path.join(prefix, "history", bootEntry.kernel_filename), self._grubKernelInitCmdline)
                         buf += '  echo "Loading initial ramdisk ..."\n'
                         buf += '  initrd %s\n' % (os.path.join(prefix, "history", bootEntry.initrd_filename))
                         buf += '}\n'

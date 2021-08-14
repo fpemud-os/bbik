@@ -30,12 +30,13 @@ from .util import Util
 
 class HostInfo:
 
-    def __init__(self, arch, boot_mode, boot_disk, mount_point_list, aux_os_list):
+    def __init__(self, arch, boot_mode, boot_disk, mount_point_list, aux_os_list=[], aux_kernel_init_cmdline=""):
         self.arch = None
         self.boot_mode = None
         self.boot_disk = None
         self.mount_point_list = None
         self.aux_os_list = None
+        self.aux_kernel_init_cmdline = None
 
         # self.arch
         if arch == "native":
@@ -79,6 +80,8 @@ class HostInfo:
         # self.aux_os_list
         self.aux_os_list = aux_os_list
 
+        # self.custom_kernel_init_cmdline
+        self.aux_kernel_init_cmdline = aux_kernel_init_cmdline
 
 class HostMountPoint:
 

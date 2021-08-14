@@ -157,6 +157,12 @@ class Config:
 
         return self._tOptions["bootloader"]["wait-time"]
 
+    def get_kernel_extra_init_cmdline(self):
+        # fill cache
+        self._filltOptions()
+
+        return self._tOptions["kernel"]["init-cmdline"]
+
     def check_version_mask(self, item_fullname, item_verstr):
         # fill cache
         self._filltMaskBufList()
@@ -209,21 +215,26 @@ class Config:
             return
 
         self._tOptions = {
+            "bootloader": {
+                "wait-time": 0,
+            },
+            "kernel": {
+                "init-cmdline": "",
+            },
             "system": {
                 "init": "auto-detect",
             },
-            "bootloader": {
-                "wait-time": 0,
-            }
         }
         
         def _myParse(path):
             cfg = configparser.ConfigParser()
             cfg.read(path)
-            if cfg.has_option("system", "init"):
-                self._tOptions["system"]["init"] = cfg.get("system", "init")
             if cfg.has_option("bootloader", "wait-time"):
                 self._tOptions["bootloader"]["wait-time"] = cfg.get("bootloader", "wait-time")
+            if cfg.has_option("kernel", "init-cmdline"):
+                self._tOptions["kernel"]["init-cmdline"] = cfg.get("kernel", "init-cmdline")
+            if cfg.has_option("system", "init"):
+                self._tOptions["system"]["init"] = cfg.get("system", "init")
 
         if os.path.exists(self._profileOptionsFile):             # step1: use /etc/bbki/profile/bbki.*
             _myParse(self._profileOptionsFile)
