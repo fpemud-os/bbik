@@ -23,6 +23,7 @@
 
 import os
 import re
+import configparser
 from .bbki import Bbki
 from .bbki import ConfigError
 from .util import Util
@@ -44,10 +45,12 @@ class Config:
         self._profileDir = os.path.join(cfgdir, "profile")
         self._profileKernelTypeFile = os.path.join(self._profileDir, "bbki.kernel_type")
         self._profileKernelAddonDir = os.path.join(self._profileDir, "bbki.kernel_addon")
+        self._profileOptionsFile = os.path.join(self._profileDir, "bbki.options")
         self._profileMaskDir = os.path.join(self._profileDir, "bbki.mask")
 
         self._cfgKernelTypeFile = os.path.join(cfgdir, "bbki.kernel_type")
         self._cfgKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
+        self._cfgOptionsFile = os.path.join(cfgdir, "bbki.options")
         self._cfgMaskDir = os.path.join(cfgdir, "bbki.mask")
 
         self._dataDir = Config.DEFAULT_DATA_DIR
@@ -61,6 +64,7 @@ class Config:
 
         self._tKernelType = None
         self._tKernelAddonNameList = None
+        self._tOptions = None
         self._tMaskBufList = None
 
     @property
@@ -107,65 +111,135 @@ class Config:
 
     def get_kernel_type(self):
         # fill cache
-        if self._tKernelType is None:
-            if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.kernel_type
-                ret = Util.readListFile(self._profileKernelTypeFile)
-                if len(ret) > 0:
-                    self._tKernelType = ret[0]
-            if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.kernel_type
-                ret = Util.readListFile(self._cfgKernelTypeFile)
-                if len(ret) > 0:
-                    self._tKernelType = ret[0]
+        self._filltKernelType()
 
-        # return value according to cache
         if self._tKernelType is None:
-                raise ConfigError("no kernel type specified")
+            raise ConfigError("no kernel type specified")
         if self._tKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
             raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
         return self._tKernelType
 
     def get_kernel_addon_names(self):
         # fill cache
-        if self._tKernelAddonNameList is None:
-            ret = set()
-            if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.kernel_addon
-                for fn in os.listdir(self._profileKernelAddonDir):
-                    for line in Util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
-                        if not line.startswith("-"):
-                            ret.add(line)
-                        else:
-                            line = line[1:]
-                            ret.remove(line)
-            if os.path.exists(self._cfgKernelAddonDir):                 # step2: use /etc/bbki/bbki.kernel_addon
-                for fn in os.listdir(self._cfgKernelAddonDir):
-                    for line in Util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
-                        if not line.startswith("-"):
-                            ret.add(line)
-                        else:
-                            line = line[1:]
-                            ret.remove(line)
-            self._tKernelAddonNameList = sorted(list(ret))
+        self._filltKernelAddonNameList()
 
-        # return value according to cache
         return self._tKernelAddonNameList
+
+    def get_system_init_info(self):
+        # fill cache
+        self._filltOptions()
+
+        if self._tOptions["system"]["init"] == "auto-detect":
+            if os.path.exists("/sbin/openrc-init"):
+                return (Bbki.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+            if os.path.exists("/usr/lib/systemd/systemd"):
+                return (Bbki.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+            else:
+                raise ConfigError("auto detect system init failed")
+
+        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_SYSVINIT:
+            return (Bbki.SYSTEM_INIT_SYSVINIT, "")
+
+        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_OPENRC:
+            return (Bbki.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+
+        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_SYSTEMD:
+            return (Bbki.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+
+        if self._tOptions["system"]["init"].startswith("/"):
+            return (Bbki.SYSTEM_INIT_CUSTOM, self._tOptions["system"]["init"])
+
+        raise ConfigError("invalid system init configuration")
+
+    def get_bootloader_extra_time(self):
+        # fill cache
+        self._filltOptions()
+
+        return self._tOptions["bootloader"]["wait-time"]
 
     def check_version_mask(self, item_fullname, item_verstr):
         # fill cache
-        if self._tMaskBufList is None:
-            self._tMaskBufList = []
-            if os.path.exists(self._profileMaskDir):                 # step1: use /etc/bbki/profile/bbki.mask
-                for fn in os.listdir(self._profileMaskDir):
-                    with open(os.path.join(self._profileMaskDir, fn), "r") as f:
-                        self._tMaskBufList.append(f.read())
-            if os.path.exists(self._cfgMaskDir):                     # step2: use /etc/bbki/bbki.mask
-                for fn in os.listdir(self._cfgMaskDir):
-                    with open(os.path.join(self._cfgMaskDir, fn), "r") as f:
-                        self._tMaskBufList.append(f.read())
+        self._filltMaskBufList()
 
-        # match according to cache
         for buf in self._tMaskBufList:
             m = re.search("^>%s-(.*)$" % (item_fullname), buf, re.M)
             if m is not None:
                 if Util.compareVerstr(item_verstr, m.group(1)) > 0:
                     return False
         return True
+
+    def _filltKernelType(self):
+        if self._tKernelType is not None:
+            return 
+
+        if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.*
+            ret = Util.readListFile(self._profileKernelTypeFile)
+            if len(ret) > 0:
+                self._tKernelType = ret[0]
+        if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.*
+            ret = Util.readListFile(self._cfgKernelTypeFile)
+            if len(ret) > 0:
+                self._tKernelType = ret[0]
+
+    def _filltKernelAddonNameList(self):
+        if self._tKernelAddonNameList is not None:
+            return
+
+        ret = set()
+        if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.*
+            for fn in os.listdir(self._profileKernelAddonDir):
+                for line in Util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
+                    if not line.startswith("-"):
+                        ret.add(line)
+                    else:
+                        line = line[1:]
+                        ret.remove(line)
+        if os.path.exists(self._cfgKernelAddonDir):                 # step2: use /etc/bbki/bbki.*
+            for fn in os.listdir(self._cfgKernelAddonDir):
+                for line in Util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
+                    if not line.startswith("-"):
+                        ret.add(line)
+                    else:
+                        line = line[1:]
+                        ret.remove(line)
+        self._tKernelAddonNameList = sorted(list(ret))
+
+    def _filltOptions(self):
+        if self._tOptions is not None:
+            return
+
+        self._tOptions = {
+            "system": {
+                "init": "auto-detect",
+            },
+            "bootloader": {
+                "wait-time": 0,
+            }
+        }
+        
+        def _myParse(path):
+            cfg = configparser.ConfigParser()
+            cfg.read(path)
+            if cfg.has_option("system", "init"):
+                self._tOptions["system"]["init"] = cfg.get("system", "init")
+            if cfg.has_option("bootloader", "wait-time"):
+                self._tOptions["bootloader"]["wait-time"] = cfg.get("bootloader", "wait-time")
+
+        if os.path.exists(self._profileOptionsFile):             # step1: use /etc/bbki/profile/bbki.*
+            _myParse(self._profileOptionsFile)
+        if os.path.exists(self._cfgOptionsFile):                 # step2: use /etc/bbki/bbki.*
+            _myParse(self._cfgOptionsFile)
+
+    def _filltMaskBufList(self):
+        if self._tMaskBufList is not None:
+            return
+
+        self._tMaskBufList = []
+        if os.path.exists(self._profileMaskDir):                 # step1: use /etc/bbki/profile/bbki.*
+            for fn in os.listdir(self._profileMaskDir):
+                with open(os.path.join(self._profileMaskDir, fn), "r") as f:
+                    self._tMaskBufList.append(f.read())
+        if os.path.exists(self._cfgMaskDir):                     # step2: use /etc/bbki/bbki.*
+            for fn in os.listdir(self._cfgMaskDir):
+                with open(os.path.join(self._cfgMaskDir, fn), "r") as f:
+                    self._tMaskBufList.append(f.read())

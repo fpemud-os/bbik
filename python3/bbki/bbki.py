@@ -39,6 +39,11 @@ class Bbki:
 
     KERNEL_TYPE_LINUX = "linux"
 
+    SYSTEM_INIT_SYSVINIT = "sysv-init"
+    SYSTEM_INIT_OPENRC = "openrc"
+    SYSTEM_INIT_SYSTEMD = "systemd"
+    SYSTEM_INIT_CUSTOM = "custom"
+
     BOOT_MODE_EFI = "efi"
     BOOT_MODE_BIOS = "bios"
 

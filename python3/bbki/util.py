@@ -30,6 +30,15 @@ import subprocess
 class Util:
 
     @staticmethod
+    def newBuffer(ch, li):
+        ret = bytearray()
+        i = 0
+        while i < li:
+            ret.append(ch)
+            i += 1
+        return bytes(ret)
+
+    @staticmethod
     def isEfi():
         return os.path.exists("/sys/firmware/efi")
 

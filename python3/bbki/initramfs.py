@@ -367,7 +367,7 @@ class Initramfs:
     def _installInit(self, rootDir):
         self._installBinFromInitDataDir("init", rootDir, "")
 
-    def _installStartupRc(self, rootDir, kmodList, blkOpList, mntInfoDict, initCmdline):
+    def _installStartupRc(self, rootDir, kmodList, blkOpList, mntInfoDict):
         buf = ""
 
         # write comments
@@ -403,10 +403,8 @@ class Initramfs:
             buf += "\n"
 
         # switch to new root
-        if initCmdline is not None:
-            buf += "switchroot \"/sysroot\" %s\n" % (initCmdline)
-        else:
-            buf += "switchroot \"/sysroot\"\n"
+        initName, initCmdline = self._bbki.config.get_system_init_info()
+        buf += ("switchroot \"/sysroot\" %s\n" % (initCmdline)).rstrip()
         buf += "\n"
 
         # write cfg file
