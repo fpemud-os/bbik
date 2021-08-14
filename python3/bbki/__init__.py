@@ -33,6 +33,7 @@ __version__ = "0.0.1"
 
 
 from .bbki import Bbki
+from .bbki import RescueOsSpec
 from .bbki import RunningEnvironmentError
 from .bbki import ConfigError
 from .bbki import RepoError

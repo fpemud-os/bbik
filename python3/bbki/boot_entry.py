@@ -226,3 +226,11 @@ class BootEntryUtils:
                 ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
         return ret
 
+    def getBootEntryFilePathList(self, bootEntry):
+        return [
+            bootEntry.kernel_filepath,
+            bootEntry.kernel_config_filepath,
+            bootEntry.kernel_config_rules_filepath,
+            bootEntry.initrd_filepath,
+            bootEntry.initrd_tar_filepath,
+        ]

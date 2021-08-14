@@ -22,12 +22,14 @@
 
 
 import os
+import glob
 import robust_layer.simple_fops
 from .util import Util
 from .fs_layout import FsLayoutLinux
 from .repo import Repo
 from .repo import BbkiFileExecutor
-from .boot_entry import BootEntry, BootEntryUtils
+from .boot_entry import BootEntry
+from .boot_entry import BootEntryUtils
 from .kernel import KernelInstaller
 from .initramfs import InitramfsInstaller
 from .bootloader import BootLoaderGrub
@@ -69,6 +71,10 @@ class Bbki:
     @property
     def repositories(self):
         return self._repoList
+
+    @property
+    def rescue_os_spec(self):
+        return RescueOsSpec(self)
 
     def check_running_environment(self):
         if not Util.cmdCallTestSuccess("sed", "--version"):
@@ -154,14 +160,40 @@ class Bbki:
         assert False
 
     def clean_boot_entries(self, pretend=False):
-        beList = []
-        beList += BootEntryUtils(self._bbki).getBootEntryList()
-        beList += BootEntryUtils(self._bbki).getBootEntryList(False)
+        pendingBe = self.get_pending_boot_entry()
+        currentBe = self.get_current_boot_entry()
 
+        # get files in /boot
+        bootFileList = []
+        bootFileList += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*"))
+        bootFileList += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "*"))
+        bootFileList = set(bootFileList)
 
+        # filter files in /boot
+        bootFileList = bootFileList.difference(set([
+            self._bbki._fsLayout.get_boot_grub_dir(),
+            self._bbki._fsLayout.get_boot_rescue_os_dir(),
+        ]))
+        if pendingBe is not None:
+            bootFileList.difference(set(BootEntryUtils(self._bbki).getBootEntryFilePathList(pendingBe)))
+        if currentBe is not None:
+            bootFileList.difference(set(BootEntryUtils(self._bbki).getBootEntryFilePathList(currentBe)))
+        if len([x for x in bootFileList if x.startswith(self._bbki._fsLayout.get_boot_history_dir())]) <= 1:
+            bootFileList = bootFileList.difference(set([
+                self._bbki._fsLayout.get_boot_history_dir()
+            ]))
 
+        # get files in /lib/modules
+        pass
 
-        assert False
+        # filter files in /lib/modules
+        pass
+
+        # get files in /lib/firmware
+        pass
+
+        # filter files in /lib/firmware
+        pass
 
     def clean_cache(self, pretend=False):
         assert False
@@ -174,6 +206,14 @@ class Bbki:
         Util.removeDirContentExclude(self._bbki._fsLayout.get_boot_dir(), [])           # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
+
+
+class RescueOsSpec:
+
+    def __init__(self, bbki):
+        self.root_dir = bbki.fsLayout.get_rescue_os_dir()
+        self.kernel_filepath = bbki.fsLayout.get_boot_rescue_os_kernel_filepath()
+        self.initrd_filepath = bbki.fsLayout.get_boot_rescue_os_initrd_filepath()
 
 
 class RunningEnvironmentError(Exception):
