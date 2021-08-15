@@ -24,6 +24,7 @@
 import os
 import re
 import time
+import pathlib
 import subprocess
 import robust_layer.simple_fops
 
@@ -202,7 +203,8 @@ class Util:
         while True:
             m = re.search("^host[0-9]+$", os.path.basename(hostPath), re.M)
             if m is not None:
-                return m.group(0)
+                hostControllerNameFile = os.path.join("/sys", "class", "scsi_host", m.group(0), "proc_name")
+                return pathlib.Path(hostControllerNameFile).read_text().rstrip()
             hostPath = os.path.dirname(hostPath)
             assert hostPath != "/"
 

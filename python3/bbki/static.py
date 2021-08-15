@@ -23,7 +23,6 @@
 
 import os
 import re
-import pathlib
 import anytree
 from .util import Util
 
@@ -307,10 +306,7 @@ class HostInfoUtil:
         # HostDiskScsiDisk
         m = re.fullmatch("/dev/sd[a-z]", devPath)
         if m is not None:
-            hostName = Util.scsiGetHostControllerName(devPath)
-            hostControllerNameFile = os.path.join("/sys", "class", "scsi_host", hostName, "proc_name")
-            hostControllerName = pathlib.Path(hostControllerNameFile).read_text().rstrip()
-            return HostDiskScsiDisk(Util.getBlkDevUuid(devPath), hostControllerName, parent=parent)
+            return HostDiskScsiDisk(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerName(devPath), parent=parent)
 
         # HostDiskXenDisk
         m = re.fullmatch("/dev/xvd[a-z]", devPath)
