@@ -197,37 +197,77 @@ class EtcDirConfig(Config):
         if self._tKernelType is not None:
             return
 
-        if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.*
-            ret = Util.readListFile(self._profileKernelTypeFile)
-            if len(ret) > 0:
-                self._tKernelType = ret[0]
-        if os.path.exists(self._cfgKernelTypeFile):                 # step2: use /etc/bbki/bbki.*
-            ret = Util.readListFile(self._cfgKernelTypeFile)
-            if len(ret) > 0:
-                self._tKernelType = ret[0]
+        def _myParse(path):
+            if os.path.exists(path):
+                ret = Util.readListFile(path)
+                if len(ret) > 0:
+                    self._tKernelType = ret[0]
+
+        _myParse(self._profileKernelTypeFile)       # step1: use /etc/bbki/profile/bbki.*
+        _myParse(self._cfgKernelTypeFile)           # step2: use /etc/bbki/bbki.*
 
     def _filltKernelAddonNameList(self):
         if self._tKernelAddonNameList is not None:
             return
 
-        ret = set()
-        if os.path.exists(self._profileKernelAddonDir):             # step1: use /etc/bbki/profile/bbki.*
-            for fn in os.listdir(self._profileKernelAddonDir):
-                for line in Util.readListFile(os.path.join(self._profileKernelAddonDir, fn)):
-                    if not line.startswith("-"):
-                        ret.add(line)
-                    else:
-                        line = line[1:]
-                        ret.remove(line)
-        if os.path.exists(self._cfgKernelAddonDir):                 # step2: use /etc/bbki/bbki.*
-            for fn in os.listdir(self._cfgKernelAddonDir):
-                for line in Util.readListFile(os.path.join(self._cfgKernelAddonDir, fn)):
-                    if not line.startswith("-"):
-                        ret.add(line)
-                    else:
-                        line = line[1:]
-                        ret.remove(line)
-        self._tKernelAddonNameList = sorted(list(ret))
+        def _myParse(path):
+            if os.path.exists(path):
+                for fn in os.listdir(path):
+                    for line in Util.readListFile(os.path.join(path, fn)):
+                        if not line.startswith("-"):
+                            self._tKernelAddonNameList.add(line)
+                        else:
+                            line = line[1:]
+                            self._tKernelAddonNameList.remove(line)
+
+        self._tKernelAddonNameList = set()
+        _myParse(self._profileKernelAddonDir)                           # step1: use /etc/bbki/profile/bbki.*
+        _myParse(self._cfgKernelAddonDir)                               # step2: use /etc/bbki/bbki.*
+        self._tKernelAddonNameList = list(self._tKernelAddonNameList)
+        self._tKernelAddonNameList.sort()
+
+    def _filltOptions(self):
+        if self._tOptions is not None:
+            return
+
+        def _myParse(path):
+            if os.path.exists(path):
+                cfg = configparser.ConfigParser()
+                cfg.read(path)
+                if cfg.has_option("bootloader", "wait-time"):
+                    self._tOptions["bootloader"]["wait-time"] = cfg.get("bootloader", "wait-time")
+                if cfg.has_option("kernel", "init-cmdline"):
+                    self._tOptions["kernel"]["init-cmdline"] = cfg.get("kernel", "init-cmdline")
+                if cfg.has_option("system", "init"):
+                    self._tOptions["system"]["init"] = cfg.get("system", "init")
+
+        self._tOptions = {
+            "bootloader": {
+                "wait-time": 0,
+            },
+            "kernel": {
+                "init-cmdline": "",
+            },
+            "system": {
+                "init": "auto-detect",
+            },
+        }
+        _myParse(self._profileOptionsFile)      # step1: use /etc/bbki/profile/bbki.*
+        _myParse(self._cfgOptionsFile)          # step2: use /etc/bbki/bbki.*
+
+    def _filltMaskBufList(self):
+        if self._tMaskBufList is not None:
+            return
+
+        def _myParse(path):
+            if os.path.exists(path):
+                for fn in os.listdir(path):
+                    with open(os.path.join(path, fn), "r") as f:
+                        self._tMaskBufList.append(f.read())
+
+        self._tMaskBufList = []
+        _myParse(self._profileMaskDir)      # step1: use /etc/bbki/profile/bbki.*
+        _myParse(self._cfgMaskDir)          # step2: use /etc/bbki/bbki.*
 
     def _getMakeConfVariable(self, varName):
         # Returns variable value, returns "" when not found
@@ -254,48 +294,3 @@ class EtcDirConfig(Config):
             varVal = varVal.replace(m.group(0), varVal2)
 
         return varVal
-
-    def _filltOptions(self):
-        if self._tOptions is not None:
-            return
-
-        self._tOptions = {
-            "bootloader": {
-                "wait-time": 0,
-            },
-            "kernel": {
-                "init-cmdline": "",
-            },
-            "system": {
-                "init": "auto-detect",
-            },
-        }
-
-        def _myParse(path):
-            cfg = configparser.ConfigParser()
-            cfg.read(path)
-            if cfg.has_option("bootloader", "wait-time"):
-                self._tOptions["bootloader"]["wait-time"] = cfg.get("bootloader", "wait-time")
-            if cfg.has_option("kernel", "init-cmdline"):
-                self._tOptions["kernel"]["init-cmdline"] = cfg.get("kernel", "init-cmdline")
-            if cfg.has_option("system", "init"):
-                self._tOptions["system"]["init"] = cfg.get("system", "init")
-
-        if os.path.exists(self._profileOptionsFile):             # step1: use /etc/bbki/profile/bbki.*
-            _myParse(self._profileOptionsFile)
-        if os.path.exists(self._cfgOptionsFile):                 # step2: use /etc/bbki/bbki.*
-            _myParse(self._cfgOptionsFile)
-
-    def _filltMaskBufList(self):
-        if self._tMaskBufList is not None:
-            return
-
-        self._tMaskBufList = []
-        if os.path.exists(self._profileMaskDir):                 # step1: use /etc/bbki/profile/bbki.*
-            for fn in os.listdir(self._profileMaskDir):
-                with open(os.path.join(self._profileMaskDir, fn), "r") as f:
-                    self._tMaskBufList.append(f.read())
-        if os.path.exists(self._cfgMaskDir):                     # step2: use /etc/bbki/bbki.*
-            for fn in os.listdir(self._cfgMaskDir):
-                with open(os.path.join(self._cfgMaskDir, fn), "r") as f:
-                    self._tMaskBufList.append(f.read())
