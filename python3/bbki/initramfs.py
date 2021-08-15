@@ -31,7 +31,6 @@ import anytree
 import pkg_resources
 import robust_layer.simple_fops
 from ordered_set import OrderedSet
-from .bbki import InitramfsInstallError
 from .util import Util
 from .util import TempChdir
 from .static import HostMountPoint
@@ -44,6 +43,7 @@ from .static import HostDiskVirtioDisk
 from .static import HostDiskPartition
 from .static import HostInfoUtil
 from .kernel import BootEntryWrapper
+from .exception import InitramfsInstallError
 
 
 class InitramfsInstaller:
