@@ -35,7 +35,7 @@ __version__ = "0.0.1"
 from .bbki import Bbki
 
 from .static import KernelType
-from .static import SystemBootMode
+from .static import BootMode
 from .static import SystemInit
 from .static import SystemInitInfo
 from .static import RescueOsSpec

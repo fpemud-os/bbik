@@ -26,7 +26,7 @@ import glob
 import robust_layer.simple_fops
 
 from .static import KernelType
-from .static import SystemBootMode
+from .static import BootMode
 from .static import RescueOsSpec
 from .repo import Repo
 from .boot_entry import BootEntry
@@ -167,9 +167,9 @@ class Bbki:
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
             tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                              # don't delete /boot/grub
-            if self._targetHostInfo.boot_mode == SystemBootMode.EFI:
+            if self._targetHostInfo.boot_mode == BootMode.EFI:
                 tset.discard(self._bbki._fsLayout.get_boot_grub_efi_dir())                                      # don't delete /boot/EFI
-            elif self._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+            elif self._targetHostInfo.boot_mode == BootMode.BIOS:
                 pass
             else:
                 assert False

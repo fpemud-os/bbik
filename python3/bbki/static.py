@@ -32,7 +32,7 @@ class KernelType:
     LINUX = "linux"
 
 
-class SystemBootMode:
+class BootMode:
 
     EFI = "efi"
     BIOS = "bios"
@@ -80,22 +80,22 @@ class HostInfo:
         # self.boot_mode
         if boot_mode == "native":
             if Util.isEfi():
-                self.boot_mode = SystemBootMode.EFI
+                self.boot_mode = BootMode.EFI
             else:
-                self.boot_mode = SystemBootMode.BIOS
+                self.boot_mode = BootMode.BIOS
         else:
-            assert boot_mode in [SystemBootMode.EFI, SystemBootMode.BIOS]
+            assert boot_mode in [BootMode.EFI, BootMode.BIOS]
             self.boot_mode = boot_mode
 
         # self.mount_point_list
         if mount_point_list is not None:
-            if boot_mode == SystemBootMode.EFI:
+            if boot_mode == BootMode.EFI:
                 assert len(mount_point_list) >= 2
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
                 assert mount_point_list[1].name == HostMountPoint.NAME_BOOT
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
-            elif boot_mode == SystemBootMode.BIOS:
+            elif boot_mode == BootMode.BIOS:
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0

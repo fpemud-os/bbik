@@ -26,7 +26,7 @@ import re
 import pathlib
 import robust_layer.simple_fops
 from .util import Util
-from .static import SystemBootMode
+from .static import BootMode
 from .boot_entry import BootEntry
 from .boot_entry import BootEntryUtils
 from .exception import BootloaderInstallError
@@ -58,17 +58,17 @@ class BootLoaderGrub:
             return None
 
     def install(self):
-        if self._bbki._targetHostInfo.boot_mode == SystemBootMode.EFI:
+        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiInstall()
-        elif self._bbki._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
             self._biosInstall()
         else:
             assert False
 
     def remove(self):
-        if self._bbki._targetHostInfo.boot_mode == SystemBootMode.EFI:
+        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiRemove()
-        elif self._bbki._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
             self._biosRemove()
         else:
             assert False
@@ -116,10 +116,10 @@ class BootLoaderGrub:
 
     def __genGrubCfg(self):
         buf = ''
-        if self._bbki._targetHostInfo.boot_mode == SystemBootMode.EFI:
+        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
             _prefixedPath = _prefixedPathEfi
-        elif self._bbki._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[0].dev_uuid       # MOUNT_TYPE_ROOT
             _prefixedPath = _prefixedPathBios
         else:
@@ -137,10 +137,10 @@ class BootLoaderGrub:
         buf += '\n'
 
         # specify default menuentry and timeout
-        if self._bbki._targetHostInfo.boot_mode == SystemBootMode.EFI:
+        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             buf += 'insmod efi_gop\n'
             buf += 'insmod efi_uga\n'
-        elif self._bbki._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
             buf += 'insmod vbe\n'
         else:
             assert False
@@ -243,12 +243,12 @@ class BootLoaderGrub:
         buf += '\n'
 
         # write menu entry for restarting to UEFI setup
-        if self._bbki._targetHostInfo.boot_mode == SystemBootMode.EFI:
+        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             buf += 'menuentry "Restart to UEFI setup" {\n'
             buf += '  fwsetup\n'
             buf += '}\n'
             buf += '\n'
-        elif self._bbki._targetHostInfo.boot_mode == SystemBootMode.BIOS:
+        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
             pass
         else:
             assert False
