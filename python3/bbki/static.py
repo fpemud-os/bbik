@@ -80,12 +80,12 @@ class HostInfo:
         # self.boot_mode
         if boot_mode == "native":
             if Util.isEfi():
-                boot_mode = SystemBootMode.EFI
+                self.boot_mode = SystemBootMode.EFI
             else:
-                boot_mode = SystemBootMode.BIOS
+                self.boot_mode = SystemBootMode.BIOS
         else:
             assert boot_mode in [SystemBootMode.EFI, SystemBootMode.BIOS]
-        self.boot_mode = boot_mode
+            self.boot_mode = boot_mode
 
         # self.mount_point_list
         if mount_point_list is not None:
