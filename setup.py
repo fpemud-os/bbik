@@ -3,7 +3,7 @@
 import sys
 import subprocess
 import distutils.util
-from setuptools import setup, find_packages
+from setuptools import setup
 from setuptools.command.install import install
 
 # check Python's version
