@@ -4,7 +4,7 @@ import sys
 import subprocess
 import distutils.util
 from setuptools import setup
-from setuptools.command.install import install
+from setuptools.command.build_py import build_py
 
 # check Python's version
 if sys.version_info < (3, 8):
@@ -30,7 +30,7 @@ classif = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
-class custom_install(install):
+class custom_build_py(build_py):
     def run(self):
         self._compile_initramfs()
         super().run()
@@ -58,6 +58,6 @@ setup(
         'bbki': ['kernel-config-rules/*', 'initramfs/init', 'initramfs/lvm-lv-activate', 'initramfs/*.c'],
     },
     cmdclass={
-        'install': custom_install,
+        'build_py': custom_build_py,
     },
 )
