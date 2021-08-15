@@ -40,10 +40,9 @@ class HostInfo:
 
         # self.arch
         if arch == "native":
-            self.arch = os.uname().machine
-        else:
-            assert Util.isValidKernelArch(arch)
-            self.arch = arch
+            arch = os.uname().machine
+        assert Util.isValidKernelArch(arch)
+        self.arch = arch
 
         # self.boot_mode
         if boot_mode == "native":
@@ -53,11 +52,9 @@ class HostInfo:
                 boot_mode = Bbki.BOOT_MODE_BIOS
         else:
             assert boot_mode in [Bbki.BOOT_MODE_EFI, Bbki.BOOT_MODE_BIOS]
-            self.boot_mode = boot_mode
+        self.boot_mode = boot_mode
 
-        # self.boot_disk
-
-        # self.mount_point_list
+        # self.mount_point_list and self.boot_disk
         if len(mount_point_list) > 0:
             if boot_mode == Bbki.BOOT_MODE_EFI:
                 assert len(mount_point_list) >= 2
