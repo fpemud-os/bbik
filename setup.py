@@ -55,7 +55,7 @@ setup(
         'bbki': 'python3/bbki',
     },
     package_data={
-        'bbki': ['kernel-config-rules/*', 'initramfs/init', 'initramfs/lvm-lv-activate'],
+        'bbki': ['kernel-config-rules/*', 'initramfs/init', 'initramfs/lvm-lv-activate', 'initramfs/*.c'],
     },
     cmdclass={
         'install': custom_install,
