@@ -195,17 +195,16 @@ class Util:
         return retList
 
     @staticmethod
-    def scsiGetHostControllerPath(devPath):
+    def scsiGetHostControllerName(devPath):
         devName = os.path.basename(os.path.realpath(devPath))       # XXX -> /dev/sda => sda
         sysfsPath = os.path.join("/sys", "block", devName)          # sda => /sys/block/sda
         hostPath = os.path.realpath(sysfsPath)                      # /sys/block/sda -> /sys/block/devices/pci0000:00/0000:00:17.0/ata3/host2/target2:0:0/2:0:0:0/block/sda
         while True:
             m = re.search("^host[0-9]+$", os.path.basename(hostPath), re.M)
             if m is not None:
-                break
+                return m.group(0)
             hostPath = os.path.dirname(hostPath)
             assert hostPath != "/"
-        return hostPath
 
     @staticmethod
     def getBlkDevLvmInfo(devPath):

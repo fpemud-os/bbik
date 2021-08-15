@@ -23,6 +23,7 @@
 
 import os
 import re
+import pathlib
 import anytree
 from .util import Util
 
@@ -306,26 +307,24 @@ class HostInfoUtil:
         # HostDiskScsiDisk
         m = re.fullmatch("/dev/sd[a-z]", devPath)
         if m is not None:
-            bdi = HostDiskScsiDisk(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerPath(devPath), parent=parent)
-            return bdi
+            hostName = Util.scsiGetHostControllerName(devPath)
+            hostController = pathlib.Path(os.path.join("/sys", "class", "scsi_host", hostName, "proc_name")).read_text().rstrip()
+            return HostDiskScsiDisk(Util.getBlkDevUuid(devPath), hostController, parent=parent)
 
         # HostDiskXenDisk
         m = re.fullmatch("/dev/xvd[a-z]", devPath)
         if m is not None:
-            bdi = HostDiskXenDisk(Util.getBlkDevUuid(devPath), parent=parent)
-            return bdi
+            return HostDiskXenDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
         # HostDiskVirtioDisk
         m = re.fullmatch("/dev/vd[a-z]", devPath)
         if m is not None:
-            bdi = HostDiskVirtioDisk(Util.getBlkDevUuid(devPath), parent=parent)
-            return bdi
+            return HostDiskVirtioDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
         # HostDiskNvmeDisk
         m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
         if m is not None:
-            bdi = HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
-            return bdi
+            return HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
         # bcache
         m = re.fullmatch("/dev/bcache[0-9]+", devPath)
@@ -417,11 +416,3 @@ class HostInfoUtil:
 #     DiskStackNodeHarddisk(self._hdd, parent=espNode)
 
 #     return [partNode, espNode]
-
-
-# hostDevPath = os.path.join(d.param["scsi_host_path"], "scsi_host", os.path.basename(d.param["scsi_host_path"]))
-# with open(os.path.join(hostDevPath, "proc_name")) as f:
-#     hostControllerName = f.read().rstrip()
-
-
-# Util.getBlkDevUuid(cacheDev)
