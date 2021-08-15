@@ -20,48 +20,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-"""
-bbki
 
-@author: Fpemud
-@license: GPLv3 License
-@contact: fpemud@sina.com
-"""
-
-__author__ = "fpemud@sina.com (Fpemud)"
-__version__ = "0.0.1"
+class RunningEnvironmentError(Exception):
+    pass
 
 
-from .bbki import Bbki
-from .bbki import SystemInitInfo
-from .bbki import RescueOsSpec
+class ConfigError(Exception):
+    pass
 
-from .host_info import HostInfo
-from .host_info import HostMountPoint
-from .host_info import HostDisk
-from .host_info import HostDiskLvmLv
-from .host_info import HostDiskBcache
-from .host_info import HostDiskScsiDisk
-from .host_info import HostDiskNvmeDisk
-from .host_info import HostDiskXenDisk
-from .host_info import HostDiskVirtioDisk
-from .host_info import HostDiskPartition
-from .host_info import HostAuxOs
 
-from .config import Config
-from .config import EtcDirConfig
+class RepoError(Exception):
+    pass
 
-from .repo import Repo
-from .repo import RepoAtom
 
-from .boot_entry import BootEntry
+class FetchError(Exception):
+    pass
 
-from .kernel import KernelInstaller
 
-from .exception import RunningEnvironmentError
-from .exception import ConfigError
-from .exception import RepoError
-from .exception import FetchError
-from .exception import KernelInstallError
-from .exception import InitramfsInstallError
-from .exception import BootloaderInstallError
+class KernelInstallError(Exception):
+    pass
+
+
+class InitramfsInstallError(Exception):
+    pass
+
+
+class BootloaderInstallError(Exception):
+    pass

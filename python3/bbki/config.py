@@ -149,23 +149,23 @@ class EtcDirConfig(Config):
 
         if self._tOptions["system"]["init"] == "auto-detect":
             if os.path.exists("/sbin/openrc-init"):
-                return SystemInitInfo(Bbki.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+                return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
             if os.path.exists("/usr/lib/systemd/systemd"):
-                return SystemInitInfo(Bbki.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+                return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
             else:
                 raise ConfigError("auto detect system init failed")
 
-        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_SYSVINIT:
-            return SystemInitInfo(Bbki.SYSTEM_INIT_SYSVINIT, "")
+        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_SYSVINIT:
+            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSVINIT, "")
 
-        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_OPENRC:
-            return SystemInitInfo(Bbki.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_OPENRC:
+            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
 
-        if self._tOptions["system"]["init"] == Bbki.SYSTEM_INIT_SYSTEMD:
-            return SystemInitInfo(Bbki.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_SYSTEMD:
+            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
 
         if self._tOptions["system"]["init"].startswith("/"):
-            return SystemInitInfo(Bbki.SYSTEM_INIT_CUSTOM, self._tOptions["system"]["init"])
+            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_CUSTOM, self._tOptions["system"]["init"])
 
         raise ConfigError("invalid system init configuration")
 

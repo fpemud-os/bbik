@@ -39,11 +39,6 @@ class Bbki:
 
     KERNEL_TYPE_LINUX = "linux"
 
-    SYSTEM_INIT_SYSVINIT = "sysv-init"
-    SYSTEM_INIT_OPENRC = "openrc"
-    SYSTEM_INIT_SYSTEMD = "systemd"
-    SYSTEM_INIT_CUSTOM = "custom"
-
     BOOT_MODE_EFI = "efi"
     BOOT_MODE_BIOS = "bios"
 
@@ -266,8 +261,13 @@ class Bbki:
 
 class SystemInitInfo:
 
+    SYSTEM_INIT_SYSVINIT = "sysv-init"
+    SYSTEM_INIT_OPENRC = "openrc"
+    SYSTEM_INIT_SYSTEMD = "systemd"
+    SYSTEM_INIT_CUSTOM = "custom"
+
     def __init__(self, name, init_cmd):
-        assert name in [Bbki.SYSTEM_INIT_SYSVINIT, Bbki.SYSTEM_INIT_OPENRC, Bbki.SYSTEM_INIT_SYSTEMD, Bbki.SYSTEM_INIT_CUSTOM]
+        assert name in [self.SYSTEM_INIT_SYSVINIT, self.SYSTEM_INIT_OPENRC, self.SYSTEM_INIT_SYSTEMD, self.SYSTEM_INIT_CUSTOM]
         self.name = name
         self.init_cmd = init_cmd
 
@@ -279,30 +279,3 @@ class RescueOsSpec:
         self.kernel_filepath = bbki.fsLayout.get_boot_rescue_os_kernel_filepath()
         self.initrd_filepath = bbki.fsLayout.get_boot_rescue_os_initrd_filepath()
 
-
-class RunningEnvironmentError(Exception):
-    pass
-
-
-class ConfigError(Exception):
-    pass
-
-
-class RepoError(Exception):
-    pass
-
-
-class FetchError(Exception):
-    pass
-
-
-class KernelInstallError(Exception):
-    pass
-
-
-class InitramfsInstallError(Exception):
-    pass
-
-
-class BootloaderInstallError(Exception):
-    pass
