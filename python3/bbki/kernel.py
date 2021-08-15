@@ -165,6 +165,10 @@ class BootEntryWrapper:
         return self._modulesDir
 
     @property
+    def firmware_dir(self):
+        return self._bbki._fsLayout.get_firmware_dir()
+
+    @property
     def src_arch(self):
         # FIXME: what's the difference with arch?
 

@@ -62,14 +62,14 @@ class HostInfo:
         if mount_point_list is not None:
             if boot_mode == Bbki.BOOT_MODE_EFI:
                 assert len(mount_point_list) >= 2
-                assert mount_point_list[0].mount_type == HostMountPoint.MOUNT_TYPE_ROOT
-                assert mount_point_list[1].mount_type == HostMountPoint.MOUNT_TYPE_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(self.boot_disk)
-                assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_ROOT]) == 1
-                assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]) == 1
+                assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
+                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(self.boot_disk)
+                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
+                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
             elif boot_mode == Bbki.BOOT_MODE_BIOS:
-                assert mount_point_list[0].mount_type == HostMountPoint.MOUNT_TYPE_ROOT
-                assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_ROOT]) == 1
-                assert len([x for x in mount_point_list if x.mount_type == HostMountPoint.MOUNT_TYPE_BOOT]) == 0
+                assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
+                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
+                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0
                 assert self.boot_disk is not None
             else:
                 assert False
@@ -85,28 +85,31 @@ class HostInfo:
 
 class HostMountPoint:
 
-    MOUNT_TYPE_ROOT = "root"
-    MOUNT_TYPE_BOOT = "boot"
-    MOUNT_TYPE_OTHER = "other"
+    NAME_ROOT = "root"
+    NAME_BOOT = "boot"
 
     FS_TYPE_VFAT = "vfat"
     FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, mount_type, mount_point, dev_uuid, fs_type, mount_option="", underlay_disks=[]):
-        assert mount_type in [self.MOUNT_TYPE_ROOT, self.MOUNT_TYPE_BOOT, self.MOUNT_TYPE_OTHER]
+    def __init__(self, name, mount_point, dev_uuid, fs_type, mnt_opt="", underlay_disks=[]):
+        assert isinstance(name, str)
         assert os.path.isabs(mount_point)
         assert isinstance(dev_uuid, str)
         assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
         assert isinstance(mount_point, str)
         assert all([isinstance(x, HostDisk) for x in underlay_disks])
+        if name == self.NAME_ROOT:
+            assert mount_point == "/"
+        if name == self.NAME_BOOT:
+            assert mount_point == "/boot"
 
-        self.mount_type = mount_type
+        self.name = name
         self.mount_point = mount_point
         self.dev_uuid = dev_uuid                    # FS-UUID, not PART-UUID
                                                     # FIXME: for lvm, self.uuid = "lvm/vgName-lvName"
         self.fs_type = fs_type
-        self.mount_option = mount_option            # FIXME
+        self.mnt_opt = mnt_opt
         self.underlay_disks = underlay_disks
 
 
@@ -191,23 +194,23 @@ class HostAuxOs:
 class HostInfoUtil:
 
     @staticmethod
-    def getMountPointByType(hostInfo, mountType):
+    def getMountPoint(hostInfo, name):
         assert hostInfo.mount_point_list is not None
-        assert mountType in [HostMountPoint.MOUNT_TYPE_ROOT, HostMountPoint.MOUNT_TYPE_BOOT]
+        assert name in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
 
         for m in hostInfo.mount_point_list:
-            if m.mount_type == mountType:
+            if m.name == name:
                 return m
         return None
 
     @staticmethod
-    def getMountPointListByType(hostInfo, mountType):
+    def getMountPointList(hostInfo, name):
         assert hostInfo.mount_point_list is not None
-        assert mountType in [HostMountPoint.MOUNT_TYPE_OTHER]
+        assert name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
 
         ret = []
         for m in hostInfo.mount_point_list:
-            if m.mount_type == mountType:
+            if m.name == name:
                 ret.append(m)
         return re
 

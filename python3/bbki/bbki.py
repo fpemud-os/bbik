@@ -208,6 +208,14 @@ class Bbki:
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
 
 
+class SystemInitInfo:
+
+    def __init__(self, name, init_cmd):
+        assert name in [Bbki.SYSTEM_INIT_SYSVINIT, Bbki.SYSTEM_INIT_OPENRC, Bbki.SYSTEM_INIT_SYSTEMD, Bbki.SYSTEM_INIT_CUSTOM]
+        self.name = name
+        self.init_cmd = init_cmd
+
+
 class RescueOsSpec:
 
     def __init__(self, bbki):

@@ -27,6 +27,7 @@ import glob
 import shutil
 import tarfile
 import pathlib
+import anytree
 import robust_layer.simple_fops
 from ordered_set import OrderedSet
 from .bbki import InitramfsInstallError
@@ -57,38 +58,12 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
-        if HostInfoUtil.getMountPointByType(self._bbki._hostInfo, HostMountPoint.MOUNT_TYPE_ROOT) is None:
+        if HostInfoUtil.getMountPoint(self._bbki._hostInfo, HostMountPoint.NAME_ROOT) is None:
             raise InitramfsInstallError("mount information for root filesystem is not specified")
 
         # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
         os.makedirs(self._initramfsTmpDir)
-
-        # variables
-        rootDir = self._initramfsTmpDir
-        etcDir = os.path.join(rootDir, "etc")
-
-        # create basic structure for initramfs directory
-        self._installDir("/bin", rootDir)
-        self._installDir("/dev", rootDir)
-        self._installDir("/etc", rootDir)
-        self._installDir("/lib", rootDir)
-        self._installDir("/lib64", rootDir)
-        self._installDir("/proc", rootDir)
-        self._installDir("/run", rootDir)
-        self._installDir("/sbin", rootDir)
-        self._installDir("/sys", rootDir)
-        self._installDir("/tmp", rootDir)
-        self._installDir("/usr/bin", rootDir)
-        self._installDir("/usr/sbin", rootDir)
-        self._installDir("/usr/lib", rootDir)
-        self._installDir("/usr/lib64", rootDir)
-        self._installDir("/var", rootDir)
-        self._installDir(self._beWrapper.modules_dir, rootDir)
-        self._installDir(self._bbki._fsLayout.firmware_dir, rootDir)
-        os.makedirs(os.path.join(rootDir, "sysroot"))
-        self._generatePasswd(os.path.join(etcDir, "passwd"))
-        self._generateGroup(os.path.join(etcDir, "group"))
 
         # deduplicated disk list
         diskList = OrderedSet()
@@ -149,18 +124,6 @@ class InitramfsInstaller:
         for kmod in kmodList:
             firmwareList |= OrderedSet(self._be.get_firmware_filepaths(kmod))
 
-        # install kmod files
-        for f in kmodList:
-            self._copyToInitrd(f, rootDir)
-
-        # install firmware files
-        for f in firmwareList:
-            self._copyToInitrd(f, rootDir)
-
-        # install insmod binary
-        if len(kmodList) > 0:
-            self._installBin("/sbin/insmod", rootDir)
-
         # get block device preparation operation list
         blkOpList = OrderedSet()
         if True:
@@ -186,11 +149,45 @@ class InitramfsInstaller:
                 else:
                     assert False
 
+        # create basic structure for initramfs directory
+        self._installDir("/bin", self._initramfsTmpDir)
+        self._installDir("/dev", self._initramfsTmpDir)
+        self._installDir("/etc", self._initramfsTmpDir)
+        self._installDir("/lib", self._initramfsTmpDir)
+        self._installDir("/lib64", self._initramfsTmpDir)
+        self._installDir("/proc", self._initramfsTmpDir)
+        self._installDir("/run", self._initramfsTmpDir)
+        self._installDir("/sbin", self._initramfsTmpDir)
+        self._installDir("/sys", self._initramfsTmpDir)
+        self._installDir("/tmp", self._initramfsTmpDir)
+        self._installDir("/usr/bin", self._initramfsTmpDir)
+        self._installDir("/usr/sbin", self._initramfsTmpDir)
+        self._installDir("/usr/lib", self._initramfsTmpDir)
+        self._installDir("/usr/lib64", self._initramfsTmpDir)
+        self._installDir("/var", self._initramfsTmpDir)
+        self._installDir(self._beWrapper.modules_dir, self._initramfsTmpDir)
+        self._installDir(self._beWrapper.firmware_dir, self._initramfsTmpDir)
+        os.makedirs(os.path.join(self._initramfsTmpDir, "sysroot"))
+        self._generatePasswd(os.path.join(self._initramfsTmpDir, "etc", "passwd"))
+        self._generateGroup(os.path.join(self._initramfsTmpDir, "etc", "group"))
+
+        # install kmod files
+        for f in kmodList:
+            self._copyToInitrd(f, self._initramfsTmpDir)
+
+        # install firmware files
+        for f in firmwareList:
+            self._copyToInitrd(f, self._initramfsTmpDir)
+
+        # install insmod binary
+        if len(kmodList) > 0:
+            self._installBin("/sbin/insmod", self._initramfsTmpDir)
+
         # install files for block device preparation
-        self._installFilesBlkid(rootDir)
+        self._installFilesBlkid(self._initramfsTmpDir)
         for disk in diskList:
             if isinstance(disk, HostDiskLvmLv):
-                self._installFilesLvm(rootDir)
+                self._installFilesLvm(self._initramfsTmpDir)
             elif isinstance(disk, HostDiskBcache):
                 pass
             elif isinstance(disk, HostDiskScsiDisk):
@@ -207,58 +204,58 @@ class InitramfsInstaller:
                 assert False
 
         # install init executable to initramfs
-        self._installInit(rootDir)
-        self._installStartupRc(rootDir, kmodList, blkOpList, self.mntInfoDict, FmConst.kernelInitCmd)
+        self._installInit(self._initramfsTmpDir)
+        self._installStartupRc(self._initramfsTmpDir, kmodList, blkOpList, self.mntInfoDict)
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
-            dstdir = os.path.join(rootDir, self._beWrapper.modules_dir[1:])
+            dstdir = os.path.join(self._initramfsTmpDir, self._beWrapper.modules_dir[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
             shutil.copytree(self._beWrapper.modules_dir, dstdir, symlinks=True)
 
-            dstdir = os.path.join(rootDir, self._bbki._fsLayout.firmware_dir[1:])
+            dstdir = os.path.join(self._initramfsTmpDir, self._beWrapper.firmware_dir[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self._bbki._fsLayout.firmware_dir, dstdir, symlinks=True)
+            shutil.copytree(self._beWrapper.firmware_dir, dstdir, symlinks=True)
 
-            self._installBin("/bin/bash", rootDir)
-            self._installBin("/bin/cat", rootDir)
-            self._installBin("/bin/cp", rootDir)
-            self._installBin("/bin/dd", rootDir)
-            self._installBin("/bin/echo", rootDir)
-            self._installBin("/bin/ls", rootDir)
-            self._installBin("/bin/ln", rootDir)
-            self._installBin("/bin/mount", rootDir)
-            self._installBin("/bin/ps", rootDir)
-            self._installBin("/bin/rm", rootDir)
-            self._installBin("/bin/touch", rootDir)
-            self._installBin("/usr/bin/basename", rootDir)
-            self._installBin("/usr/bin/dirname", rootDir)
-            self._installBin("/usr/bin/find", rootDir)
-            self._installBin("/usr/bin/sleep", rootDir)
-            self._installBin("/usr/bin/tree", rootDir)
-            self._installBin("/usr/bin/xargs", rootDir)
-            self._installBin("/usr/bin/hexdump", rootDir)
+            self._installBin("/bin/bash", self._initramfsTmpDir)
+            self._installBin("/bin/cat", self._initramfsTmpDir)
+            self._installBin("/bin/cp", self._initramfsTmpDir)
+            self._installBin("/bin/dd", self._initramfsTmpDir)
+            self._installBin("/bin/echo", self._initramfsTmpDir)
+            self._installBin("/bin/ls", self._initramfsTmpDir)
+            self._installBin("/bin/ln", self._initramfsTmpDir)
+            self._installBin("/bin/mount", self._initramfsTmpDir)
+            self._installBin("/bin/ps", self._initramfsTmpDir)
+            self._installBin("/bin/rm", self._initramfsTmpDir)
+            self._installBin("/bin/touch", self._initramfsTmpDir)
+            self._installBin("/usr/bin/basename", self._initramfsTmpDir)
+            self._installBin("/usr/bin/dirname", self._initramfsTmpDir)
+            self._installBin("/usr/bin/find", self._initramfsTmpDir)
+            self._installBin("/usr/bin/sleep", self._initramfsTmpDir)
+            self._installBin("/usr/bin/tree", self._initramfsTmpDir)
+            self._installBin("/usr/bin/xargs", self._initramfsTmpDir)
+            self._installBin("/usr/bin/hexdump", self._initramfsTmpDir)
 
-            self._installBin("/sbin/blkid", rootDir)
-            self._installBin("/sbin/switch_root", rootDir)
+            self._installBin("/sbin/blkid", self._initramfsTmpDir)
+            self._installBin("/sbin/switch_root", self._initramfsTmpDir)
 
-            self._installBin("/bin/lsmod", rootDir)
-            self._installBin("/bin/modinfo", rootDir)
-            self._installBin("/sbin/modprobe", rootDir)
-            shutil.copytree("/etc/modprobe.d", os.path.join(rootDir, "etc", "modprobe.d"), symlinks=True)
+            self._installBin("/bin/lsmod", self._initramfsTmpDir)
+            self._installBin("/bin/modinfo", self._initramfsTmpDir)
+            self._installBin("/sbin/modprobe", self._initramfsTmpDir)
+            shutil.copytree("/etc/modprobe.d", os.path.join(self._initramfsTmpDir, "etc", "modprobe.d"), symlinks=True)
 
-            self._installBin("/sbin/dmsetup", rootDir)
-            self._installBin("/sbin/lvm", rootDir)
+            self._installBin("/sbin/dmsetup", self._initramfsTmpDir)
+            self._installBin("/sbin/lvm", self._initramfsTmpDir)
 
             if os.path.exists("/usr/bin/nano"):
-                self._installBin("/usr/bin/nano", rootDir)
+                self._installBin("/usr/bin/nano", self._initramfsTmpDir)
 
-            os.rename(os.path.join(rootDir, "init"), os.path.join(rootDir, "init.bak"))
-            os.symlink("/bin/bash", os.path.join(rootDir, "init"))
+            os.rename(os.path.join(self._initramfsTmpDir, "init"), os.path.join(self._initramfsTmpDir, "init.bak"))
+            os.symlink("/bin/bash", os.path.join(self._initramfsTmpDir, "init"))
 
-            with open(os.path.join(rootDir, ".bashrc"), "w") as f:
+            with open(os.path.join(self._initramfsTmpDir, ".bashrc"), "w") as f:
                 f.write("echo \"<initramfs-debug> Mounting basic file systems\"\n")
                 f.write("mount -t sysfs none /sys\n")
                 f.write("mount -t proc none /proc\n")
@@ -281,7 +278,7 @@ class InitramfsInstaller:
                 f.write("\n")
 
         # build the initramfs file and tar file
-        with TempChdir(rootDir):
+        with TempChdir(self._initramfsTmpDir):
             # initramfs file
             cmdStr = "/usr/bin/find . -print0 "
             cmdStr += "| /bin/cpio --null -H newc -o "
@@ -369,13 +366,16 @@ class InitramfsInstaller:
     def _installInit(self, rootDir):
         self._installBinFromInitDataDir("init", rootDir, "")
 
-    def _installStartupRc(self, rootDir, kmodList, blkOpList, mntInfoDict):
+    def _installStartupRc(self, rootDir, kmodList, blkOpList):
         buf = ""
+        initCmdline = self._bbki.config.get_system_init_info()[1]
+
+        def _getPrefixedMountPoint(mi):
+            return os.path.join("/sysroot", mi.mount_point[1:])
 
         # write comments
-        for name, obj in mntInfoDict.items():
-            if obj is not None:
-                buf += "# uuid(%s)=%s\n" % (name, Util.getBlkDevUuid(mntInfoDict[name].devPath))
+        for mi in self._bbki._targetHostInfo.mount_point_list:
+            buf += "# uuid(%s)=%s\n" % (mi.name, mi.dev_uuid)
         buf += "\n"
 
         # load kernel modules
@@ -390,22 +390,12 @@ class InitramfsInstaller:
                 buf += "%s\n" % (k)
             buf += "\n"
 
-        # mount root
-        if True:
-            mi = mntInfoDict["root"]
-            uuid = Util.getBlkDevUuid(mi.devPath)
-            buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fsType, mi.mntOpt, uuid, "/sysroot")
-            buf += "\n"
-
-        # mount boot
-        if mntInfoDict["boot"] is not None:
-            mi = mntInfoDict["boot"]
-            uuid = Util.getBlkDevUuid(mi.devPath)
-            buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fsType, mi.mntOpt, uuid, os.path.join("/sysroot", "boot"))
+        # mount block devices
+        for mi in self._bbki._targetHostInfo.mount_point_list:
+            buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, mi.dev_uuid, _getPrefixedMountPoint(mi))
             buf += "\n"
 
         # switch to new root
-        initName, initCmdline = self._bbki.config.get_system_init_info()
         buf += ("switchroot \"/sysroot\" %s\n" % (initCmdline)).rstrip()
         buf += "\n"
 
