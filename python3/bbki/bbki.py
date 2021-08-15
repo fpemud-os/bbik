@@ -77,6 +77,11 @@ class Bbki:
         return RescueOsSpec(self)
 
     def check_running_environment(self):
+        if not os.path.isdir(self._fsLayout.get_boot_dir()):
+            raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_boot_dir()))
+        if not os.path.isdir(self._fsLayout.get_lib_dir()):
+            raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_lib_dir()))
+
         if not Util.cmdCallTestSuccess("sed", "--version"):
             raise RunningEnvironmentError("executable \"sed\" does not exist")
         if not Util.cmdCallTestSuccess("make", "-V"):
@@ -187,17 +192,22 @@ class Bbki:
             bootFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/modules
-        modulesFileList = None
-        if True:
+        modulesFileList = []
+        if os.path.exists(self._bbki._fsLayout.get_kernel_modules_dir()):
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_kernel_modules_dir(), "*")))             # mark /lib/modules/* (no recursion) as to-be-deleted
             if currentBe is not None:
                 tset.discard(currentBe.kernel_modules_dirpath)                                                  # don't delete files of current-boot-entry
             if pendingBe is not None:
                 tset.discard(pendingBe.kernel_modules_dirpath)                                                  # don't delete files of pending-boot-entry
+            if len(tset) == 0:
+                tset.add(self._bbki._fsLayout.get_kernel_modules_dir())                                         # delete /lib/modules since it is empty
             modulesFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/firmware
-        firmwareFileList = []                           # FIXME
+        firmwareFileList = []                                                                                   # FIXME
+        if os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
+            if os.listdir(self._bbki._fsLayout.get_firmware_dir()) == []:
+                firmwareFileList.append(self._bbki._fsLayout.get_firmware_dir())                                # delete /lib/firmware since it is empty
 
         # delete files
         if not pretend:
@@ -212,7 +222,7 @@ class Bbki:
         return (bootFileList, modulesFileList, firmwareFileList)
 
     def clean_distfiles(self, pretend=False):
-        assert False
+        return []                               # FIXME
 
     def remove(self):
         # remove boot-loader (may change harddisk MBR)
