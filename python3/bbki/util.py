@@ -25,12 +25,13 @@ import os
 import re
 import time
 import subprocess
+import robust_layer.simple_fops
 
 
 class Util:
 
     @staticmethod
-    def removeDirContentExclude(dirPath, excludeList):
+    def removeDirContent(dirPath, excludeList):
         for fn in os.listdir(dirPath):
             if fn not in excludeList:
                 robust_layer.simple_fops.rm(os.path.join(dirPath, fn))

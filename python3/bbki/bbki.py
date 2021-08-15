@@ -224,12 +224,12 @@ class Bbki:
     def clean_distfiles(self, pretend=False):
         return []                               # FIXME
 
-    def remove(self):
+    def remove_all(self):
         # remove boot-loader (may change harddisk MBR)
         if self._targetHostInfo.boot_disk is not None:
             BootLoaderGrub(self).remove()                                               
 
-        Util.removeDirContentExclude(self._bbki._fsLayout.get_boot_dir(), [])           # remove /boot/*
+        Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
 
