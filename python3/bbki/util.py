@@ -23,6 +23,7 @@
 
 import os
 import re
+import kmod
 import time
 import subprocess
 import robust_layer.simple_fops
@@ -196,10 +197,9 @@ class Util:
 
     @staticmethod
     def scsiGetHostControllerPath(devPath):
-        ctx = pyudev.Context()
-        dev = pyudev.Device.from_device_file(ctx, devPath)
-
-        hostPath = "/sys" + dev["DEVPATH"]
+        devName = os.path.basename(os.path.realpath(devPath))       # XXX -> /dev/sda => sda
+        sysfsPath = os.path.join("/sys", "block", devName)          # sda => /sys/block/sda
+        hostPath = os.path.realpath(sysfsPath)                      # /sys/block/sda -> /sys/block/devices/pci0000:00/0000:00:17.0/ata3/host2/target2:0:0/2:0:0:0/block/sda
         while True:
             m = re.search("^host[0-9]+$", os.path.basename(hostPath), re.M)
             if m is not None:
@@ -311,48 +311,6 @@ class Util:
     @staticmethod
     def devPathPartitionToDisk(partitionDevPath):
         return Util.devPathPartitionToDiskAndPartitionId(partitionDevPath)[0]
-
-    @staticmethod
-    def getFilesByKmodAlias(kernelFile, kernelModuleDir, firmwareDir, kmodAlias):
-        # Returns (kmodList, firmwareList), which is the list of the paths of files
-        # need for kmodAlias, including dependencies
-
-        ctx = kmod.Kmod(kernelModuleDir.encode("utf-8"))    # FIXME: why encode is neccessary?
-
-        # get kernel module file
-        mList = list(ctx.lookup(kmodAlias))
-        if len(mList) == 0:
-            return ([], [])
-        assert len(mList) == 1
-
-        # get all the dependency
-        kmodList = Util._getFilesByKmodAliasGetKmodDepsList(ctx, mList[0])
-        if mList[0].path is not None:
-            # this module is built into the kernel
-            kmodList.append(mList[0].path)
-
-        # remove duplications
-        kmodList2 = []
-        kmodSet = set()
-        for k in kmodList:
-            if k not in kmodSet:
-                kmodList2.append(k)
-                kmodSet.add(k)
-        kmodList = kmodList2
-
-        # get firmware file list
-        firmwareList = []
-        for k in kmodList:
-            # python-kmod bug: can only recognize the last firmware in modinfo
-            # so use the command output of modinfo directly
-            for line in Util.cmdCall("/bin/modinfo", k).split("\n"):
-                m = re.fullmatch("firmware: +(\\S.*)", line)
-                if m is None:
-                    continue
-                firmwareList.append(os.path.join(firmwareDir, m.group(1)))
-
-        return (kmodList, firmwareList)
-
 
 
 class TempChdir:
