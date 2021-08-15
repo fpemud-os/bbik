@@ -57,9 +57,9 @@ class SystemInitInfo:
 class RescueOsSpec:
 
     def __init__(self, bbki):
-        self.root_dir = bbki.fsLayout.get_rescue_os_dir()
-        self.kernel_filepath = bbki.fsLayout.get_boot_rescue_os_kernel_filepath()
-        self.initrd_filepath = bbki.fsLayout.get_boot_rescue_os_initrd_filepath()
+        self.root_dir = bbki._fsLayout.get_rescue_os_dir()
+        self.kernel_filepath = bbki._fsLayout.get_boot_rescue_os_kernel_filepath()
+        self.initrd_filepath = bbki._fsLayout.get_boot_rescue_os_initrd_filepath()
 
 
 class HostInfo:

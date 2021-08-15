@@ -55,7 +55,7 @@ class Bbki:
             assert False
 
         self._repoList = [
-            Repo(self._cfg.data_repo_dir),
+            Repo(self, self._cfg.data_repo_dir),
         ]
 
     @property
@@ -200,7 +200,7 @@ class Bbki:
         # get to-be-deleted files in /lib/firmware
         firmwareFileList = []                                                                                   # FIXME
         if os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
-            tset = set(glob.glob(os.path.join(self._bbki.fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
+            tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
             if currentBe is not None:
                 tset -= set(BootEntryWrapper(currentBe).get_firmware_filepaths())                               # don't delete files of current-boot-entry
             if pendingBe is not None and pendingBe != currentBe:
