@@ -25,7 +25,7 @@ import os
 import glob
 import robust_layer.simple_fops
 from .util import Util
-from .fs_layout import FsLayoutLinux
+from .fs_layout import FsLayout
 from .repo import Repo
 from .repo import BbkiFileExecutor
 from .boot_entry import BootEntry
@@ -56,7 +56,7 @@ class Bbki:
         self._cfg = cfg
 
         if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
-            self._fsLayout = FsLayoutLinux(self)
+            self._fsLayout = FsLayout(self)
         else:
             assert False
 
@@ -229,6 +229,30 @@ class Bbki:
 
     def clean_distfiles(self, pretend=False):
         return []                               # FIXME
+        # def findDeprecatedFiles(self, destructive=False):
+        #     keepFiles = set()
+        #     for repo in self._bbki.repositories:
+        #         for atomType, atomName in repo.query_atom_type_name():
+        #             items = repo.get_items_by_type_name(atomType, atomName)
+        #             if destructive:
+        #                 items = [items[-1]]
+        #             for item in items:
+        #                 keepFiles |= set([fn for t, r, fn in item.get_distfiles()])
+        #     keepFiles.add("git-src")
+
+        #     ret = []
+        #     for fn in os.listdir(self._bbki.cache_distfiles_dir):
+        #         if fn not in keepFiles:
+        #             ret.append(fn)
+        #             continue
+        #         if fn == "git-src":
+        #             for fn2 in os.listdir(os.path.join(self._bbki.cache_distfiles_dir, "git-src")):
+        #                 fn2 = os.path.join("git-src", fn2)
+        #                 if fn2 in keepFiles:
+        #                     continue
+        #                 ret.append(fn2)
+        #             continue
+        #     return ret
 
     def remove_all(self):
         # remove boot-loader (may change harddisk MBR)
