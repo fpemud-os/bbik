@@ -30,10 +30,9 @@ from .util import Util
 
 class HostInfo:
 
-    def __init__(self, arch, boot_mode, mount_point_list=[], boot_disk=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+    def __init__(self, arch, boot_mode, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
         self.arch = None
         self.boot_mode = None
-        self.boot_disk = None
         self.mount_point_list = None
         self.aux_os_list = None
         self.aux_kernel_init_cmdline = None
@@ -54,25 +53,22 @@ class HostInfo:
             assert boot_mode in [Bbki.BOOT_MODE_EFI, Bbki.BOOT_MODE_BIOS]
         self.boot_mode = boot_mode
 
-        # self.mount_point_list and self.boot_disk
-        if len(mount_point_list) > 0:
+        # self.mount_point_list
+        if mount_point_list is not None:
             if boot_mode == Bbki.BOOT_MODE_EFI:
                 assert len(mount_point_list) >= 2
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
-                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(boot_disk)
+                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
             elif boot_mode == Bbki.BOOT_MODE_BIOS:
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0
-                assert boot_disk is not None
+                assert all([x.dev_path is not None for x in mount_point_list])
             else:
                 assert False
-        else:
-            assert boot_disk is None
         self.mount_point_list = mount_point_list
-        self.boot_disk = boot_disk
 
         # self.aux_os_list
         assert len(aux_os_list) >= 0
@@ -92,25 +88,43 @@ class HostMountPoint:
     FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, name, mount_point, dev_uuid, fs_type, mnt_opt="", underlay_disks=[]):
+    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type, mnt_opt="", underlay_disks=None):
+        # self.name
         assert isinstance(name, str)
+        self.name = name
+
+        # self.mount_point
         assert os.path.isabs(mount_point)
-        assert isinstance(dev_uuid, str)
-        assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
-        assert isinstance(mount_point, str)
-        assert all([isinstance(x, HostDisk) for x in underlay_disks])
         if name == self.NAME_ROOT:
             assert mount_point == "/"
         if name == self.NAME_BOOT:
             assert mount_point == "/boot"
-
-        self.name = name
         self.mount_point = mount_point
-        self.dev_uuid = dev_uuid                    # FS-UUID, not PART-UUID
-                                                    # FIXME: for lvm, self.uuid = "lvm/vgName-lvName"
+
+        # self.dev_path_or_uuid
+        if dev_path_or_uuid.startswith("/dev/"):
+            self.dev_path = dev_path_or_uuid
+            self.dev_uuid = Util.getBlkDevUuid(self.dev_path)       # FS-UUID, not PART-UUID
+        else:
+            self.dev_path = None
+            self.dev_uuid = dev_path_or_uuid
+
+        # self.fs_type
+        assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
         self.fs_type = fs_type
+
+        # self.mnt_opt
+        assert isinstance(mnt_opt, str)
         self.mnt_opt = mnt_opt
-        self.underlay_disks = underlay_disks
+
+        # self.underlay_disks
+        if underlay_disks is not None:
+            assert self.dev_path is None                                    # self.dev_path and self.underlay_disks are mutally exclusive
+            assert all([isinstance(x, HostDisk) for x in underlay_disks])
+            self.underlay_disks = underlay_disks
+        else:
+            assert self.dev_path is not None
+            self.underlay_disks = HostInfoUtil.getUnderlayDisks(self.dev_path)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
@@ -214,6 +228,9 @@ class HostInfoUtil:
                 ret.append(m)
         return re
 
+    @staticmethod
+    def getUnderlayDisks(devPath):
+        assert False
 
 
 # def get_disk_stack(self):

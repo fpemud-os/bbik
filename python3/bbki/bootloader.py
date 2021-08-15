@@ -99,14 +99,16 @@ class BootLoaderGrub:
 
         # install /boot/grub directory
         # install grub into disk MBR
-        Util.cmdCall("grub-install", "--target=i386-pc", self._bbki._targetHostInfo.boot_disk)
+        bootDisk = Util.devPathPartitionToDisk(self._bbki._targetHostInfo.mount_point_list[0].dev_path)
+        Util.cmdCall("grub-install", "--target=i386-pc", bootDisk)
 
         # generate grub.cfg
         self.__genGrubCfg()
 
     def _biosRemove(self):
         # remove MBR
-        with open(self._bbki._targetHostInfo.boot_disk, "wb+") as f:
+        bootDisk = Util.devPathPartitionToDisk(self._bbki._targetHostInfo.mount_point_list[0].dev_path)
+        with open(bootDisk, "wb+") as f:
             f.write(Util.newBuffer(0, 440))
 
         # remove /boot/grub directory

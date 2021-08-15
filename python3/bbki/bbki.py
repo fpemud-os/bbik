@@ -136,19 +136,19 @@ class Bbki:
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, boot_entry):
-        if self._targetHostInfo.boot_disk is None:
+        if self._targetHostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         InitramfsInstaller(self, boot_entry).install()
 
     def install_bootloader(self):
-        if self._targetHostInfo.boot_disk is None:
+        if self._targetHostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         BootLoaderGrub(self).install()
 
     def reinstall_bootloader(self):
-        if self._targetHostInfo.boot_disk is None:
+        if self._targetHostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         obj = BootLoaderGrub(self)
@@ -156,7 +156,7 @@ class Bbki:
         obj.install()
 
     def update_bootloader(self):
-        if self._targetHostInfo.boot_disk is None:
+        if self._targetHostInfo.mount_point_list is None:
             raise RunningEnvironmentError("no boot/root device specified")
 
         BootLoaderGrub(self).update()
@@ -226,7 +226,7 @@ class Bbki:
 
     def remove_all(self):
         # remove boot-loader (may change harddisk MBR)
-        if self._targetHostInfo.boot_disk is not None:
+        if self._targetHostInfo.mount_point_list is not None:
             BootLoaderGrub(self).remove()                                               
 
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
