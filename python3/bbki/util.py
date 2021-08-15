@@ -177,6 +177,79 @@ class Util:
         return (ret.returncode, ret.stdout.rstrip())
 
     @staticmethod
+    def bcacheGetSlaveDevPathList(bcacheDevPath):
+        """Last element in the returned list is the backing device, others are cache device"""
+
+        retList = []
+
+        slavePath = "/sys/block/" + os.path.basename(bcacheDevPath) + "/slaves"
+        for slaveDev in os.listdir(slavePath):
+            retList.append(os.path.join("/dev", slaveDev))
+
+        bcachePath = os.path.realpath("/sys/block/" + os.path.basename(bcacheDevPath) + "/bcache")
+        backingDev = os.path.basename(os.path.dirname(bcachePath))
+        backingDevPath = os.path.join("/dev", backingDev)
+
+        retList.remove(backingDevPath)
+        retList.append(backingDevPath)
+        return retList
+
+    @staticmethod
+    def scsiGetHostControllerPath(devPath):
+        ctx = pyudev.Context()
+        dev = pyudev.Device.from_device_file(ctx, devPath)
+
+        hostPath = "/sys" + dev["DEVPATH"]
+        while True:
+            m = re.search("^host[0-9]+$", os.path.basename(hostPath), re.M)
+            if m is not None:
+                break
+            hostPath = os.path.dirname(hostPath)
+            assert hostPath != "/"
+        return hostPath
+
+    @staticmethod
+    def getBlkDevLvmInfo(devPath):
+        """Returns (vg-name, lv-name)
+           Returns None if the device is not lvm"""
+
+        rc, out = Util.shellCallWithRetCode("/sbin/dmsetup info %s" % (devPath))
+        if rc == 0:
+            m = re.search("^Name: *(\\S+)$", out, re.M)
+            assert m is not None
+            ret = m.group(1).split(".")
+            if len(ret) == 2:
+                return ret
+            ret = m.group(1).split("-")         # compatible with old lvm version
+            if len(ret) == 2:
+                return ret
+
+        m = re.fullmatch("(/dev/mapper/\\S+)-(\\S+)", devPath)          # compatible with old lvm version
+        if m is not None:
+            return Util.getBlkDevLvmInfo("%s-%s" % (m.group(1), m.group(2)))
+
+        return None
+
+    @staticmethod
+    def lvmGetSlaveDevPathList(vgName):
+        ret = []
+        out = Util.cmdCall("/sbin/lvm", "pvdisplay", "-c")
+        for m in re.finditer("^\\s*(\\S+):%s:.*" % (vgName), out, re.M):
+            if m.group(1) == "[unknown]":
+                raise Exception("volume group %s not fully loaded" % (vgName))
+            ret.append(m.group(1))
+        return ret
+
+    @staticmethod
+    def getBlkDevFsType(devPath):
+        ret = Util.cmdCall("/sbin/blkid", "-o", "export", devPath)
+        m = re.search("^TYPE=(\\S+)$", ret, re.M)
+        if m is not None:
+            return m.group(1).lower()
+        else:
+            return ""
+
+    @staticmethod
     def libUsed(binFile):
         """Return a list of the paths of the shared libraries used by binFile"""
 

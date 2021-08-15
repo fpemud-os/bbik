@@ -88,38 +88,56 @@ class HostMountPoint:
     FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type, mnt_opt="", underlay_disks=None):
+    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disks=None):
+        self.name = None
+        self.mount_point = None
+        self.dev_path = None
+        self.dev_uuid = None
+        self.fs_type = None
+        self.mnt_opt = None
+        self.underlay_disks = None
+
         # self.name
         assert isinstance(name, str)
         self.name = name
 
         # self.mount_point
         assert os.path.isabs(mount_point)
-        if name == self.NAME_ROOT:
+        if self.name == self.NAME_ROOT:
             assert mount_point == "/"
-        if name == self.NAME_BOOT:
+        if self.name == self.NAME_BOOT:
             assert mount_point == "/boot"
         self.mount_point = mount_point
 
-        # self.dev_path_or_uuid
+        # self.dev_path and self.dev_uuid
         if dev_path_or_uuid.startswith("/dev/"):
             self.dev_path = dev_path_or_uuid
-            self.dev_uuid = Util.getBlkDevUuid(self.dev_path)       # FS-UUID, not PART-UUID
+            self.dev_uuid = Util.getBlkDevUuid(self.dev_path)               # FS-UUID, not PART-UUID
         else:
             self.dev_path = None
             self.dev_uuid = dev_path_or_uuid
 
         # self.fs_type
-        assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
-        self.fs_type = fs_type
+        if fs_type is not None:
+            assert self.dev_path is None                                    # self.dev_path and parameter "fs_type" are mutally exclusive
+            assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
+            self.fs_type = fs_type
+        else:
+            assert self.dev_path is not None
+            self.fs_type = Util.getBlkDevFsType(self.dev_path)
 
         # self.mnt_opt
-        assert isinstance(mnt_opt, str)
-        self.mnt_opt = mnt_opt
+        if mnt_opt is not None:
+            assert self.dev_path is None                                    # self.dev_path and parameter "mnt_opt" are mutally exclusive
+            assert isinstance(mnt_opt, str)
+            self.mnt_opt = mnt_opt
+        else:
+            assert self.dev_path is not None
+            self.mnt_opt = ""                                               # FIXME
 
         # self.underlay_disks
         if underlay_disks is not None:
-            assert self.dev_path is None                                    # self.dev_path and self.underlay_disks are mutally exclusive
+            assert self.dev_path is None                                    # self.dev_path and parameter "underlay_disks" are mutally exclusive
             assert all([isinstance(x, HostDisk) for x in underlay_disks])
             self.underlay_disks = underlay_disks
         else:
@@ -230,6 +248,101 @@ class HostInfoUtil:
 
     @staticmethod
     def getUnderlayDisks(devPath):
+        # lvm2_raid
+        lvmInfo = Util.getBlkDevLvmInfo(devPath)
+        if lvmInfo is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "lvm2_raid"
+            bdi.fsType = Util.getBlkDevFsType(devPath)
+            assert bdi.fsType != ""
+            bdi.param["vg_name"] = lvmInfo[0]
+            bdi.param["lv_name"] = lvmInfo[1]
+
+            retList = []
+            for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
+                retList += self._getBlkDevInfoList(slaveDevPath)
+            return retList + [bdi]
+
+        # mbr_partition
+        m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
+        if m is None:
+            m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
+            if m is None:
+                m = re.fullmatch("(/dev/vd[a-z])[0-9]+", devPath)
+                if m is None:
+                    m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "mbr_partition"
+            bdi.fsType = Util.getBlkDevFsType(devPath)
+            assert bdi.fsType != ""
+            return self._getBlkDevInfoList(m.group(1)) + [bdi]
+
+        # scsi_disk
+        m = re.fullmatch("/dev/sd[a-z]", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "scsi_disk"
+            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            bdi.param["scsi_host_path"] = Util.scsiGetHostControllerPath(devPath)
+            return [bdi]
+
+        # xen_disk
+        m = re.fullmatch("/dev/xvd[a-z]", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "xen_disk"
+            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            return [bdi]
+
+        # virtio_disk
+        m = re.fullmatch("/dev/vd[a-z]", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "virtio_disk"
+            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            return [bdi]
+
+        # nvme_disk
+        m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "nvme_disk"
+            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            return [bdi]
+
+        # bcache
+        m = re.fullmatch("/dev/bcache[0-9]+", devPath)
+        if m is not None:
+            bdi = _BlkDevInfo()
+            bdi.devPath = devPath
+            bdi.devType = "bcache_raid"
+            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
+            assert bdi.fsType != ""
+
+            retList = []
+
+            slist = Util.bcacheGetSlaveDevPathList(devPath)
+            assert (len(slist) >= 1)
+            bdi.param["cache_dev_list"] = slist[0:-1]
+            bdi.param["backing_dev"] = slist[-1]
+
+            for devPath in slist:
+                retList += self._getBlkDevInfoList(devPath)
+
+            return retList + [bdi]
+
+        # unknown
+        print("devPath = %s" % (devPath))
+        assert False
+
+
         assert False
 
 
