@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import sys
+import subprocess
 import distutils.util
 from setuptools import setup, find_packages
+from setuptools.command.install import install
 
 # check Python's version
 if sys.version_info < (3, 8):
@@ -28,6 +30,14 @@ classif = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
+class custom_install(install):
+    def run(self):
+        self._compile_initramfs()
+        super().run()
+
+    def _compile_initramfs(self):
+        subprocess.check_call('make', cwd='./python3/bbki/initramfs', shell=True)
+
 # Do setup
 setup(
     name='bbki',
@@ -45,6 +55,9 @@ setup(
         'bbki': 'python3/bbki',
     },
     package_data={
-        'bbki': ['kernel-config-rules/*']
-    }
+        'bbki': ['kernel-config-rules/*', 'initramfs/init', 'initramfs/lvm-lv-activate'],
+    },
+    cmdclass={
+        'install': custom_install,
+    },
 )
