@@ -40,10 +40,10 @@ class SystemBootMode:
 
 class SystemInit:
 
-    SYSTEM_INIT_SYSVINIT = "sysv-init"
-    SYSTEM_INIT_OPENRC = "openrc"
-    SYSTEM_INIT_SYSTEMD = "systemd"
-    SYSTEM_INIT_CUSTOM = "custom"
+    SYSVINIT = "sysv-init"
+    OPENRC = "openrc"
+    SYSTEMD = "systemd"
+    CUSTOM = "custom"
 
 
 class SystemInitInfo:
