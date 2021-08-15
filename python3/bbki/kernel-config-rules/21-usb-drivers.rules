@@ -1,0 +1,15 @@
+## too board to be a bus ##
+
+# menu: USB support
+USBIP_CORE=n                                             # USB/IP seems to be an advanced feature
+MUSB_PIO_ONLY=n
+
+USB_XHCI_DBGCAP=n                                        # seems debug?
+USB_HCD_TEST_MODE=n                                      # seems debug?
+USB_DWC2_TRACK_MISSED_SOFS=n                             # seems experiment?
+
+USB_ISIGHTFW=n                                           # no firmware, we think it's rare
+
+
+USB_OTG_DISABLE_EXTERNAL_HUB=n
+[symbols:USB_SUPPORT]=m,y

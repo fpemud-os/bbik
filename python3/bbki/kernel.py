@@ -125,10 +125,18 @@ class KernelInstaller:
 
             rulesDict["head"] = buf
 
+        # build-in rules
+        rulesDict.update(self._kernelCfgRules())
+
         # addon rules
         for addon_item in self._addonAtomList:
             buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
             rulesDict[addon_item.name] = buf
+
+        # sysadmin rules
+        rulesDict["custom"] = ""            # FIXME
+
+        self._generateKernelCfgRulesFile(kcfgRulesTmpFile, rulesDict)
 
         # debug feature
         if True:
@@ -152,6 +160,29 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].exec_kernel_install()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
+
+    def _kernelCfgRules(self):
+        ret = dict()
+        for fullfn in sorted(glob.glob(os.path.join(FmConst.dataDir, "kernel-config-rules", "*.rules"))):
+            fn = os.path.basename(fullfn)
+            rname = fn[:len(".rules") * -1]
+            m = re.fullmatch("[0-9]+-(.*)", rname)
+            if m is not None:
+                rname = m.group(1)
+            with open(fullfn, "r") as f:
+                ret[rname] = f.read()
+        return ret
+
+    def _generateKernelCfgRulesFile(self, filename, *kargs):
+        with open(filename, "w") as f:
+            for kcfgRulesMap in kargs:
+                for name, buf in kcfgRulesMap.items():
+                    f.write("## %s ######################\n" % (name))
+                    f.write("\n")
+                    f.write(buf)
+                    f.write("\n")
+                    f.write("\n")
+                    f.write("\n")
 
 
 class BootEntryWrapper:

@@ -44,4 +44,7 @@ setup(
     package_dir={
         'bbki': 'python3/bbki',
     },
+    package_data={
+        'bbki': ['kernel-config-rules/*']
+    }
 )
