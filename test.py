@@ -3,7 +3,7 @@
 import bbki
 
 hostInfo = bbki.HostInfo("native", "native")
-cfg = bbki.EtcDirConfig(cfgdir="./test.cfg")
+cfg = bbki.EtcDirConfig(cfgdir="./test-cfg")
 
 obj = bbki.Bbki(hostInfo, cfg=cfg)
 obj.config

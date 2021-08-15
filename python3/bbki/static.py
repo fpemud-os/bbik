@@ -29,7 +29,7 @@ from .util import Util
 
 class KernelType:
 
-    LINUX = "kernel"
+    LINUX = "linux"
 
 
 class SystemBootMode:
