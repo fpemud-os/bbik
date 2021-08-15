@@ -28,6 +28,7 @@ import shutil
 import tarfile
 import pathlib
 import anytree
+import pkg_resources
 import robust_layer.simple_fops
 from ordered_set import OrderedSet
 from .bbki import InitramfsInstallError
@@ -325,7 +326,7 @@ class InitramfsInstaller:
             self._copyToInitrd(df, rootDir)
 
     def _installBinFromInitDataDir(self, binFilename, rootDir, targetDir):
-        srcFilename = os.path.join(FmConst.libInitrdDir, binFilename)
+        srcFilename = pkg_resources.resource_filename(__name__, binFilename)
         dstFilename = os.path.join(rootDir, targetDir, binFilename)
 
         Util.cmdCall("/bin/cp", "-f", srcFilename, dstFilename)
