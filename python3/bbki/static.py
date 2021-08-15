@@ -102,7 +102,7 @@ class HostInfo:
                 assert all([x.dev_path is not None for x in mount_point_list])
             else:
                 assert False
-        self.mount_point_list = mount_point_list
+            self.mount_point_list = mount_point_list
 
         # self.aux_os_list
         assert len(aux_os_list) >= 0
