@@ -265,7 +265,7 @@ class HostInfoUtil:
                 if m is None:
                     m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
         if m is not None:
-            bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)
+            bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)        # FIXME: currently there's no difference when processing mbr and gpt partition
             HostInfoUtil.getUnderlayDisks(m.group(1), parent=bdi)
             return bdi
 
