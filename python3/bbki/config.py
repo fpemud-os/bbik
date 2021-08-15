@@ -194,7 +194,7 @@ class EtcDirConfig(Config):
 
     def _filltKernelType(self):
         if self._tKernelType is not None:
-            return 
+            return
 
         if os.path.exists(self._profileKernelTypeFile):             # step1: use /etc/bbki/profile/bbki.*
             ret = Util.readListFile(self._profileKernelTypeFile)
@@ -269,7 +269,7 @@ class EtcDirConfig(Config):
                 "init": "auto-detect",
             },
         }
-        
+
         def _myParse(path):
             cfg = configparser.ConfigParser()
             cfg.read(path)

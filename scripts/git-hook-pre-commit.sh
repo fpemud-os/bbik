@@ -11,7 +11,7 @@ if [ -n "$OUTPUT" ] ; then
     ERRFLAG=1
 fi
 
-OUTPUT=`pep8 ${FILES} | grep -Ev "E265|E266|E402|E501"`
+OUTPUT=`pycodestyle ${FILES} | grep -Ev "E265|E266|E402|E501"`
 if [ -n "$OUTPUT" ] ; then
     echo "pep8 errors:"
     echo "$OUTPUT"

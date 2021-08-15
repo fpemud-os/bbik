@@ -322,13 +322,10 @@ class HostInfoUtil:
 
 #     return ret
 
-
 # def get_disk_stack(self):
 #     partNode = DiskStackNodePartition(self._hddRootParti, DiskStackNodePartition.PART_TYPE_MBR)
 #     DiskStackNodeHarddisk(self._hdd, parent=partNode)
 #     return [partNode]
-
-
 
 # def get_disk_stack(self):
 #     ret = []
@@ -360,8 +357,6 @@ class HostInfoUtil:
 
 #     return ret
 
-
-
 # def get_disk_stack(self):
 #     ret = []
 #     ret.append(DiskStackNodeLvmLv(util.rootLvDevPath, util.vgName, util.rootLvName))
@@ -379,8 +374,6 @@ class HostInfoUtil:
 #         ret.append(espNode)
 
 #     return ret
-
-
 
 # def get_disk_stack(self):
 #     partNode = DiskStackNodePartition(self._hddRootParti, DiskStackNodePartition.PART_TYPE_MBR)

@@ -143,7 +143,7 @@ class BootEntry:
     @property
     def kernel_config_filename(self):
         # string, eg: "config-x86_64-3.9.11-gentoo-r1"
-        return "config-"+ self.postfix
+        return "config-" + self.postfix
 
     @property
     def kernel_config_filepath(self):

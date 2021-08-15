@@ -30,7 +30,9 @@ import urllib.parse
 import robust_layer.simple_git
 from . import Bbki
 from . import RepoError
-from .util import TempChdir, Util
+from .util import Util
+from .util import TempChdir
+from .boot_entry import BootEntry
 
 
 class Repo:
@@ -248,7 +250,7 @@ class BbkiFileExecutor:
         return self._trTmpDir
 
     def exec_fetch(self):
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, _custom_src_dir(self._item))
             os.makedirs(targetDir, exist_ok=True)
@@ -258,7 +260,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "fetch\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                                   
+        else:
             # default action
             for url, localFn in _distfiles_get(self._item):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
@@ -268,7 +270,7 @@ class BbkiFileExecutor:
                 robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
 
     def exec_src_unpack(self):
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -279,7 +281,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "src_unpack\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # default action
             for url, localFn in _distfiles_get(self._item):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
@@ -289,7 +291,7 @@ class BbkiFileExecutor:
                     pass
 
     def exec_src_prepare(self):
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -300,7 +302,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "src_prepare\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # no-op as the default action
             pass
 
@@ -308,7 +310,7 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -319,7 +321,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_build\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
@@ -335,7 +337,7 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
@@ -346,13 +348,12 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_install\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
-                    dstTarget = KernelInfo.new_from_kernel_srcdir("amd64", self._trWorkDir)
-                    bootEntry = BootEntry(dstTarget)
-                    shutil.copy("arch/%s/boot/bzImage" % (dstTarget.arch), bootEntry.kernel_file)
+                    bootEntry = BootEntry.new_from_kernel_srcdir("native", self._trWorkDir)
+                    shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_file)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
@@ -362,7 +363,7 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
@@ -375,7 +376,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_addon_patch_kernel\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # no-op as the default action
             pass
 
@@ -383,7 +384,7 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
@@ -396,7 +397,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_addon_patch_kernel\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # no-op as the default action
             pass
 
@@ -404,7 +405,7 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(self._trWorkDir):
@@ -417,7 +418,7 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "kernel_addon_build\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
-        else:                                                                                               
+        else:
             # no-op as the default action
             pass
 
@@ -425,10 +426,10 @@ class BbkiFileExecutor:
         if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
-        if self._item_has_me():                                                                
+        if self._item_has_me():
             # custom action
             pass
-        else:                                                                                               
+        else:
             # no-op as the default action
             pass
 
@@ -494,11 +495,11 @@ def _distfiles_get_git(item):
 
 def _tmpdirs(item):
     tmpRootDir = os.path.join(item._bbki.config.tmp_dir, item.bbki_dir)
-    trBuildInfoDir = os.path.join(tmpRootDir, "build-info")     # FIXME
-    trDistDir = os.path.join(tmpRootDir, "distdir")             # FIXME
-    trEmptyDir = os.path.join(tmpRootDir, "empty")              # FIXME
-    trFilesDir = os.path.join(tmpRootDir, "files")              # should be symlink
-    trHomeDir = os.path.join(tmpRootDir, "homedir")             # FIXME
+    # trBuildInfoDir = os.path.join(tmpRootDir, "build-info")     # FIXME
+    # trDistDir = os.path.join(tmpRootDir, "distdir")             # FIXME
+    # trEmptyDir = os.path.join(tmpRootDir, "empty")              # FIXME
+    # trFilesDir = os.path.join(tmpRootDir, "files")              # should be symlink
+    # trHomeDir = os.path.join(tmpRootDir, "homedir")             # FIXME
     trTmpDir = os.path.join(tmpRootDir, "temp")
     trWorkDir = os.path.join(tmpRootDir, "work")
     return (tmpRootDir, trTmpDir, trWorkDir)

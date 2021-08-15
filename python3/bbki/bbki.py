@@ -257,7 +257,7 @@ class Bbki:
     def remove_all(self):
         # remove boot-loader (may change harddisk MBR)
         if self._targetHostInfo.mount_point_list is not None:
-            BootLoaderGrub(self).remove()                                               
+            BootLoaderGrub(self).remove()
 
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
