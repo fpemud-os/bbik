@@ -23,7 +23,6 @@
 
 import os
 import re
-import kmod
 import time
 import subprocess
 import robust_layer.simple_fops

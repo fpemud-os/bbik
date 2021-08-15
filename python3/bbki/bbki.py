@@ -30,7 +30,7 @@ from .repo import Repo
 from .repo import BbkiFileExecutor
 from .boot_entry import BootEntry
 from .boot_entry import BootEntryUtils
-from .kernel import KernelInstaller
+from .kernel import BootEntryWrapper, KernelInstaller
 from .initramfs import InitramfsInstaller
 from .bootloader import BootLoaderGrub
 
@@ -197,7 +197,7 @@ class Bbki:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_kernel_modules_dir(), "*")))             # mark /lib/modules/* (no recursion) as to-be-deleted
             if currentBe is not None:
                 tset.discard(currentBe.kernel_modules_dirpath)                                                  # don't delete files of current-boot-entry
-            if pendingBe is not None:
+            if pendingBe is not None and pendingBe != currentBe:
                 tset.discard(pendingBe.kernel_modules_dirpath)                                                  # don't delete files of pending-boot-entry
             if len(tset) == 0:
                 tset.add(self._bbki._fsLayout.get_kernel_modules_dir())                                         # delete /lib/modules since it is empty
@@ -206,8 +206,14 @@ class Bbki:
         # get to-be-deleted files in /lib/firmware
         firmwareFileList = []                                                                                   # FIXME
         if os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
-            if os.listdir(self._bbki._fsLayout.get_firmware_dir()) == []:
-                firmwareFileList.append(self._bbki._fsLayout.get_firmware_dir())                                # delete /lib/firmware since it is empty
+            tset = set(glob.glob(os.path.join(self._bbki.fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
+            if currentBe is not None:
+                tset -= set(BootEntryWrapper(currentBe).get_firmware_filepaths())                               # don't delete files of current-boot-entry
+            if pendingBe is not None and pendingBe != currentBe:
+                tset -= set(BootEntryWrapper(pendingBe).get_firmware_filepaths())                               # don't delete files of pending-boot-entry
+            if len(tset) == 0:
+                tset.add(self._bbki._fsLayout.get_firmware_dir())                                               # delete /lib/firmware since it is empty
+            firmwareFileList = sorted(list(tset))
 
         # delete files
         if not pretend:

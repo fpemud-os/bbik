@@ -197,9 +197,10 @@ class BootEntryWrapper:
         return self._getFirmwareImpl(kmod_filepath, False)
 
     def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
+        ret = []
+
         # python-kmod bug: can only recognize the last firmware in modinfo
         # so use the command output of modinfo directly
-        ret = []
         for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
             m = re.fullmatch("firmware: +(\\S.*)", line)
             if m is not None:
@@ -207,6 +208,19 @@ class BootEntryWrapper:
                     ret.append(m.group(1))
                 else:
                     ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
+
+        # add standard files
+        standardFiles = [
+            ".ctime",
+            "regulatory.db",
+            "regulatory.db.p7s",
+        ]
+        if bReturnNameOrPath:
+            ret += standardFiles
+        else:
+            ret += [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in standardFiles]
+
+        # return value
         return ret
 
     def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
