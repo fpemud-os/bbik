@@ -185,6 +185,9 @@ class BootEntry:
         # string, eg: "/boot/initramfs-x86_64-3.9.11-gentoo-r1.tar.bz2"
         return os.path.join(self._bootDir, self.initrd_tar_filename)
 
+    def is_historical(self):
+        return (self._bootDir == self._bbki._fsLayout.get_boot_history_dir())
+
     def has_kernel_files(self):
         if not os.path.exists(self.kernel_filepath):
             return False

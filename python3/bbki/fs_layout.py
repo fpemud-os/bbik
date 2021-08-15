@@ -35,6 +35,9 @@ class FsLayoutLinux:
     def get_boot_grub_dir(self):
         return "/boot/grub"
 
+    def get_boot_grub_efi_dir(self):
+        return "/boot/EFI"
+
     def get_boot_rescue_os_dir(self):
         return "/boot/rescue"
 

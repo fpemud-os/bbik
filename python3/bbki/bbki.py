@@ -160,40 +160,56 @@ class Bbki:
         assert False
 
     def clean_boot_entries(self, pretend=False):
-        pendingBe = self.get_pending_boot_entry()
         currentBe = self.get_current_boot_entry()
+        pendingBe = self.get_pending_boot_entry()
 
-        # get files in /boot
-        bootFileList = []
-        bootFileList += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*"))
-        bootFileList += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "*"))
-        bootFileList = set(bootFileList)
+        # get to-be-deleted files in /boot
+        bootFileList = None
+        if True:
+            tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
+            tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                              # don't delete /boot/grub
+            if self._targetHostInfo.boot_mode == self.BOOT_MODE_EFI:
+                tset.discard(self._bbki._fsLayout.get_boot_grub_efi_dir())                                      # don't delete /boot/EFI
+            elif self._targetHostInfo.boot_mode == self.BOOT_MODE_BIOS:
+                pass
+            else:
+                assert False
+            tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
+            if currentBe is not None:
+                if currentBe.is_historical():
+                    tset.discard(self._bbki._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
+                    tset |= set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_history_dir(), "*")))      # mark /boot/history/* (no recursion) as to-be-deleted
+                    tset -= set(BootEntryUtils(self._bbki).getBootEntryFilePathList(currentBe))                 # don't delete files of current-boot-entry
+                else:
+                    assert currentBe == pendingBe
+            if pendingBe is not None:
+                tset -= set(BootEntryUtils(self._bbki).getBootEntryFilePathList(pendingBe))                     # don't delete files of pending-boot-entry
+            bootFileList = sorted(list(tset))
 
-        # filter files in /boot
-        bootFileList = bootFileList.difference(set([
-            self._bbki._fsLayout.get_boot_grub_dir(),
-            self._bbki._fsLayout.get_boot_rescue_os_dir(),
-        ]))
-        if pendingBe is not None:
-            bootFileList.difference(set(BootEntryUtils(self._bbki).getBootEntryFilePathList(pendingBe)))
-        if currentBe is not None:
-            bootFileList.difference(set(BootEntryUtils(self._bbki).getBootEntryFilePathList(currentBe)))
-        if len([x for x in bootFileList if x.startswith(self._bbki._fsLayout.get_boot_history_dir())]) <= 1:
-            bootFileList = bootFileList.difference(set([
-                self._bbki._fsLayout.get_boot_history_dir()
-            ]))
+        # get to-be-deleted files in /lib/modules
+        modulesFileList = None
+        if True:
+            tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_kernel_modules_dir(), "*")))             # mark /lib/modules/* (no recursion) as to-be-deleted
+            if currentBe is not None:
+                tset.discard(currentBe.kernel_modules_dirpath)                                                  # don't delete files of current-boot-entry
+            if pendingBe is not None:
+                tset.discard(pendingBe.kernel_modules_dirpath)                                                  # don't delete files of pending-boot-entry
+            modulesFileList = sorted(list(tset))
 
-        # get files in /lib/modules
-        pass
+        # get to-be-deleted files in /lib/firmware
+        firmwareFileList = []                           # FIXME
 
-        # filter files in /lib/modules
-        pass
+        # delete files
+        if not pretend:
+            for fullfn in bootFileList:
+                robust_layer.simple_fops.rm(fullfn)
+            for fullfn in modulesFileList:
+                robust_layer.simple_fops.rm(fullfn)
+            for fullfn in firmwareFileList:
+                robust_layer.simple_fops.rm(fullfn)
 
-        # get files in /lib/firmware
-        pass
-
-        # filter files in /lib/firmware
-        pass
+        # return value
+        return (bootFileList, modulesFileList, firmwareFileList)
 
     def clean_distfiles(self, pretend=False):
         assert False
