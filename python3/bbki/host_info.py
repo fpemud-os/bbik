@@ -247,24 +247,16 @@ class HostInfoUtil:
         return re
 
     @staticmethod
-    def getUnderlayDisks(devPath):
-        # lvm2_raid
+    def getUnderlayDisks(devPath, parent=None):
+        # HostDiskLvmLv
         lvmInfo = Util.getBlkDevLvmInfo(devPath)
         if lvmInfo is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "lvm2_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
-            assert bdi.fsType != ""
-            bdi.param["vg_name"] = lvmInfo[0]
-            bdi.param["lv_name"] = lvmInfo[1]
-
-            retList = []
+            bdi = HostDiskLvmLv(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent=parent)
             for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
-                retList += self._getBlkDevInfoList(slaveDevPath)
-            return retList + [bdi]
+                HostInfoUtil.getUnderlayDisks(slaveDevPath, parent=bdi)
+            return bdi
 
-        # mbr_partition
+        # HostDiskPartition
         m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
         if m is None:
             m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
@@ -273,76 +265,47 @@ class HostInfoUtil:
                 if m is None:
                     m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "mbr_partition"
-            bdi.fsType = Util.getBlkDevFsType(devPath)
-            assert bdi.fsType != ""
-            return self._getBlkDevInfoList(m.group(1)) + [bdi]
+            bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)
+            HostInfoUtil.getUnderlayDisks(m.group(1), parent=bdi)
+            return bdi
 
-        # scsi_disk
+        # HostDiskScsiDisk
         m = re.fullmatch("/dev/sd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "scsi_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            bdi.param["scsi_host_path"] = Util.scsiGetHostControllerPath(devPath)
-            return [bdi]
+            bdi = HostDiskScsiDisk(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerPath(devPath), parent=parent)
+            return bdi
 
-        # xen_disk
+        # HostDiskXenDisk
         m = re.fullmatch("/dev/xvd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "xen_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
+            bdi = HostDiskXenDisk(Util.getBlkDevUuid(devPath), parent=parent)
+            return bdi
 
-        # virtio_disk
+        # HostDiskVirtioDisk
         m = re.fullmatch("/dev/vd[a-z]", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "virtio_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
+            bdi = HostDiskVirtioDisk(Util.getBlkDevUuid(devPath), parent=parent)
+            return bdi
 
-        # nvme_disk
+        # HostDiskNvmeDisk
         m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "nvme_disk"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            return [bdi]
+            bdi = HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
+            return bdi
 
         # bcache
         m = re.fullmatch("/dev/bcache[0-9]+", devPath)
         if m is not None:
-            bdi = _BlkDevInfo()
-            bdi.devPath = devPath
-            bdi.devType = "bcache_raid"
-            bdi.fsType = Util.getBlkDevFsType(devPath).lower()
-            assert bdi.fsType != ""
-
-            retList = []
-
+            bdi = HostDiskBcache(Util.getBlkDevUuid(devPath))
             slist = Util.bcacheGetSlaveDevPathList(devPath)
-            assert (len(slist) >= 1)
-            bdi.param["cache_dev_list"] = slist[0:-1]
-            bdi.param["backing_dev"] = slist[-1]
-
-            for devPath in slist:
-                retList += self._getBlkDevInfoList(devPath)
-
-            return retList + [bdi]
+            for i in range(0, len(slist)):
+                if i < len(slist) - 1:
+                    bdi.add_cache_dev(HostInfoUtil.getUnderlayDisks(slist[i], parent=bdi))
+                else:
+                    bdi.add_backing_dev(HostInfoUtil.getUnderlayDisks(slist[i], parent=bdi))
+            return bdi
 
         # unknown
-        print("devPath = %s" % (devPath))
-        assert False
-
-
         assert False
 
 
