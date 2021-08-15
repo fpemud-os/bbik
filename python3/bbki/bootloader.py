@@ -37,7 +37,7 @@ class BootLoaderGrub:
     def __init__(self, bbki):
         self._bbki = bbki
 
-        self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_grub_dir(), "grub.cfg")
+        self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grub.cfg")
 
         self._grubKernelInitCmdline = ""
         if True:
@@ -282,7 +282,7 @@ def _grubRootDevCmd(devUuid):
 
 # def get_stable_flag(self):
 #     # we use grub environment variable to store stable status, our grub needs this status either
-#     if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+#     if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
 #         raise BbkiSystemError("bootloader is not installed")
 
 #     out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
@@ -291,7 +291,7 @@ def _grubRootDevCmd(devUuid):
 # def set_stable_flag(self, value):
 #     assert value is not None and isinstance(value, bool)
 
-#     if not os.path.exists(self._bbki._fsLayout.get_grub_dir()):
+#     if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
 #         raise BbkiSystemError("bootloader is not installed")
 
 #     if value:
