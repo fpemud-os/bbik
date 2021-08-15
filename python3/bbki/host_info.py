@@ -30,7 +30,7 @@ from .util import Util
 
 class HostInfo:
 
-    def __init__(self, arch, boot_mode, boot_disk, mount_point_list, aux_os_list=[], aux_kernel_init_cmdline=""):
+    def __init__(self, arch, boot_mode, mount_point_list=[], boot_disk=None, aux_os_list=[], aux_kernel_init_cmdline=""):
         self.arch = None
         self.boot_mode = None
         self.boot_disk = None
@@ -56,32 +56,35 @@ class HostInfo:
             self.boot_mode = boot_mode
 
         # self.boot_disk
-        self.boot_disk = boot_disk
 
         # self.mount_point_list
-        if mount_point_list is not None:
+        if len(mount_point_list) > 0:
             if boot_mode == Bbki.BOOT_MODE_EFI:
                 assert len(mount_point_list) >= 2
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
-                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(self.boot_disk)
+                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT and mount_point_list[1].dev_uuid == Util.getBlkDevUuid(boot_disk)
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
             elif boot_mode == Bbki.BOOT_MODE_BIOS:
                 assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
                 assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0
-                assert self.boot_disk is not None
+                assert boot_disk is not None
             else:
                 assert False
-            self.mount_point_list = mount_point_list
         else:
-            assert self.boot_disk is None
+            assert boot_disk is None
+        self.mount_point_list = mount_point_list
+        self.boot_disk = boot_disk
 
         # self.aux_os_list
+        assert len(aux_os_list) >= 0
         self.aux_os_list = aux_os_list
 
-        # self.custom_kernel_init_cmdline
+        # self.aux_kernel_init_cmdline
+        assert isinstance(aux_kernel_init_cmdline, str)
         self.aux_kernel_init_cmdline = aux_kernel_init_cmdline
+
 
 class HostMountPoint:
 

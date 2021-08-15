@@ -31,6 +31,11 @@ class Cleaner:
         self._bbki = bbki
         self._bPretend = pretend
 
+
+
+
+
+
     def clean_boot_dir(self):
         hdir = self._bbki._fsLayout.get_boot_history_dir()
         if not os.path.exists(hdir):
@@ -97,35 +102,6 @@ class Cleaner:
 
 
 
-
-class KernelCleaner:
-
-    def __init__(self):
-        pass
-
-    def get_files(self):
-
-
-
-        if os.path.exists(self.historyDir):
-            ret = []
-            for fn in os.listdir(self.historyDir):
-                ret.append(os.path.join(self.historyDir, fn))
-            return ret
-        else:
-            return []
-
-
-def _generateKernelCfgRulesFile(filename, *kargs):
-    with open(filename, "w") as f:
-        for kcfgRulesMap in kargs:
-            for name, buf in kcfgRulesMap.items():
-                f.write("## %s ######################\n" % (name))
-                f.write("\n")
-                f.write(buf)
-                f.write("\n")
-                f.write("\n")
-                f.write("\n")
 
 
 
