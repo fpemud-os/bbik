@@ -28,14 +28,17 @@ import shutil
 import inspect
 import urllib.parse
 import robust_layer.simple_git
-from . import Bbki
-from . import RepoError
 from .util import Util
 from .util import TempChdir
+from .static import KernelType
 from .boot_entry import BootEntry
+from .exception import RepoError
 
 
 class Repo:
+
+    ATOM_TYPE_KERNEL = 1
+    ATOM_TYPE_KERNEL_ADDON = 2
 
     def __init__(self, bbki, path):
         self._bbki = bbki
@@ -70,19 +73,19 @@ class Repo:
 
     def query_atom_type_name(self):
         ret = []
-        for kernel_type in [Bbki.KERNEL_TYPE_LINUX]:
+        for kernel_type in [KernelType.LINUX]:
             kernelDir = os.path.join(self._path, kernel_type)
             if os.path.exists(kernelDir):
                 for fn in os.listdir(kernelDir):
-                    ret.append(Bbki.ATOM_TYPE_KERNEL, fn)
+                    ret.append(self.ATOM_TYPE_KERNEL, fn)
             kernelAddonDir = os.path.join(self._path, kernel_type + "-addon")
             if os.path.exists(kernelAddonDir):
                 for fn in os.listdir(kernelAddonDir):
-                    ret.append(Bbki.ATOM_TYPE_KERNEL_ADDON, fn)
+                    ret.append(self.ATOM_TYPE_KERNEL_ADDON, fn)
         return ret
 
     def get_items_by_type_name(self, atom_type, item_name):
-        assert atom_type in [Bbki.ATOM_TYPE_KERNEL, Bbki.ATOM_TYPE_KERNEL_ADDON]
+        assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []
         dirpath = os.path.join(self._path, _format_catdir(atom_type, self._bbki.kernel_type), item_name)
@@ -307,7 +310,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_build(self):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -324,7 +327,7 @@ class BbkiFileExecutor:
         else:
             # default action
             with TempChdir(self._trWorkDir):
-                if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
+                if self._item.kernel_type == KernelType.LINUX:
                     optList = []
                     optList.append("CFLAGS=\"-Wno-error\"")
                     optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
@@ -334,7 +337,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_install(self):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -351,7 +354,7 @@ class BbkiFileExecutor:
         else:
             # default action
             with TempChdir(self._trWorkDir):
-                if self._item.kernel_type == Bbki.KERNEL_TYPE_LINUX:
+                if self._item.kernel_type == KernelType.LINUX:
                     bootEntry = BootEntry.new_from_kernel_srcdir("native", self._trWorkDir)
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_file)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
@@ -360,7 +363,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_addon_patch_kernel(self, kernel_item):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -381,7 +384,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_contribute_config_rules(self, kernel_item):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -402,7 +405,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_build(self, kernel_item):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -423,7 +426,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_install(self, kernel_item):
-        if self._item.atom_type != Bbki.ATOM_TYPE_KERNEL_ADDON:
+        if self._item.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -440,9 +443,9 @@ class BbkiFileExecutor:
 
 
 def _format_catdir(atom_type, kernel_type):
-    if atom_type == Bbki.ATOM_TYPE_KERNEL:
+    if atom_type == Repo.ATOM_TYPE_KERNEL:
         return kernel_type
-    elif atom_type == Bbki.ATOM_TYPE_KERNEL_ADDON:
+    elif atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
         return kernel_type + "-addon"
     else:
         assert False
@@ -450,9 +453,9 @@ def _format_catdir(atom_type, kernel_type):
 
 def _parse_catdir(catdir):
     if not catdir.endswith("-addon"):
-        return (Bbki.ATOM_TYPE_KERNEL, catdir)
+        return (Repo.ATOM_TYPE_KERNEL, catdir)
     else:
-        return (Bbki.ATOM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
+        return (Repo.ATOM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
 
 
 def _parse_bbki_filename(filename):

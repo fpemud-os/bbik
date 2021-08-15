@@ -24,33 +24,32 @@
 import os
 import glob
 import robust_layer.simple_fops
+
+from .static import KernelType
+from .static import SystemBootMode
+from .static import RescueOsSpec
+from .repo import Repo
+from .boot_entry import BootEntry
+from .kernel import KernelInstaller
+from .exception import RunningEnvironmentError
+
 from .util import Util
 from .fs_layout import FsLayout
-from .repo import Repo
 from .repo import BbkiFileExecutor
-from .boot_entry import BootEntry
 from .boot_entry import BootEntryUtils
-from .kernel import BootEntryWrapper, KernelInstaller
+from .kernel import BootEntryWrapper
 from .initramfs import InitramfsInstaller
 from .bootloader import BootLoaderGrub
 
 
 class Bbki:
 
-    KERNEL_TYPE_LINUX = "linux"
-
-    BOOT_MODE_EFI = "efi"
-    BOOT_MODE_BIOS = "bios"
-
-    ATOM_TYPE_KERNEL = 1
-    ATOM_TYPE_KERNEL_ADDON = 2
-
     def __init__(self, target_host_info, target_host_is_myself=True, cfg=None):
         self._targetHostInfo = target_host_info
         self._bForSelf = target_host_is_myself
         self._cfg = cfg
 
-        if self._cfg.get_kernel_type() == self.KERNEL_TYPE_LINUX:
+        if self._cfg.get_kernel_type() == KernelType.LINUX:
             self._fsLayout = FsLayout(self)
         else:
             assert False
@@ -105,7 +104,7 @@ class Bbki:
         return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
 
     def get_kernel_atom(self):
-        items = self._repoList[0].get_items_by_type_name(self.ATOM_TYPE_KERNEL, self._cfg.get_kernel_type())
+        items = self._repoList[0].get_items_by_type_name(Repo.ATOM_TYPE_KERNEL, self._cfg.get_kernel_type())
         items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
         if len(items) > 0:
             return items[-1]
@@ -115,7 +114,7 @@ class Bbki:
     def get_kernel_addon_atoms(self):
         ret = []
         for name in self._cfg.get_kernel_addon_names():
-            items = self._repoList[0].get_items_by_type_name(self.ATOM_TYPE_KERNEL_ADDON, name)
+            items = self._repoList[0].get_items_by_type_name(Repo.ATOM_TYPE_KERNEL_ADDON, name)
             items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                # filter by bbki-config
             if len(items) > 0:
                 ret.append(items[-1])
@@ -125,8 +124,8 @@ class Bbki:
         BbkiFileExecutor(atom).exec_fetch()
 
     def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
-        assert kernel_atom.atom_type == self.ATOM_TYPE_KERNEL
-        assert all([x.atom_type == self.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
+        assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
+        assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
@@ -168,9 +167,9 @@ class Bbki:
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
             tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                              # don't delete /boot/grub
-            if self._targetHostInfo.boot_mode == self.BOOT_MODE_EFI:
+            if self._targetHostInfo.boot_mode == SystemBootMode.EFI:
                 tset.discard(self._bbki._fsLayout.get_boot_grub_efi_dir())                                      # don't delete /boot/EFI
-            elif self._targetHostInfo.boot_mode == self.BOOT_MODE_BIOS:
+            elif self._targetHostInfo.boot_mode == SystemBootMode.BIOS:
                 pass
             else:
                 assert False
@@ -257,25 +256,3 @@ class Bbki:
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
-
-
-class SystemInitInfo:
-
-    SYSTEM_INIT_SYSVINIT = "sysv-init"
-    SYSTEM_INIT_OPENRC = "openrc"
-    SYSTEM_INIT_SYSTEMD = "systemd"
-    SYSTEM_INIT_CUSTOM = "custom"
-
-    def __init__(self, name, init_cmd):
-        assert name in [self.SYSTEM_INIT_SYSVINIT, self.SYSTEM_INIT_OPENRC, self.SYSTEM_INIT_SYSTEMD, self.SYSTEM_INIT_CUSTOM]
-        self.name = name
-        self.init_cmd = init_cmd
-
-
-class RescueOsSpec:
-
-    def __init__(self, bbki):
-        self.root_dir = bbki.fsLayout.get_rescue_os_dir()
-        self.kernel_filepath = bbki.fsLayout.get_boot_rescue_os_kernel_filepath()
-        self.initrd_filepath = bbki.fsLayout.get_boot_rescue_os_initrd_filepath()
-

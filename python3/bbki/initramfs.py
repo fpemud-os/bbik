@@ -34,15 +34,15 @@ from ordered_set import OrderedSet
 from .bbki import InitramfsInstallError
 from .util import Util
 from .util import TempChdir
-from .host_info import HostMountPoint
-from .host_info import HostDiskLvmLv
-from .host_info import HostDiskBcache
-from .host_info import HostDiskNvmeDisk
-from .host_info import HostDiskScsiDisk
-from .host_info import HostDiskXenDisk
-from .host_info import HostDiskVirtioDisk
-from .host_info import HostDiskPartition
-from .host_info import HostInfoUtil
+from .static import HostMountPoint
+from .static import HostDiskLvmLv
+from .static import HostDiskBcache
+from .static import HostDiskNvmeDisk
+from .static import HostDiskScsiDisk
+from .static import HostDiskXenDisk
+from .static import HostDiskVirtioDisk
+from .static import HostDiskPartition
+from .static import HostInfoUtil
 from .kernel import BootEntryWrapper
 
 

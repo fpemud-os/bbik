@@ -33,20 +33,23 @@ __version__ = "0.0.1"
 
 
 from .bbki import Bbki
-from .bbki import SystemInitInfo
-from .bbki import RescueOsSpec
 
-from .host_info import HostInfo
-from .host_info import HostMountPoint
-from .host_info import HostDisk
-from .host_info import HostDiskLvmLv
-from .host_info import HostDiskBcache
-from .host_info import HostDiskScsiDisk
-from .host_info import HostDiskNvmeDisk
-from .host_info import HostDiskXenDisk
-from .host_info import HostDiskVirtioDisk
-from .host_info import HostDiskPartition
-from .host_info import HostAuxOs
+from .static import KernelType
+from .static import SystemBootMode
+from .static import SystemInit
+from .static import SystemInitInfo
+from .static import RescueOsSpec
+from .static import HostInfo
+from .static import HostMountPoint
+from .static import HostDisk
+from .static import HostDiskLvmLv
+from .static import HostDiskBcache
+from .static import HostDiskScsiDisk
+from .static import HostDiskNvmeDisk
+from .static import HostDiskXenDisk
+from .static import HostDiskVirtioDisk
+from .static import HostDiskPartition
+from .static import HostAuxOs
 
 from .config import Config
 from .config import EtcDirConfig

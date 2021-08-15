@@ -24,10 +24,11 @@
 import os
 import re
 import configparser
-from .bbki import Bbki
-from .bbki import SystemInitInfo
-from .bbki import ConfigError
 from .util import Util
+from .static import KernelType
+from .static import SystemInit
+from .static import SystemInitInfo
+from .exception import ConfigError
 
 
 class Config:
@@ -133,7 +134,7 @@ class EtcDirConfig(Config):
 
         if self._tKernelType is None:
             raise ConfigError("no kernel type specified")
-        if self._tKernelType not in [Bbki.KERNEL_TYPE_LINUX]:
+        if self._tKernelType not in [KernelType.LINUX]:
             raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
         return self._tKernelType
 
@@ -149,23 +150,23 @@ class EtcDirConfig(Config):
 
         if self._tOptions["system"]["init"] == "auto-detect":
             if os.path.exists("/sbin/openrc-init"):
-                return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+                return SystemInitInfo(SystemInit.OPENRC, "/sbin/openrc-init")
             if os.path.exists("/usr/lib/systemd/systemd"):
-                return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+                return SystemInitInfo(SystemInit.SYSTEMD, "/usr/lib/systemd/systemd")
             else:
                 raise ConfigError("auto detect system init failed")
 
-        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_SYSVINIT:
-            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSVINIT, "")
+        if self._tOptions["system"]["init"] == SystemInit.SYSVINIT:
+            return SystemInitInfo(SystemInit.SYSVINIT, "")
 
-        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_OPENRC:
-            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_OPENRC, "/sbin/openrc-init")
+        if self._tOptions["system"]["init"] == SystemInit.OPENRC:
+            return SystemInitInfo(SystemInit.OPENRC, "/sbin/openrc-init")
 
-        if self._tOptions["system"]["init"] == SystemInitInfo.SYSTEM_INIT_SYSTEMD:
-            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_SYSTEMD, "/usr/lib/systemd/systemd")
+        if self._tOptions["system"]["init"] == SystemInit.SYSTEMD:
+            return SystemInitInfo(SystemInit.SYSTEMD, "/usr/lib/systemd/systemd")
 
         if self._tOptions["system"]["init"].startswith("/"):
-            return SystemInitInfo(SystemInitInfo.SYSTEM_INIT_CUSTOM, self._tOptions["system"]["init"])
+            return SystemInitInfo(SystemInit.CUSTOM, self._tOptions["system"]["init"])
 
         raise ConfigError("invalid system init configuration")
 
