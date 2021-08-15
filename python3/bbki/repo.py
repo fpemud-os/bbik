@@ -88,7 +88,7 @@ class Repo:
         assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []
-        dirpath = os.path.join(self._path, _format_catdir(atom_type, self._bbki.kernel_type), item_name)
+        dirpath = os.path.join(self._path, _format_catdir(atom_type, self._bbki.config.get_kernel_type()), item_name)
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
             ret.append(RepoAtom.new_by_bbki_filepath(fullfn))
         return ret
