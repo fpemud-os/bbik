@@ -355,7 +355,7 @@ class BbkiFileExecutor:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == KernelType.LINUX:
-                    bootEntry = BootEntry.new_from_kernel_srcdir("native", self._trWorkDir)
+                    bootEntry = BootEntry.new_from_kernel_srcdir(self._bbki, "native", self._trWorkDir)
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_file)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME

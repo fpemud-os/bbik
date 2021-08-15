@@ -78,7 +78,7 @@ class Bbki:
 
         if not Util.cmdCallTestSuccess("sed", "--version"):
             raise RunningEnvironmentError("executable \"sed\" does not exist")
-        if not Util.cmdCallTestSuccess("make", "-V"):
+        if not Util.cmdCallTestSuccess("make", "-v"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
@@ -88,7 +88,7 @@ class Bbki:
             return None
 
         for bHistoryEntry in [False, True]:
-            ret = BootEntry.new_from_verstr(self._bbki, "native", os.uname().release, history_entry=bHistoryEntry)
+            ret = BootEntry.new_from_verstr(self, "native", os.uname().release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
         return None

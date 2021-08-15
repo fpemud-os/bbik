@@ -55,7 +55,7 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].remove_tmpdirs()
 
     def get_target_boot_entry(self):
-        return BootEntry.new_from_verstr("native", self._kernelAtom.verstr)
+        return BootEntry.new_from_verstr(self._bbki, "native", self._kernelAtom.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelAtom].src_unpack()
