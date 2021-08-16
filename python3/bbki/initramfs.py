@@ -59,6 +59,8 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
+        if self._targetHostInfo.mount_point_list is None:
+            raise InitramfsInstallError("no boot/root device specified")
         if HostInfoUtil.getMountPoint(self._bbki._hostInfo, HostMountPoint.NAME_ROOT) is None:
             raise InitramfsInstallError("mount information for root filesystem is not specified")
 

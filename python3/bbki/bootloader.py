@@ -58,6 +58,9 @@ class BootLoaderGrub:
             return None
 
     def install(self):
+        if self._targetHostInfo.mount_point_list is None:
+            raise BootloaderInstallError("no boot/root device specified")
+
         if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiInstall()
         elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
@@ -66,6 +69,9 @@ class BootLoaderGrub:
             assert False
 
     def remove(self):
+        if self._targetHostInfo.mount_point_list is None:
+            raise BootloaderInstallError("no boot/root device specified")
+
         if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiRemove()
         elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
@@ -74,6 +80,9 @@ class BootLoaderGrub:
             assert False
 
     def update(self):
+        if self._targetHostInfo.mount_point_list is None:
+            raise BootloaderInstallError("no boot/root device specified")
+
         self.__genGrubCfg()
 
     def _uefiInstall(self):
