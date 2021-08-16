@@ -58,9 +58,7 @@ class BootLoaderGrub:
             return None
 
     def install(self):
-        if self._targetHostInfo.mount_point_list is None:
-            raise BootloaderInstallError("no boot/root device specified")
-
+        self._checkEnv()
         if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiInstall()
         elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
@@ -69,9 +67,7 @@ class BootLoaderGrub:
             assert False
 
     def remove(self):
-        if self._targetHostInfo.mount_point_list is None:
-            raise BootloaderInstallError("no boot/root device specified")
-
+        self._checkEnv()
         if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiRemove()
         elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
@@ -80,10 +76,14 @@ class BootLoaderGrub:
             assert False
 
     def update(self):
+        self._checkEnv()
+        self._genGrubCfg()
+
+    def _checkEnv(self):
+        if self._targetHostInfo.boot_mode is None:
+            raise BootloaderInstallError("boot mode unspecified")
         if self._targetHostInfo.mount_point_list is None:
             raise BootloaderInstallError("no boot/root device specified")
-
-        self.__genGrubCfg()
 
     def _uefiInstall(self):
         # remove old directory
@@ -96,7 +96,7 @@ class BootLoaderGrub:
         Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
 
         # generate grub.cfg
-        self.__genGrubCfg()
+        self._genGrubCfg()
 
     def _uefiRemove(self):
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
@@ -112,7 +112,7 @@ class BootLoaderGrub:
         Util.cmdCall("grub-install", "--target=i386-pc", bootDisk)
 
         # generate grub.cfg
-        self.__genGrubCfg()
+        self._genGrubCfg()
 
     def _biosRemove(self):
         # remove MBR
@@ -123,7 +123,7 @@ class BootLoaderGrub:
         # remove /boot/grub directory
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
-    def __genGrubCfg(self):
+    def _genGrubCfg(self):
         buf = ''
         if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
             grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT

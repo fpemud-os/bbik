@@ -64,7 +64,7 @@ class RescueOsSpec:
 
 class HostInfo:
 
-    def __init__(self, arch, boot_mode, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+    def __init__(self, arch, boot_mode=None, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
         self.arch = None
         self.boot_mode = None
         self.mount_point_list = None
@@ -78,14 +78,17 @@ class HostInfo:
         self.arch = arch
 
         # self.boot_mode
-        if boot_mode == "native":
+        if boot_mode is None:
+            pass
+        elif boot_mode == "native":
             if Util.isEfi():
                 self.boot_mode = BootMode.EFI
             else:
                 self.boot_mode = BootMode.BIOS
-        else:
-            assert boot_mode in [BootMode.EFI, BootMode.BIOS]
+        elif boot_mode in [BootMode.EFI, BootMode.BIOS]:
             self.boot_mode = boot_mode
+        else:
+            assert False
 
         # self.mount_point_list
         if mount_point_list is not None:

@@ -147,6 +147,11 @@ class Bbki:
         assert False
 
     def clean_boot_entries(self, pretend=False):
+        if self._targetHostInfo.boot_mode is None:
+            for d in [self._bbki._fsLayout.get_boot_grub_dir(), self._bbki._fsLayout.get_boot_grub_efi_dir()]:
+                if os.path.exists(d):
+                    raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
+
         currentBe = self.get_current_boot_entry()
         pendingBe = self.get_pending_boot_entry()
 
@@ -154,11 +159,13 @@ class Bbki:
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
-            tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                              # don't delete /boot/grub
+            if self._targetHostInfo.boot_mode is None:
+                pass
             if self._targetHostInfo.boot_mode == BootMode.EFI:
+                tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                          # don't delete /boot/grub
                 tset.discard(self._bbki._fsLayout.get_boot_grub_efi_dir())                                      # don't delete /boot/EFI
             elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-                pass
+                tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                          # don't delete /boot/grub
             else:
                 assert False
             tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
