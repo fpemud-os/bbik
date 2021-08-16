@@ -46,7 +46,7 @@ class BootLoaderGrub:
             self._grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
             self._grubKernelInitCmdline = self._grubKernelInitCmdline.strip()
 
-    def is_installed(self):
+    def isInstalled(self):
         if os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
             return True
         if os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):

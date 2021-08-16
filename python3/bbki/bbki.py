@@ -147,7 +147,7 @@ class Bbki:
         assert False
 
     def clean_boot_entries(self, pretend=False):
-        if self._targetHostInfo.boot_mode is None and BootLoaderGrub(self).is_installed():
+        if self._targetHostInfo.boot_mode is None and BootLoaderGrub(self).isInstalled():
             raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
 
         currentBe = self.get_current_boot_entry()
@@ -244,7 +244,7 @@ class Bbki:
     def remove_all(self):
         # remove boot-loader (may change harddisk MBR, need valid self._targetHostInfo.boot_mode and self._targetHostInfo.mount_point_list)
         bootloader = BootLoaderGrub(self)
-        if bootloader.is_installed():
+        if bootloader.isInstalled():
             bootloader.remove()
 
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
