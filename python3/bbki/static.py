@@ -89,19 +89,7 @@ class HostInfo:
 
         # self.mount_point_list
         if mount_point_list is not None:
-            if boot_mode == BootMode.EFI:
-                assert len(mount_point_list) >= 2
-                assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
-                assert mount_point_list[1].name == HostMountPoint.NAME_BOOT
-                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
-                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
-            elif boot_mode == BootMode.BIOS:
-                assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
-                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
-                assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0
-                assert all([x.dev_path is not None for x in mount_point_list])
-            else:
-                assert False
+            self._assertMountPointListIsValid(mount_point_list)
             self.mount_point_list = mount_point_list
 
         # self.aux_os_list
@@ -111,6 +99,26 @@ class HostInfo:
         # self.aux_kernel_init_cmdline
         assert isinstance(aux_kernel_init_cmdline, str)
         self.aux_kernel_init_cmdline = aux_kernel_init_cmdline
+
+    def attach_mount_point_list(self, mount_point_list):
+        assert self.mount_point_list is None and mount_point_list is not None
+        self._assertMountPointListIsValid(mount_point_list)
+        self.mount_point_list = mount_point_list
+
+    def _assertMountPointListIsValid(self, mount_point_list):
+        if self.boot_mode == BootMode.EFI:
+            assert len(mount_point_list) >= 2
+            assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
+            assert mount_point_list[1].name == HostMountPoint.NAME_BOOT
+            assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
+            assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 1
+        elif self.boot_mode == BootMode.BIOS:
+            assert mount_point_list[0].name == HostMountPoint.NAME_ROOT
+            assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_ROOT]) == 1
+            assert len([x for x in mount_point_list if x.name == HostMountPoint.NAME_BOOT]) == 0
+            assert all([x.dev_path is not None for x in mount_point_list])
+        else:
+            assert False
 
 
 class HostMountPoint:
