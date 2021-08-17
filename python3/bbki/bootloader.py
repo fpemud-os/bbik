@@ -33,7 +33,7 @@ from .exception import BootloaderInstallError
 from .exception import RunningEnvironmentError
 
 
-class BootLoaderGrub:
+class BootLoader:
 
     def __init__(self, bbki):
         self._bbki = bbki

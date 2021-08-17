@@ -38,7 +38,7 @@ from .util import Util
 from .fs_layout import FsLayout
 from .repo import BbkiFileExecutor
 from .boot_entry import BootEntryUtils
-from .bootloader import BootLoaderGrub
+from .bootloader import BootLoader
 
 
 class Bbki:
@@ -83,11 +83,11 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
     def is_stable(self):
-        bootloader = BootLoaderGrub(self)
+        bootloader = BootLoader(self)
         return bootloader.isInstalled() and bootloader.getStableFlag()
 
     def set_stable(self, value):
-        bootloader = BootLoaderGrub(self)
+        bootloader = BootLoader(self)
         if not bootloader.isInstalled():
             raise RunningEnvironmentError("bootloader is not installed")
 
@@ -105,7 +105,7 @@ class Bbki:
         return None
 
     def get_pending_boot_entry(self, strict=True):
-        ret = BootLoaderGrub(self).getMainBootEntry()
+        ret = BootLoader(self).getMainBootEntry()
         if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
             return ret
         else:
@@ -141,21 +141,21 @@ class Bbki:
         return BootEntryInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_bootloader(self):
-        BootLoaderGrub(self).install()
+        BootLoader(self).install()
 
     def reinstall_bootloader(self):
-        obj = BootLoaderGrub(self)
+        obj = BootLoader(self)
         obj.remove()
         obj.install()
 
     def update_bootloader(self):
-        BootLoaderGrub(self).update()
+        BootLoader(self).update()
 
     def check(self, autofix=False):
         assert False
 
     def clean_boot_entries(self, pretend=False):
-        if self._targetHostInfo.boot_mode is None and BootLoaderGrub(self).isInstalled():
+        if self._targetHostInfo.boot_mode is None and BootLoader(self).isInstalled():
             raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
 
         currentBe = self.get_current_boot_entry()
@@ -251,7 +251,7 @@ class Bbki:
 
     def remove_all(self):
         # remove boot-loader (may change harddisk MBR, need valid self._targetHostInfo.boot_mode and self._targetHostInfo.mount_point_list)
-        bootloader = BootLoaderGrub(self)
+        bootloader = BootLoader(self)
         if bootloader.isInstalled():
             bootloader.remove()
 
