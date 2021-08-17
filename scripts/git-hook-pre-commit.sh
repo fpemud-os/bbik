@@ -3,7 +3,7 @@
 FILES=$(find ./python3 -name '*.py' | tr '\n' ' ')
 ERRFLAG=0
 
-OUTPUT=`pyflakes ${FILES} 2>&1`
+OUTPUT=`pyflakes ${FILES} 2>&1 | grep -v "bbki/__init__\\.py.*imported but unused"`
 if [ -n "$OUTPUT" ] ; then
     echo "pyflake errors:"
     echo "$OUTPUT"
