@@ -83,6 +83,18 @@ class Bbki:
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
+    def is_stable(self):
+        bootloader = BootLoaderGrub(self)
+        return bootloader.isInstalled() and bootloader.getStableFlag()
+
+    def set_stable(self, value):
+        bootloader = BootLoaderGrub(self)
+        if not bootloader.isInstalled():
+            raise RunningEnvironmentError("bootloader is not installed")
+
+        # we use grub environment variable to store stable status
+        bootloader.setStableFlag(value)
+
     def get_current_boot_entry(self):
         if not self._bForSelf:
             return None

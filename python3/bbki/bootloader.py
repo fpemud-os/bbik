@@ -30,6 +30,7 @@ from .static import BootMode
 from .boot_entry import BootEntry
 from .boot_entry import BootEntryUtils
 from .exception import BootloaderInstallError
+from .exception import RunningEnvironmentError
 
 
 class BootLoaderGrub:
@@ -38,6 +39,7 @@ class BootLoaderGrub:
         self._bbki = bbki
 
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grub.cfg")
+        self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grubenv")
 
         self._grubKernelInitCmdline = ""
         if True:
@@ -63,6 +65,26 @@ class BootLoaderGrub:
             return BootEntry.new_from_postfix(self._bbki, m.group(1))
         else:
             return None
+
+    def getStableFlag(self):
+        assert self.isInstalled()
+
+        out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
+        return re.search("^stable=", out, re.M) is not None
+
+    def setStableFlag(self, value):
+        assert self.isInstalled()
+        assert value is not None and isinstance(value, bool)
+
+        if not self.isInstalled():
+            raise RunningEnvironmentError("bootloader is not installed")
+
+        if value:
+            Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
+        else:
+            if not os.path.exists(self._grubEnvFile):
+                return
+            Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
     def install(self):
         self._checkEnv()
@@ -294,25 +316,3 @@ def _grubRootDevCmd(devUuid):
         return "set root=(%s)" % (devUuid)
     else:
         return "search --fs-uuid --no-floppy --set %s" % (devUuid)
-
-
-# def get_stable_flag(self):
-#     # we use grub environment variable to store stable status, our grub needs this status either
-#     if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
-#         raise BbkiSystemError("bootloader is not installed")
-
-#     out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
-#     return re.search("^stable=", out, re.M) is not None
-
-# def set_stable_flag(self, value):
-#     assert value is not None and isinstance(value, bool)
-
-#     if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
-#         raise BbkiSystemError("bootloader is not installed")
-
-#     if value:
-#         Util.cmdCall("grub-editenv", self._grubEnvFile, "set", "stable=1")
-#     else:
-#         if not os.path.exists(self._grubEnvFile):
-#             return
-#         Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
