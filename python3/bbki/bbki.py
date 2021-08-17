@@ -25,20 +25,19 @@ import os
 import glob
 import robust_layer.simple_fops
 
-from .static import KernelType
-from .static import BootMode
-from .static import RescueOsSpec
+from .po import KernelType
+from .po import BootMode
+from .po import RescueOsSpec
 from .repo import Repo
 from .boot_entry import BootEntry
-from .kernel import KernelInstaller
+from .installer import BootEntryWrapper
+from .installer import BootEntryInstaller
 from .exception import RunningEnvironmentError
 
 from .util import Util
 from .fs_layout import FsLayout
 from .repo import BbkiFileExecutor
 from .boot_entry import BootEntryUtils
-from .kernel import BootEntryWrapper
-from .initramfs import InitramfsInstaller
 from .bootloader import BootLoaderGrub
 
 
@@ -135,14 +134,11 @@ class Bbki:
     def fetch(self, atom):
         BbkiFileExecutor(atom).exec_fetch()
 
-    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
+    def get_boot_entry_installer(self, kernel_atom, kernel_addon_atom_list):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
-        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
-
-    def install_initramfs(self, boot_entry):
-        InitramfsInstaller(self, boot_entry).install()
+        return BootEntryInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_bootloader(self):
         BootLoaderGrub(self).install()

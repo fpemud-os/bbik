@@ -34,22 +34,22 @@ __version__ = "0.0.1"
 
 from .bbki import Bbki
 
-from .static import KernelType
-from .static import BootMode
-from .static import SystemInit
-from .static import SystemInitInfo
-from .static import RescueOsSpec
-from .static import HostInfo
-from .static import HostMountPoint
-from .static import HostDisk
-from .static import HostDiskLvmLv
-from .static import HostDiskBcache
-from .static import HostDiskScsiDisk
-from .static import HostDiskNvmeDisk
-from .static import HostDiskXenDisk
-from .static import HostDiskVirtioDisk
-from .static import HostDiskPartition
-from .static import HostAuxOs
+from .po import KernelType
+from .po import BootMode
+from .po import SystemInit
+from .po import SystemInitInfo
+from .po import RescueOsSpec
+from .po import HostInfo
+from .po import HostMountPoint
+from .po import HostDisk
+from .po import HostDiskLvmLv
+from .po import HostDiskBcache
+from .po import HostDiskScsiDisk
+from .po import HostDiskNvmeDisk
+from .po import HostDiskXenDisk
+from .po import HostDiskVirtioDisk
+from .po import HostDiskPartition
+from .po import HostAuxOs
 
 from .config import Config
 from .config import EtcDirConfig
@@ -59,7 +59,7 @@ from .repo import RepoAtom
 
 from .boot_entry import BootEntry
 
-from .kernel import KernelInstaller
+from .kernel import BootEntryInstaller
 
 from .exception import RunningEnvironmentError
 from .exception import ConfigError

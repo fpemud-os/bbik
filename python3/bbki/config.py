@@ -25,9 +25,9 @@ import os
 import re
 import configparser
 from .util import Util
-from .static import KernelType
-from .static import SystemInit
-from .static import SystemInitInfo
+from .po import KernelType
+from .po import SystemInit
+from .po import SystemInitInfo
 from .exception import ConfigError
 
 

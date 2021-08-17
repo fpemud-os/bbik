@@ -30,7 +30,7 @@ import urllib.parse
 import robust_layer.simple_git
 from .util import Util
 from .util import TempChdir
-from .static import KernelType
+from .po import KernelType
 from .boot_entry import BootEntry
 from .exception import RepoError
 

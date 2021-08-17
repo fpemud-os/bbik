@@ -26,7 +26,7 @@ import re
 import pathlib
 import robust_layer.simple_fops
 from .util import Util
-from .static import BootMode
+from .po import BootMode
 from .boot_entry import BootEntry
 from .boot_entry import BootEntryUtils
 from .exception import BootloaderInstallError
@@ -316,3 +316,13 @@ def _grubRootDevCmd(devUuid):
         return "set root=(%s)" % (devUuid)
     else:
         return "search --fs-uuid --no-floppy --set %s" % (devUuid)
+
+
+# def _getBackgroundFileInfo(self):
+#     for fn in glob.glob("/boot/background.*"):
+#         fn = fn.replace("/boot", "")
+#         if fn.endswith(".png"):
+#             return (fn, "png")
+#         elif fn.endswith(".jpg"):
+#             return (fn, "jpg")
+#     return None
