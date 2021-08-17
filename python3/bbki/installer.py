@@ -44,7 +44,7 @@ from .po import HostDiskXenDisk
 from .po import HostDiskVirtioDisk
 from .po import HostDiskPartition
 from .po import HostInfoUtil
-from .boot_entry import BootEntry
+from .boot_entry import BootEntry, BootEntryUtils
 from .repo import BbkiFileExecutor
 from .exception import InitramfsInstallError
 
@@ -196,6 +196,13 @@ class BootEntryInstaller:
 
     def install_initramfs(self):
         InitramfsInstaller(self._bbki, self.get_target_boot_entry()).install()
+
+    def clean_historical_boot_entries(self):
+        os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+        for be in BootEntryUtils.getBootEntryList():
+            if be != self.get_target_boot_entry():
+                for fullfn in BootEntryUtils.getBootEntryFilePathList:
+                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
 
 class InitramfsInstaller:
