@@ -37,7 +37,6 @@ from .util import Util
 from .fs_layout import FsLayout
 from .repo import BbkiFileExecutor
 from .kernel import BootEntryWrapper
-from .boot_entry import BootEntryUtils
 from .bootloader import BootLoader
 
 
