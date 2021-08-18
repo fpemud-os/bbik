@@ -41,7 +41,6 @@ from .po import HostDiskScsiDisk
 from .po import HostDiskXenDisk
 from .po import HostDiskVirtioDisk
 from .po import HostDiskPartition
-from .po import HostInfoUtil
 from .kernel import BootEntryWrapper
 from .exception import InitramfsInstallError
 
@@ -60,12 +59,6 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
-        if self._targetHostInfo is None:
-            raise ValueError("target host information unspecified")
-        if self._targetHostInfo.mount_point_list is None:
-            raise ValueError("target host mount point information unspecified")
-        if HostInfoUtil.getMountPoint(self._targetHostInfo, HostMountPoint.NAME_ROOT) is None:
-            raise ValueError("target host root filesystem mount information unspecified")
 
         # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)

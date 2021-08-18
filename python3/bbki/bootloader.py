@@ -128,13 +128,6 @@ class BootLoader:
 
     def _initEnv(self, targetHostInfo):
         self._targetHostInfo = targetHostInfo
-        if self._targetHostInfo is None:
-            raise ValueError("target host information unspecified")
-        if self._targetHostInfo.boot_mode is None:
-            raise ValueError("target host boot mode information unspecified")
-        if self._targetHostInfo.mount_point_list is None:
-            raise ValueError("target host mount point information unspecified")
-
         self._grubKernelInitCmdline = ""
         if True:
             self._grubKernelInitCmdline += " console=ttynull"                                               # global data: only use console when debug boot process
