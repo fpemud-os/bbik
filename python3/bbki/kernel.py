@@ -180,16 +180,6 @@ class BootEntryInstaller:
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
 
-    def install_initramfs(self):
-        InitramfsInstaller(self._bbki, self.get_target_boot_entry()).install()
-
-    def clean_historical_boot_entries(self):
-        os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-        for be in BootEntryUtils.getBootEntryList():
-            if be != self.get_target_boot_entry():
-                for fullfn in BootEntryUtils.getBootEntryFilePathList:
-                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
-
 
 class BootEntryWrapper:
 

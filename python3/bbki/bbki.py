@@ -23,6 +23,7 @@
 
 import os
 import glob
+import shutil
 import robust_layer.simple_fops
 
 from .po import KernelType
@@ -30,8 +31,8 @@ from .po import BootMode
 from .po import RescueOsSpec
 from .repo import Repo
 from .boot_entry import BootEntry
-from .installer import BootEntryWrapper
-from .installer import BootEntryInstaller
+from .kernel import BootEntryWrapper
+from .kernel import BootEntryInstaller
 from .exception import RunningEnvironmentError
 
 from .util import Util
@@ -75,8 +76,6 @@ class Bbki:
         if not os.path.isdir(self._fsLayout.get_lib_dir()):
             raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_lib_dir()))
 
-        if not Util.cmdCallTestSuccess("sed", "--version"):
-            raise RunningEnvironmentError("executable \"sed\" does not exist")
         if not Util.cmdCallTestSuccess("make", "-v"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
@@ -104,12 +103,21 @@ class Bbki:
                 return ret
         return None
 
-    def get_pending_boot_entry(self, strict=True):
+    def get_pending_boot_entry(self):
         ret = BootLoader(self).getMainBootEntry()
-        if ret is not None and (not strict or (ret.has_kernel_files() and ret.has_initrd_files())):
+        if ret is not None:
+            if not ret.has_kernel_files() or not ret.has_initrd_files():
+                raise RunningEnvironmentError("invalid pending boot entry")
             return ret
-        else:
-            return None
+
+        if not self._bForSelf:
+            tlist = BootEntryUtils.getBootEntryList()
+            if len(tlist) > 0:
+                if len(tlist) > 1:
+                    raise RunningEnvironmentError("multiple pending boot entries")
+                return tlist[-1]
+
+        return None
 
     def has_rescue_os(self):
         return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
@@ -134,11 +142,14 @@ class Bbki:
     def fetch(self, atom):
         BbkiFileExecutor(atom).exec_fetch()
 
-    def get_boot_entry_installer(self, kernel_atom, kernel_addon_atom_list):
+    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
         return BootEntryInstaller(self, kernel_atom, kernel_addon_atom_list)
+
+    def install_initramfs(self, boot_entry):
+        InitramfsInstaller(self, boot_entry).install()
 
     def install_bootloader(self):
         BootLoader(self).install()
@@ -154,7 +165,16 @@ class Bbki:
     def check(self, autofix=False):
         assert False
 
-    def clean_boot_entries(self, pretend=False):
+    def clean_boot_entries(self):
+        pendingBe = self.get_pending_boot_entry()
+
+        os.makedirs(self._fsLayout.get_boot_history_dir(), exist_ok=True)
+        for be in BootEntryUtils(self).getBootEntryList():
+            if be != pendingBe:
+                for fullfn in BootEntryUtils(self).getBootEntryFilePathList:
+                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+
+    def clean_boot_dir(self, pretend=False):
         if self._targetHostInfo.boot_mode is None and BootLoader(self).isInstalled():
             raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
 
