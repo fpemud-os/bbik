@@ -33,6 +33,15 @@ from .boot_entry import BootEntry
 from .repo import BbkiFileExecutor
 
 
+STEP_INIT = 1
+STEP_UNPACKED = 2
+STEP_PACHED = 3
+STEP_KERNEL_CONFIG_FILE_GENERATED = 4
+STEP_KERNEL_BUILT = 5
+STEP_KERNEL_INSTALLED = 5
+STEP_OLD_BOOT_ENTRIES_RETIRED = 5
+
+
 class KernelInstaller:
 
     def __init__(self, bbki, target_host_info, kernel_atom, kernel_atom_item_list):
@@ -47,6 +56,8 @@ class KernelInstaller:
         for item in kernel_atom_item_list:
             self._executorDict[item] = BbkiFileExecutor(item)
 
+        self._step = None
+
         # create tmpdirs
         self._executorDict[self._kernelAtom].create_tmpdirs()
         for item in self._addonAtomList:
@@ -60,6 +71,15 @@ class KernelInstaller:
     def get_target_boot_entry(self):
         return BootEntry.new_from_verstr(self._bbki, self._targetHostInfo.arch, self._kernelAtom.verstr)
 
+    def get_kernel_config_file_content(self):
+        pass
+
+    def get_kernel_config_rules_file_content(self):
+        pass
+
+    def get_signature(self):
+        assert False
+
     def unpack(self):
         self._executorDict[self._kernelAtom].src_unpack()
         for item in self._addonAtomList:
@@ -69,7 +89,7 @@ class KernelInstaller:
         for addon_item in self._addonAtomList:
             self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom)
 
-    def generate_kernel_dotcfg(self):
+    def generate_kernel_config_file(self):
         rulesDict = dict()
         workDir = self._executorDict[self._kernelAtom].get_workdir()
         kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
@@ -169,12 +189,12 @@ class KernelInstaller:
         with TempChdir(workDir):
             Util.shellCall("make olddefconfig")
 
-    def build_kernel(self):
+    def build(self):
         self._executorDict[self._kernelAtom].exec_kernel_build()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_build()
 
-    def install_kernel(self):
+    def install(self):
         self._executorDict[self._kernelAtom].exec_kernel_install()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
@@ -182,7 +202,7 @@ class KernelInstaller:
     def retire_old_boot_entries(self):
         targetBe = self.get_target_boot_entry()
 
-        os.makedirs(self._fsLayout.get_boot_history_dir(), exist_ok=True)
+        os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
         for be in BootEntryUtils(self).getBootEntryList():
             if be != targetBe:
                 for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
