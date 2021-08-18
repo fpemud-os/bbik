@@ -49,11 +49,21 @@ class BootLoader:
             self._grubKernelInitCmdline = self._grubKernelInitCmdline.strip()
 
     def isInstalled(self):
-        if os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
-            return True
-        if os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
-            return True
-        return False
+        return len(self.getFiles()) > 0
+
+    def getFiles(self):
+        grubDir = self._bbki._fsLayout.get_boot_grub_dir()
+        efiDir = self._bbki._fsLayout.get_boot_grub_efi_dir()
+        ret = []
+        if os.path.exists():
+            ret.append(os.path.join(grubDir, "***"))
+            if os.path.exists(os.path.join(grubDir, "i386-pc")):
+                pass
+            elif os.path.exists(os.path.join(grubDir, "x86_64-efi")):
+                ret.append(os.path.join(efiDir, "***"))
+            else:
+                raise RunningEnvironmentError("invalid bootloader")
+        return ret
 
     def getMainBootEntry(self):
         if not os.path.exists(self._grubCfgFile):

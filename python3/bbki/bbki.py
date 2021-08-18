@@ -27,7 +27,6 @@ import shutil
 import robust_layer.simple_fops
 
 from .po import KernelType
-from .po import BootMode
 from .po import RescueOsSpec
 from .repo import Repo
 from .boot_entry import BootEntry
@@ -78,6 +77,8 @@ class Bbki:
 
         if not Util.cmdCallTestSuccess("make", "-v"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
+        if not Util.cmdCallTestSuccess("grubenv", "-V"):
+            raise RunningEnvironmentError("executable \"grubenv\" does not exist")
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
@@ -94,14 +95,13 @@ class Bbki:
         bootloader.setStableFlag(value)
 
     def get_current_boot_entry(self):
-        if not self._bForSelf:
-            return None
+        assert self._bForSelf
 
         for bHistoryEntry in [False, True]:
             ret = BootEntry.new_from_verstr(self, "native", os.uname().release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
-        return None
+        raise RunningEnvironmentError("current boot entry has been lost")
 
     def get_pending_boot_entry(self):
         ret = BootLoader(self).getMainBootEntry()
@@ -178,23 +178,20 @@ class Bbki:
         if self._targetHostInfo.boot_mode is None and BootLoader(self).isInstalled():
             raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
 
-        currentBe = self.get_current_boot_entry()
+        currentBe = self.get_current_boot_entry() if self._bForSelf else None
         pendingBe = self.get_pending_boot_entry()
 
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
-            if self._targetHostInfo.boot_mode is None:
-                pass
-            if self._targetHostInfo.boot_mode == BootMode.EFI:
-                tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                          # don't delete /boot/grub
-                tset.discard(self._bbki._fsLayout.get_boot_grub_efi_dir())                                      # don't delete /boot/EFI
-            elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-                tset.discard(self._bbki._fsLayout.get_boot_grub_dir())                                          # don't delete /boot/grub
-            else:
-                assert False
-            tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
+            if True:
+                ret = [x.replace("/***", "") for x in BootLoader(self).getFiles()]
+                assert all([ret.startswith("/boot") for x in ret])
+                assert all([ret.count("/") <= 2 for x in ret])
+                tset -= set(ret)                                                                                # don't delete boot-loader files
+            if True:
+                tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                     # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():
                     tset.discard(self._bbki._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
