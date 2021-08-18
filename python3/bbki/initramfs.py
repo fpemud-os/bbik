@@ -42,7 +42,7 @@ from .po import HostDiskXenDisk
 from .po import HostDiskVirtioDisk
 from .po import HostDiskPartition
 from .po import HostInfoUtil
-from .installer import BootEntryWrapper
+from .kernel import BootEntryWrapper
 from .exception import InitramfsInstallError
 
 
