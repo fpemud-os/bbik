@@ -24,6 +24,7 @@
 import os
 import re
 import kmod
+import shutil
 import pylkcutil
 import pkg_resources
 from .util import Util
@@ -177,6 +178,42 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].exec_kernel_install()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
+
+    def retire_old_boot_entries(self):
+        targetBe = self.get_target_boot_entry()
+
+        os.makedirs(self._fsLayout.get_boot_history_dir(), exist_ok=True)
+        for be in BootEntryUtils(self).getBootEntryList():
+            if be != targetBe:
+                for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
+                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+
+
+class BootEntryUtils:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+
+    def getBootEntryList(self, history_entry=False):
+        if not history_entry:
+            dirpath = self._bbki._fsLayout.get_boot_dir()
+        else:
+            dirpath = self._bbki._fsLayout.get_boot_history_dir()
+
+        ret = []
+        for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+            if kernelFile.startswith("kernel-"):
+                ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
+        return ret
+
+    def getBootEntryFilePathList(self, bootEntry):
+        return [
+            bootEntry.kernel_filepath,
+            bootEntry.kernel_config_filepath,
+            bootEntry.kernel_config_rules_filepath,
+            bootEntry.initrd_filepath,
+            bootEntry.initrd_tar_filepath,
+        ]
 
 
 class BootEntryWrapper:

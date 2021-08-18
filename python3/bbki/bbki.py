@@ -23,7 +23,6 @@
 
 import os
 import glob
-import shutil
 import robust_layer.simple_fops
 
 from .po import KernelType
@@ -148,8 +147,8 @@ class Bbki:
 
         return KernelInstaller(self, target_host_info, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, target_host_info, boot_entry):
-        InitramfsInstaller(self, target_host_info, boot_entry).install()
+    def install_initramfs(self, target_host_info):
+        InitramfsInstaller(self, target_host_info, self.get_pending_boot_entry()).install()
 
     def install_bootloader(self, target_host_info):
         BootLoader(self).install(target_host_info)
@@ -161,15 +160,6 @@ class Bbki:
 
     def update_bootloader(self, target_host_info):
         BootLoader(self).update(target_host_info)
-
-    def tidy_boot_entries(self):
-        pendingBe = self.get_pending_boot_entry()
-
-        os.makedirs(self._fsLayout.get_boot_history_dir(), exist_ok=True)
-        for be in BootEntryUtils(self).getBootEntryList():
-            if be != pendingBe:
-                for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
-                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None

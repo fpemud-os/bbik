@@ -29,7 +29,7 @@ import robust_layer.simple_fops
 from .util import Util
 from .po import BootMode
 from .boot_entry import BootEntry
-from .boot_entry import BootEntryUtils
+from .kernel import BootEntryUtils
 from .exception import BootloaderInstallError
 from .exception import RunningEnvironmentError
 
