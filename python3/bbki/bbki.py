@@ -36,6 +36,7 @@ from .exception import RunningEnvironmentError
 from .util import Util
 from .fs_layout import FsLayout
 from .repo import BbkiFileExecutor
+from .kernel import BootEntryUtils
 from .kernel import BootEntryWrapper
 from .bootloader import BootLoader
 
