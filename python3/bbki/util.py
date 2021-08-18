@@ -32,6 +32,15 @@ import robust_layer.simple_fops
 class Util:
 
     @staticmethod
+    def getMountDeviceForPath(pathname):
+        buf = Util.cmdCall("/bin/mount")
+        for line in buf.split("\n"):
+            m = re.search("^(.*) on (.*) type ", line)
+            if m is not None and m.group(2) == pathname:
+                return m.group(1)
+        return None
+
+    @staticmethod
     def removeDirContent(dirPath, excludeList):
         for fn in os.listdir(dirPath):
             if fn not in excludeList:
@@ -311,6 +320,13 @@ class Util:
     @staticmethod
     def devPathPartitionToDisk(partitionDevPath):
         return Util.devPathPartitionToDiskAndPartitionId(partitionDevPath)[0]
+
+    @staticmethod
+    def devPathPartitionOrDiskToDisk(devPath):
+        if re.fullmatch(".*[0-9]$"):
+            return Util.devPathPartitionToDiskAndPartitionId(devPath)[0]
+        else:
+            return devPath
 
 
 class TempChdir:

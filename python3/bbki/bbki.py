@@ -144,41 +144,23 @@ class Bbki:
         BbkiFileExecutor(atom).exec_fetch()
 
     def get_kernel_installer(self, target_host_info, kernel_atom, kernel_addon_atom_list):
-        assert target_host_info is not None
+        assert target_host_info.arch is not None
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
         return KernelInstaller(self, target_host_info, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, target_host_info):
-        assert target_host_info is not None
         assert target_host_info.mount_point_list is not None
         assert HostInfoUtil.getMountPoint(target_host_info, HostMountPoint.NAME_ROOT) is not None
 
-        InitramfsInstaller(self, target_host_info).install()
+        InitramfsInstaller(self, target_host_info, self.get_pending_boot_entry()).install()
 
     def install_bootloader(self, target_host_info):
-        assert target_host_info is not None
         assert target_host_info.boot_mode is not None
         assert target_host_info.mount_point_list is not None
 
         BootLoader(self).install(target_host_info)
-
-    def reinstall_bootloader(self, target_host_info):
-        assert target_host_info is not None
-        assert target_host_info.boot_mode is not None
-        assert target_host_info.mount_point_list is not None
-
-        obj = BootLoader(self)
-        obj.remove(target_host_info)
-        obj.install(target_host_info)
-
-    def update_bootloader(self, target_host_info):
-        assert target_host_info is not None
-        assert target_host_info.boot_mode is not None
-        assert target_host_info.mount_point_list is not None
-
-        BootLoader(self).update(target_host_info)
 
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
@@ -266,15 +248,19 @@ class Bbki:
         #             continue
         #     return ret
 
-    def remove_all(self, target_host_info=None):
-        # remove boot-loader (may change harddisk MBR, needs target host information)
+    def remove_bootloader_and_initramfs(self):
         bootloader = BootLoader(self)
         if bootloader.isInstalled():
-            if target_host_info is None:
-                raise ValueError("target host information unspecified")
-            assert target_host_info.boot_mode is not None
-            assert target_host_info.mount_point_list is not None
-            bootloader.remove(target_host_info)
+            bootloader.remove()
+
+        be = self.get_pending_boot_entry()
+        robust_layer.simple_fops.rm(be.initrd_filepath)
+        robust_layer.simple_fops.rm(be.initrd_tar_filepath)
+
+    def remove_all(self):
+        bootloader = BootLoader(self)
+        if bootloader.isInstalled():
+            bootloader.remove()
 
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware

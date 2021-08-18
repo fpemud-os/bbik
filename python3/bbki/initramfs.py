@@ -47,10 +47,10 @@ from .exception import InitramfsInstallError
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, target_host_info):
+    def __init__(self, bbki, target_host_info, boot_entry):
         self._bbki = bbki
         self._targetHostInfo = target_host_info
-        self._be = self.get_pending_boot_entry()
+        self._be = boot_entry
         self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
