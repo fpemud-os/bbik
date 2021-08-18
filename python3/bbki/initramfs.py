@@ -48,10 +48,10 @@ from .exception import InitramfsInstallError
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, target_host_info, boot_entry):
+    def __init__(self, bbki, target_host_info):
         self._bbki = bbki
         self._targetHostInfo = target_host_info
-        self._be = boot_entry
+        self._be = self.get_pending_boot_entry()
         self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
 
@@ -105,30 +105,30 @@ class InitramfsInstaller:
 
             for mp in self._targetHostInfo.mount_point_list:
                 if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
-                    buf = pathlib.Path(self._be.boot_entry.kernel_config_filepath).read_text()
+                    buf = pathlib.Path(self._be.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
                     if m is not None:
                         kaliasList.add("nls_cp%s" % (m.group(1)))
                     else:
-                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_CODEPAGE is missing in \"%s\"" % (self._be.boot_entry.kernel_config_filepath))
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_CODEPAGE is missing in \"%s\"" % (self._be.kernel_config_filepath))
                     m = re.search("^CONFIG_FAT_DEFAULT_IOCHARSET=\\\"(\\S+)\\\"$", buf, re.M)
                     if m is not None:
                         kaliasList.add("nls_%s" % (m.group(1)))
                     else:
-                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._be.boot_entry.kernel_config_filepath))
+                        raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._be.kernel_config_filepath))
                 elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS]:
                     kaliasList.add(mp.fs_type)
                 else:
                     assert False
 
             for kalias in kaliasList:
-                kmodList |= OrderedSet(self._be.get_kmod_filepaths(kalias, with_deps=True))
+                kmodList |= OrderedSet(self._beWrapper.get_kmod_filepaths(kalias, with_deps=True))
 
         # get firmware file list
         firmwareList = OrderedSet()
         for km in kmodList:
-            firmwareList |= OrderedSet(self._be.get_firmware_filepaths(km))
+            firmwareList |= OrderedSet(self._beWrapper.get_firmware_filepaths(km))
 
         # get block device preparation operation list
         blkOpList = OrderedSet()
@@ -289,11 +289,11 @@ class InitramfsInstaller:
             cmdStr = "/usr/bin/find . -print0 "
             cmdStr += "| /bin/cpio --null -H newc -o "
             cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
-            cmdStr += "> \"%s\" " % (self._be.boot_entry.initrd_file)
+            cmdStr += "> \"%s\" " % (self._be.initrd_file)
             Util.shellCall(cmdStr)
 
             # tar file
-            with tarfile.open(self._be.boot_entry.initrd_tar_file, "w:bz2") as f:
+            with tarfile.open(self._be.initrd_tar_file, "w:bz2") as f:
                 for fn in glob.glob("*"):
                     f.add(fn)
 
@@ -449,7 +449,7 @@ class InitramfsInstaller:
             "VFAT_FS": "m",
         }
 
-        buf = pathlib.Path(self._be.boot_entry.kernel_config_file).read_text()
+        buf = pathlib.Path(self._be.kernel_config_file).read_text()
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))

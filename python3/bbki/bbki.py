@@ -148,7 +148,7 @@ class Bbki:
         return KernelInstaller(self, target_host_info, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, target_host_info):
-        InitramfsInstaller(self, target_host_info, self.get_pending_boot_entry()).install()
+        InitramfsInstaller(self, target_host_info).install()
 
     def install_bootloader(self, target_host_info):
         BootLoader(self).install(target_host_info)
