@@ -48,8 +48,9 @@ from .exception import InitramfsInstallError
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, boot_entry):
+    def __init__(self, bbki, target_host_info, boot_entry):
         self._bbki = bbki
+        self._targetHostInfo = target_host_info
         self._be = boot_entry
         self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
@@ -59,10 +60,12 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
+        if self._targetHostInfo is None:
+            raise ValueError("target host information unspecified")
         if self._targetHostInfo.mount_point_list is None:
-            raise InitramfsInstallError("no boot/root device specified")
-        if HostInfoUtil.getMountPoint(self._bbki._hostInfo, HostMountPoint.NAME_ROOT) is None:
-            raise InitramfsInstallError("mount information for root filesystem is not specified")
+            raise ValueError("target host mount point information unspecified")
+        if HostInfoUtil.getMountPoint(self._targetHostInfo, HostMountPoint.NAME_ROOT) is None:
+            raise ValueError("target host root filesystem mount information unspecified")
 
         # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
@@ -70,7 +73,7 @@ class InitramfsInstaller:
 
         # deduplicated disk list
         diskList = OrderedSet()
-        for mp in self._bbki._hostInfo.mount_point_list:
+        for mp in self._targetHostInfo.mount_point_list:
             for rootDisk in mp.underlay_disk_list:
                 for disk in anytree.PostOrderIter(rootDisk):
                     diskList.add(disk)
@@ -100,7 +103,7 @@ class InitramfsInstaller:
                 else:
                     assert False
 
-            for mp in self._bbki._hostInfo.mount_point_list:
+            for mp in self._targetHostInfo.mount_point_list:
                 if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
                     buf = pathlib.Path(self._be.boot_entry.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
@@ -377,7 +380,7 @@ class InitramfsInstaller:
             return os.path.join("/sysroot", mi.mount_point[1:])
 
         # write comments
-        for mi in self._bbki._targetHostInfo.mount_point_list:
+        for mi in self._targetHostInfo.mount_point_list:
             buf += "# uuid(%s)=%s\n" % (mi.name, mi.dev_uuid)
         buf += "\n"
 
@@ -394,7 +397,7 @@ class InitramfsInstaller:
             buf += "\n"
 
         # mount block devices
-        for mi in self._bbki._targetHostInfo.mount_point_list:
+        for mi in self._targetHostInfo.mount_point_list:
             buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, mi.dev_uuid, _getPrefixedMountPoint(mi))
             buf += "\n"
 

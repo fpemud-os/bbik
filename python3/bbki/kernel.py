@@ -24,22 +24,20 @@
 import os
 import re
 import kmod
-import shutil
 import pylkcutil
 import pkg_resources
 from .util import Util
 from .util import TempChdir
 from .boot_entry import BootEntry
-from .boot_entry import BootEntryUtils
 from .repo import BbkiFileExecutor
-from .initramfs import InitramfsInstaller
 
 
-class BootEntryInstaller:
+class KernelInstaller:
 
-    def __init__(self, bbki, kernel_atom, kernel_atom_item_list):
+    def __init__(self, bbki, target_host_info, kernel_atom, kernel_atom_item_list):
         self._bbki = bbki
 
+        self._targetHostInfo = target_host_info
         self._kernelAtom = kernel_atom
         self._addonAtomList = kernel_atom_item_list
 
@@ -59,7 +57,7 @@ class BootEntryInstaller:
         self._executorDict[self._kernelAtom].remove_tmpdirs()
 
     def get_target_boot_entry(self):
-        return BootEntry.new_from_verstr(self._bbki, "native", self._kernelAtom.verstr)
+        return BootEntry.new_from_verstr(self._bbki, self._targetHostInfo.arch, self._kernelAtom.verstr)
 
     def unpack(self):
         self._executorDict[self._kernelAtom].src_unpack()

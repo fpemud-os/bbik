@@ -30,23 +30,23 @@ from .po import KernelType
 from .po import RescueOsSpec
 from .repo import Repo
 from .boot_entry import BootEntry
-from .kernel import BootEntryWrapper
-from .kernel import BootEntryInstaller
+from .kernel import KernelInstaller
+from .initramfs import InitramfsInstaller
 from .exception import RunningEnvironmentError
 
 from .util import Util
 from .fs_layout import FsLayout
 from .repo import BbkiFileExecutor
+from .kernel import BootEntryWrapper
 from .boot_entry import BootEntryUtils
 from .bootloader import BootLoader
 
 
 class Bbki:
 
-    def __init__(self, target_host_info, target_host_is_myself=True, cfg=None):
-        self._targetHostInfo = target_host_info
-        self._bForSelf = target_host_is_myself
+    def __init__(self, cfg=None, self_boot=True):
         self._cfg = cfg
+        self._bSelfBoot = self_boot
 
         if self._cfg.get_kernel_type() == KernelType.LINUX:
             self._fsLayout = FsLayout(self)
@@ -95,13 +95,13 @@ class Bbki:
         bootloader.setStableFlag(value)
 
     def get_current_boot_entry(self):
-        assert self._bForSelf
+        assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
             ret = BootEntry.new_from_verstr(self, "native", os.uname().release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
-        raise RunningEnvironmentError("current boot entry has been lost")
+        raise RunningEnvironmentError("current boot entry is lost")
 
     def get_pending_boot_entry(self):
         ret = BootLoader(self).getMainBootEntry()
@@ -110,7 +110,7 @@ class Bbki:
                 raise RunningEnvironmentError("invalid pending boot entry")
             return ret
 
-        if not self._bForSelf:
+        if not self._bSelfBoot:
             tlist = BootEntryUtils.getBootEntryList()
             if len(tlist) > 0:
                 if len(tlist) > 1:
@@ -142,56 +142,47 @@ class Bbki:
     def fetch(self, atom):
         BbkiFileExecutor(atom).exec_fetch()
 
-    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
+    def get_kernel_installer(self, target_host_info, kernel_atom, kernel_addon_atom_list):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
-        return BootEntryInstaller(self, kernel_atom, kernel_addon_atom_list)
+        return KernelInstaller(self, target_host_info, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, boot_entry):
-        InitramfsInstaller(self, boot_entry).install()
+    def install_initramfs(self, target_host_info, boot_entry):
+        InitramfsInstaller(self, target_host_info, boot_entry).install()
 
-    def install_bootloader(self):
-        BootLoader(self).install()
+    def install_bootloader(self, target_host_info):
+        BootLoader(self).install(target_host_info)
 
-    def reinstall_bootloader(self):
+    def reinstall_bootloader(self, target_host_info):
         obj = BootLoader(self)
-        obj.remove()
-        obj.install()
+        obj.remove(target_host_info)
+        obj.install(target_host_info)
 
-    def update_bootloader(self):
-        BootLoader(self).update()
+    def update_bootloader(self, target_host_info):
+        BootLoader(self).update(target_host_info)
 
-    def check(self, autofix=False):
-        assert False
-
-    def clean_boot_entries(self):
+    def tidy_boot_entries(self):
         pendingBe = self.get_pending_boot_entry()
 
         os.makedirs(self._fsLayout.get_boot_history_dir(), exist_ok=True)
         for be in BootEntryUtils(self).getBootEntryList():
             if be != pendingBe:
-                for fullfn in BootEntryUtils(self).getBootEntryFilePathList:
+                for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
                     shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
     def clean_boot_dir(self, pretend=False):
-        if self._targetHostInfo.boot_mode is None and BootLoader(self).isInstalled():
-            raise RunningEnvironmentError("unable to clean when boot-loader installed but boot mode is unspecified")
-
-        currentBe = self.get_current_boot_entry() if self._bForSelf else None
+        currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
         pendingBe = self.get_pending_boot_entry()
+        bootLoader = BootLoader(self)
 
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
-            if True:
-                ret = [x.replace("/***", "") for x in BootLoader(self).getFiles()]
-                assert all([ret.startswith("/boot") for x in ret])
-                assert all([ret.count("/") <= 2 for x in ret])
-                tset -= set(ret)                                                                                # don't delete boot-loader files
-            if True:
-                tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                     # don't delete /boot/rescue
+            if bootLoader.isInstalled():
+                tset -= set(BootLoader(self).getFilePathList())                                                 # don't delete boot-loader files
+            tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():
                     tset.discard(self._bbki._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
@@ -266,12 +257,15 @@ class Bbki:
         #             continue
         #     return ret
 
-    def remove_all(self):
-        # remove boot-loader (may change harddisk MBR, need valid self._targetHostInfo.boot_mode and self._targetHostInfo.mount_point_list)
+    def remove_all(self, target_host_info=None):
+        # remove boot-loader (may change harddisk MBR, needs target host information)
         bootloader = BootLoader(self)
         if bootloader.isInstalled():
-            bootloader.remove()
+            bootloader.remove(target_host_info)
 
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
+
+    def check(self, autofix=False):
+        assert False

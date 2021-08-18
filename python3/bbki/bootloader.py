@@ -23,6 +23,7 @@
 
 import os
 import re
+import glob
 import pathlib
 import robust_layer.simple_fops
 from .util import Util
@@ -41,28 +42,35 @@ class BootLoader:
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grub.cfg")
         self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grubenv")
 
-        self._grubKernelInitCmdline = ""
-        if True:
-            self._grubKernelInitCmdline += " console=ttynull"                                               # global data: only use console when debug boot process
-            self._grubKernelInitCmdline += " %s" % (self._bbki._targetHostInfo.aux_kernel_init_cmdline)     # host level extra data
-            self._grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
-            self._grubKernelInitCmdline = self._grubKernelInitCmdline.strip()
+        # env-var for install()/remove()/update() only
+        self._targetHostInfo = None
+        self._grubKernelInitCmdline = None
 
     def isInstalled(self):
-        return len(self.getFiles()) > 0
+        assert os.path.exists(self._bbki._fsLayout.get_boot_grub_dir())
 
-    def getFiles(self):
-        grubDir = self._bbki._fsLayout.get_boot_grub_dir()
-        efiDir = self._bbki._fsLayout.get_boot_grub_efi_dir()
+    def getBootMode(self):
+        assert self.isInstalled()
+
+        if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
+            return BootMode.EFI
+        elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
+            return BootMode.BIOS
+        else:
+            raise RunningEnvironmentError("invalid bootloader")
+
+    def getFilePathList(self):
+        assert self.isInstalled()
+
+        myBootMode = self.getBootMode()
         ret = []
-        if os.path.exists():
-            ret.append(os.path.join(grubDir, "***"))
-            if os.path.exists(os.path.join(grubDir, "i386-pc")):
-                pass
-            elif os.path.exists(os.path.join(grubDir, "x86_64-efi")):
-                ret.append(os.path.join(efiDir, "***"))
-            else:
-                raise RunningEnvironmentError("invalid bootloader")
+        ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "*"), recursive=True)
+        if myBootMode == BootMode.EFI:
+            ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_efi_dir(), "*"), recursive=True)
+        elif myBootMode == BootMode.BIOS:
+            pass
+        else:
+            assert False
         return ret
 
     def getMainBootEntry(self):
@@ -96,33 +104,43 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self):
-        self._checkEnv()
-        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
+    def install(self, target_host_info):
+        self._initEnv(target_host_info)
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiInstall()
-        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
             self._biosInstall()
         else:
             assert False
 
-    def remove(self):
-        self._checkEnv()
-        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
+    def remove(self, target_host_info):
+        self._initEnv(target_host_info)
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
             self._uefiRemove()
-        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
             self._biosRemove()
         else:
             assert False
 
-    def update(self):
-        self._checkEnv()
+    def update(self, target_host_info):
+        self._initEnv(target_host_info)
         self._genGrubCfg()
 
-    def _checkEnv(self):
+    def _initEnv(self, targetHostInfo):
+        self._targetHostInfo = targetHostInfo
+        if self._targetHostInfo is None:
+            raise ValueError("target host information unspecified")
         if self._targetHostInfo.boot_mode is None:
-            raise BootloaderInstallError("boot mode unspecified")
+            raise ValueError("target host boot mode information unspecified")
         if self._targetHostInfo.mount_point_list is None:
-            raise BootloaderInstallError("no boot/root device specified")
+            raise ValueError("target host mount point information unspecified")
+
+        self._grubKernelInitCmdline = ""
+        if True:
+            self._grubKernelInitCmdline += " console=ttynull"                                               # global data: only use console when debug boot process
+            self._grubKernelInitCmdline += " %s" % (self._targetHostInfo.aux_kernel_init_cmdline)           # host level extra data
+            self._grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
+            self._grubKernelInitCmdline = self._grubKernelInitCmdline.strip()
 
     def _uefiInstall(self):
         # remove old directory
@@ -147,7 +165,7 @@ class BootLoader:
 
         # install /boot/grub directory
         # install grub into disk MBR
-        bootDisk = Util.devPathPartitionToDisk(self._bbki._targetHostInfo.mount_point_list[0].dev_path)
+        bootDisk = Util.devPathPartitionToDisk(self._targetHostInfo.mount_point_list[0].dev_path)
         Util.cmdCall("grub-install", "--target=i386-pc", bootDisk)
 
         # generate grub.cfg
@@ -155,7 +173,7 @@ class BootLoader:
 
     def _biosRemove(self):
         # remove MBR
-        bootDisk = Util.devPathPartitionToDisk(self._bbki._targetHostInfo.mount_point_list[0].dev_path)
+        bootDisk = Util.devPathPartitionToDisk(self._targetHostInfo.mount_point_list[0].dev_path)
         with open(bootDisk, "wb+") as f:
             f.write(Util.newBuffer(0, 440))
 
@@ -164,11 +182,11 @@ class BootLoader:
 
     def _genGrubCfg(self):
         buf = ''
-        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
-            grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
+            grubRootDevUuid = self._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
             _prefixedPath = _prefixedPathEfi
-        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
-            grubRootDevUuid = self._bbki._targetHostInfo.mount_point_list[0].dev_uuid       # MOUNT_TYPE_ROOT
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+            grubRootDevUuid = self._targetHostInfo.mount_point_list[0].dev_uuid       # MOUNT_TYPE_ROOT
             _prefixedPath = _prefixedPathBios
         else:
             assert False
@@ -185,10 +203,10 @@ class BootLoader:
         buf += '\n'
 
         # specify default menuentry and timeout
-        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
             buf += 'insmod efi_gop\n'
             buf += 'insmod efi_uga\n'
-        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
             buf += 'insmod vbe\n'
         else:
             assert False
@@ -258,7 +276,7 @@ class BootLoader:
             buf += '\n'
 
         # write menu entry for auxillary os
-        for auxOs in self._bbki._targetHostInfo.aux_os_list:
+        for auxOs in self._targetHostInfo.aux_os_list:
             buf += 'menuentry "Auxillary: %s" {\n' % (auxOs.name)
             buf += '  %s\n' % (_grubRootDevCmd(auxOs.partition_uuid))
             buf += '  chainloader +%d\n' % (auxOs.chainloader_number)
@@ -291,12 +309,12 @@ class BootLoader:
         buf += '\n'
 
         # write menu entry for restarting to UEFI setup
-        if self._bbki._targetHostInfo.boot_mode == BootMode.EFI:
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
             buf += 'menuentry "Restart to UEFI setup" {\n'
             buf += '  fwsetup\n'
             buf += '}\n'
             buf += '\n'
-        elif self._bbki._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
             pass
         else:
             assert False
