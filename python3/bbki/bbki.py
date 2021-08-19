@@ -143,12 +143,11 @@ class Bbki:
     def fetch(self, atom):
         BbkiFileExecutor(atom).exec_fetch()
 
-    def get_kernel_installer(self, target_host_info, kernel_atom, kernel_addon_atom_list):
-        assert target_host_info.arch is not None
+    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
-        return KernelInstaller(self, target_host_info, kernel_atom, kernel_addon_atom_list)
+        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
     def install_initramfs(self, target_host_info):
         assert target_host_info.mount_point_list is not None

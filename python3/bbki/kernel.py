@@ -35,10 +35,9 @@ from .repo import BbkiFileExecutor
 
 class KernelInstaller:
 
-    def __init__(self, bbki, target_host_info, kernel_atom, kernel_atom_item_list):
+    def __init__(self, bbki, kernel_atom, kernel_atom_item_list):
         self._bbki = bbki
 
-        self._targetHostInfo = target_host_info
         self._kernelAtom = kernel_atom
         self._addonAtomList = kernel_atom_item_list
 
