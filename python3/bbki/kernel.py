@@ -61,6 +61,9 @@ class KernelInstaller:
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelAtom].remove_tmpdirs()
 
+    def get_progress(self):
+        return KernelInstallProgress(self)
+
     def unpack(self):
         assert self._progress == KernelInstallProgress.STEP_INIT
 
