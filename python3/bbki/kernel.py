@@ -33,13 +33,41 @@ from .boot_entry import BootEntry
 from .repo import BbkiFileExecutor
 
 
-STEP_INIT = 1
-STEP_UNPACKED = 2
-STEP_PACHED = 3
-STEP_KERNEL_CONFIG_FILE_GENERATED = 4
-STEP_KERNEL_BUILT = 5
-STEP_KERNEL_INSTALLED = 5
-STEP_OLD_BOOT_ENTRIES_RETIRED = 5
+class KernelInstallProgress:
+
+    STEP_INIT = 1
+    STEP_UNPACKED = 2
+    STEP_PATCHED = 3
+    STEP_KERNEL_CONFIG_FILE_GENERATED = 4
+    STEP_KERNEL_BUILT = 5
+    STEP_KERNEL_INSTALLED = 5
+    STEP_OLD_BOOT_ENTRIES_RETIRED = 5
+
+    def __init__(self, parent):
+        self._parent = parent
+        self._progress = self.STEP_INIT
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @property
+    def target_boot_entry(self):
+        return self._parent._targetBootEntry
+
+    @property
+    def kernel_config_filepath(self):
+        assert self._parent._dotCfgFile is not None
+        return self._parent._dotCfgFile
+
+    @property
+    def kernel_config_rules_filepath(self):
+        assert self._parent._kcfgRulesTmpFile is not None
+        return self._parent._kcfgRulesTmpFile
+
+    @property
+    def kernel_source_signature(self):
+        assert False
 
 
 class KernelInstaller:
@@ -56,7 +84,10 @@ class KernelInstaller:
         for item in kernel_atom_item_list:
             self._executorDict[item] = BbkiFileExecutor(item)
 
-        self._step = None
+        self._progress = KernelInstallProgress.STEP_INIT
+        self._targetBootEntry = BootEntry.new_from_verstr(self._bbki, os.uname().machine, self._kernelAtom.verstr)
+        self._kcfgRulesTmpFile = None
+        self._dotCfgFile = None
 
         # create tmpdirs
         self._executorDict[self._kernelAtom].create_tmpdirs()
@@ -68,32 +99,28 @@ class KernelInstaller:
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelAtom].remove_tmpdirs()
 
-    def get_target_boot_entry(self):
-        return BootEntry.new_from_verstr(self._bbki, self._targetHostInfo.arch, self._kernelAtom.verstr)
-
-    def get_kernel_config_file_content(self):
-        pass
-
-    def get_kernel_config_rules_file_content(self):
-        pass
-
-    def get_signature(self):
-        assert False
-
     def unpack(self):
+        assert self._progress == KernelInstallProgress.STEP_INIT
+
         self._executorDict[self._kernelAtom].src_unpack()
         for item in self._addonAtomList:
             self._executorDict[item].exec_src_unpack()
+        self._progress = KernelInstallProgress.STEP_UNPACKED
 
     def patch_kernel(self):
+        assert self._progress == KernelInstallProgress.STEP_UNPACKED
+
         for addon_item in self._addonAtomList:
             self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom)
+        self._progress = KernelInstallProgress.STEP_PATCHED
 
     def generate_kernel_config_file(self):
+        assert self._progress == KernelInstallProgress.STEP_PATCHED
+
         rulesDict = dict()
         workDir = self._executorDict[self._kernelAtom].get_workdir()
-        kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
-        dotCfgFile = os.path.join(workDir, ".config")
+        self._kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
+        self._dotCfgFile = os.path.join(workDir, ".config")
 
         # head rules
         if True:
@@ -167,7 +194,7 @@ class KernelInstaller:
         rulesDict["custom"] = ""            # FIXME
 
         # generate .config file
-        with open(kcfgRulesTmpFile, "w") as f:
+        with open(self._kcfgRulesTmpFile, "w") as f:
             for name, buf in rulesDict.items():
                 f.write("## %s ######################\n" % (name))
                 f.write("\n")
@@ -179,34 +206,43 @@ class KernelInstaller:
         # debug feature
         if True:
             # killing CONFIG_VT is failed for now
-            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % (kcfgRulesTmpFile))
+            Util.shellCall("/bin/sed -i '/VT=n/d' %s" % self._kcfgRulesTmpFile)
 
         # generate the real ".config"
         # FIXME: moved here from a seperate process, leakage?
-        pylkcutil.generator.generate(workDir, "allnoconfig+module", kcfgRulesTmpFile, output=dotCfgFile)
+        pylkcutil.generator.generate(workDir, "allnoconfig+module", self._kcfgRulesTmpFile, output=self._dotCfgFile)
 
         # "make olddefconfig" may change the .config file further
         with TempChdir(workDir):
             Util.shellCall("make olddefconfig")
 
+        self._progress = KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
+
     def build(self):
+        assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
+
         self._executorDict[self._kernelAtom].exec_kernel_build()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_build()
+        self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
 
     def install(self):
+        assert self._progress == KernelInstallProgress.STEP_KERNEL_BUILT
+
         self._executorDict[self._kernelAtom].exec_kernel_install()
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install()
+        self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 
     def retire_old_boot_entries(self):
-        targetBe = self.get_target_boot_entry()
+        assert self._progress == KernelInstallProgress.STEP_KERNEL_INSTALLED
 
         os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
         for be in BootEntryUtils(self).getBootEntryList():
-            if be != targetBe:
+            if be != self._targetBootEntry:
                 for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
                     shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+        self._progress = KernelInstallProgress.STEP_OLD_BOOT_ENTRIES_RETIRED
 
 
 class BootEntryUtils:
