@@ -208,6 +208,44 @@ class KernelInstaller:
         self._progress = KernelInstallProgress.STEP_OLD_BOOT_ENTRIES_RETIRED
 
 
+class KernelInstallProgress:
+
+    STEP_INIT = 1
+    STEP_UNPACKED = 2
+    STEP_PATCHED = 3
+    STEP_KERNEL_CONFIG_FILE_GENERATED = 4
+    STEP_KERNEL_BUILT = 5
+    STEP_KERNEL_INSTALLED = 5
+    STEP_OLD_BOOT_ENTRIES_RETIRED = 5
+
+    def __init__(self, parent):
+        self._parent = parent
+        self._progress = self.STEP_INIT
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @property
+    def target_boot_entry(self):
+        return self._parent._targetBootEntry
+
+    @property
+    def kernel_config_filepath(self):
+        assert self._parent._dotCfgFile is not None
+        return self._parent._dotCfgFile
+
+    @property
+    def kernel_config_rules_filepath(self):
+        assert self._parent._kcfgRulesTmpFile is not None
+        return self._parent._kcfgRulesTmpFile
+
+    @property
+    def kernel_source_signature(self):
+        # FIXME
+        assert False
+
+
 class BootEntryUtils:
 
     def __init__(self, bbki):
@@ -317,40 +355,3 @@ class BootEntryWrapper:
             if kmodObj.path is not None:
                 # this module is not built into the kernel
                 result[kmodObj.path] = None
-
-
-class KernelInstallProgress:
-
-    STEP_INIT = 1
-    STEP_UNPACKED = 2
-    STEP_PATCHED = 3
-    STEP_KERNEL_CONFIG_FILE_GENERATED = 4
-    STEP_KERNEL_BUILT = 5
-    STEP_KERNEL_INSTALLED = 5
-    STEP_OLD_BOOT_ENTRIES_RETIRED = 5
-
-    def __init__(self, parent):
-        self._parent = parent
-        self._progress = self.STEP_INIT
-
-    @property
-    def progress(self):
-        return self._progress
-
-    @property
-    def target_boot_entry(self):
-        return self._parent._targetBootEntry
-
-    @property
-    def kernel_config_filepath(self):
-        assert self._parent._dotCfgFile is not None
-        return self._parent._dotCfgFile
-
-    @property
-    def kernel_config_rules_filepath(self):
-        assert self._parent._kcfgRulesTmpFile is not None
-        return self._parent._kcfgRulesTmpFile
-
-    @property
-    def kernel_source_signature(self):
-        assert False

@@ -59,7 +59,7 @@ from .repo import RepoAtom
 
 from .boot_entry import BootEntry
 
-from .kernel import KernelInstaller
+from .kernel import KernelInstaller 
 from .kernel import KernelInstallProgress
 
 from .exception import RunningEnvironmentError
