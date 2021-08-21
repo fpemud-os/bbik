@@ -21,18 +21,22 @@
 # THE SOFTWARE.
 
 
+import pathlib
+
+
 def compare_kernel_config_files(file1, file2):
     # Returns True if two files are same
+    return compare_kernel_config(pathlib.Path(file1).read_text(), pathlib.Path(file2).read_text())
 
-    lineList1 = []
-    with open(file1) as f:
-        lineList1 = f.read().split("\n")
+
+def compare_kernel_config(content1, content2):
+    # Returns True if two config are same
+
+    lineList1 = content1.split("\n")
     lineList1 = [x for x in lineList1 if x.strip() != "" and not x.strip().startswith("#")]
     lineList1.sort()
 
-    lineList2 = []
-    with open(file2) as f:
-        lineList2 = f.read().split("\n")
+    lineList2 = content2.split("\n")
     lineList2 = [x for x in lineList2 if x.strip() != "" and not x.strip().startswith("#")]
     lineList2.sort()
 
