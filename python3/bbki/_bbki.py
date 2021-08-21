@@ -105,20 +105,26 @@ class Bbki:
         raise RunningEnvironmentError("current boot entry is lost")
 
     def get_pending_boot_entry(self):
-        ret = BootLoader(self).getMainBootEntry()
-        if ret is not None:
-            if not ret.has_kernel_files() or not ret.has_initrd_files():
-                raise RunningEnvironmentError("invalid pending boot entry")
-            return ret
-
-        if not self._bSelfBoot:
-            tlist = BootEntryUtils.getBootEntryList()
-            if len(tlist) > 0:
-                if len(tlist) > 1:
-                    raise RunningEnvironmentError("multiple pending boot entries")
-                return tlist[-1]
-
-        return None
+        bootloader = BootLoader(self)
+        if bootloader.isInstalled():
+            ret = bootloader.getMainBootEntry()
+            if ret is not None:
+                if not ret.has_kernel_files() or not ret.has_initrd_files():
+                    raise RunningEnvironmentError("invalid pending boot entry")
+                return ret
+            else:
+                return None
+        else:
+            if not self._bSelfBoot:
+                tlist = BootEntryUtils.getBootEntryList()
+                if len(tlist) > 0:
+                    if len(tlist) > 1:
+                        raise RunningEnvironmentError("multiple pending boot entries")
+                    return tlist[-1]
+                else:
+                    return None
+            else:
+                return None
 
     def has_rescue_os(self):
         return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())

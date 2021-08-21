@@ -74,6 +74,8 @@ class BootLoader:
         return ret
 
     def getMainBootEntry(self):
+        assert self.isInstalled()
+
         if not os.path.exists(self._grubCfgFile):
             return None
 
