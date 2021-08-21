@@ -29,7 +29,6 @@ from ._po import KernelType
 from ._po import RescueOsSpec
 from ._po import HostMountPoint
 from ._po import HostInfoUtil
-from ._po import FsLayout
 from ._repo import Repo
 from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
@@ -37,6 +36,7 @@ from ._initramfs import InitramfsInstaller
 from ._exception import RunningEnvironmentError
 
 from ._util import Util
+from ._po import FsLayout
 from ._repo import BbkiFileExecutor
 from ._kernel import BootEntryUtils
 from ._kernel import BootEntryWrapper
