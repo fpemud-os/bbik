@@ -228,10 +228,16 @@ class BootLoader:
         buf += '\n'
 
         # write comments
-        buf += '# These options are recorded in initramfs\n'
-        buf += '#   rootfs=%s\n' % (grubRootDevUuid)
+        buf += '# Parameters:\n'
+        if self._targetHostInfo.boot_mode == BootMode.EFI:
+            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+            buf += '#   ESP partition UUID: %s\n' % (self._targetHostInfo.mount_point_list[1].dev_uuid)        # MOUNT_TYPE_BOOT
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+        else:
+            assert False
         if initCmdline != "":
-            buf += '#   init=%s\n' % (initCmdline)
+            buf += '#   init program: %s\n' % (initCmdline)
         buf += '\n'
 
         # write menu entry for main kernel
