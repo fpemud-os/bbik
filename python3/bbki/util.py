@@ -46,3 +46,11 @@ def compare_kernel_config(content1, content2):
         if lineList1[i] != lineList2[i]:
             return False
     return True
+
+
+def compare_kernel_config_rules_files(file1, file2):
+    assert False
+
+
+def compare_kernel_config_rules(content1, content2):
+    assert False
