@@ -28,7 +28,7 @@ from ._util import Util
 from ._po import KernelType
 from ._po import SystemInit
 from ._po import SystemInitInfo
-from .exception import ConfigError
+from ._exception import ConfigError
 
 
 class Config:

@@ -61,3 +61,11 @@ from ._boot_entry import BootEntry
 
 from ._kernel import KernelInstaller
 from ._kernel import KernelInstallProgress
+
+from ._exception import RunningEnvironmentError
+from ._exception import ConfigError
+from ._exception import RepoError
+from ._exception import FetchError
+from ._exception import KernelInstallError
+from ._exception import InitramfsInstallError
+from ._exception import BootloaderInstallError

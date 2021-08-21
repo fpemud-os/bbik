@@ -32,7 +32,7 @@ from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
 from ._boot_entry import BootEntry
-from .exception import RepoError
+from ._exception import RepoError
 
 
 class Repo:

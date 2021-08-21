@@ -30,8 +30,8 @@ from ._util import Util
 from ._po import BootMode
 from ._boot_entry import BootEntry
 from ._kernel import BootEntryUtils
-from .exception import BootloaderInstallError
-from .exception import RunningEnvironmentError
+from ._exception import BootloaderInstallError
+from ._exception import RunningEnvironmentError
 
 
 class BootLoader:

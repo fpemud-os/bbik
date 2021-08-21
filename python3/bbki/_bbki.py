@@ -33,7 +33,7 @@ from ._repo import Repo
 from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
 from ._initramfs import InitramfsInstaller
-from .exception import RunningEnvironmentError
+from ._exception import RunningEnvironmentError
 
 from ._util import Util
 from .fs_layout import FsLayout
