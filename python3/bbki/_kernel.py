@@ -27,10 +27,10 @@ import kmod
 import shutil
 import pylkcutil
 import pkg_resources
-from .util import Util
-from .util import TempChdir
-from .boot_entry import BootEntry
-from .repo import BbkiFileExecutor
+from ._util import Util
+from ._util import TempChdir
+from ._boot_entry import BootEntry
+from ._repo import BbkiFileExecutor
 
 
 class KernelInstaller:

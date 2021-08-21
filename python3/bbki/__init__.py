@@ -32,40 +32,32 @@ __author__ = "fpemud@sina.com (Fpemud)"
 __version__ = "0.0.1"
 
 
-from .bbki import Bbki
+from ._bbki import Bbki
 
-from .po import KernelType
-from .po import BootMode
-from .po import SystemInit
-from .po import SystemInitInfo
-from .po import RescueOsSpec
-from .po import HostInfo
-from .po import HostMountPoint
-from .po import HostDisk
-from .po import HostDiskLvmLv
-from .po import HostDiskBcache
-from .po import HostDiskScsiDisk
-from .po import HostDiskNvmeDisk
-from .po import HostDiskXenDisk
-from .po import HostDiskVirtioDisk
-from .po import HostDiskPartition
-from .po import HostAuxOs
+from ._po import KernelType
+from ._po import BootMode
+from ._po import SystemInit
+from ._po import SystemInitInfo
+from ._po import RescueOsSpec
+from ._po import HostInfo
+from ._po import HostMountPoint
+from ._po import HostDisk
+from ._po import HostDiskLvmLv
+from ._po import HostDiskBcache
+from ._po import HostDiskScsiDisk
+from ._po import HostDiskNvmeDisk
+from ._po import HostDiskXenDisk
+from ._po import HostDiskVirtioDisk
+from ._po import HostDiskPartition
+from ._po import HostAuxOs
 
-from .config import Config
-from .config import EtcDirConfig
+from ._config import Config
+from ._config import EtcDirConfig
 
-from .repo import Repo
-from .repo import RepoAtom
+from ._repo import Repo
+from ._repo import RepoAtom
 
-from .boot_entry import BootEntry
+from ._boot_entry import BootEntry
 
-from .kernel import KernelInstaller
-from .kernel import KernelInstallProgress
-
-from .exception import RunningEnvironmentError
-from .exception import ConfigError
-from .exception import RepoError
-from .exception import FetchError
-from .exception import KernelInstallError
-from .exception import InitramfsInstallError
-from .exception import BootloaderInstallError
+from ._kernel import KernelInstaller
+from ._kernel import KernelInstallProgress

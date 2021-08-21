@@ -28,10 +28,10 @@ import shutil
 import inspect
 import urllib.parse
 import robust_layer.simple_git
-from .util import Util
-from .util import TempChdir
-from .po import KernelType
-from .boot_entry import BootEntry
+from ._util import Util
+from ._util import TempChdir
+from ._po import KernelType
+from ._boot_entry import BootEntry
 from .exception import RepoError
 
 

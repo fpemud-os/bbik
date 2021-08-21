@@ -24,7 +24,7 @@
 import os
 import re
 import anytree
-from .util import Util
+from ._util import Util
 
 
 class KernelType:
@@ -269,6 +269,45 @@ class HostAuxOs:
         self.name = name
         self.partition_uuid = partition_uuid
         self.chainloader_number = chainloader_number
+
+
+class FsLayout:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+
+    def get_boot_dir(self):
+        return "/boot"
+
+    def get_lib_dir(self):
+        return "/boot"
+
+    def get_boot_history_dir(self):
+        return "/boot/history"
+
+    def get_boot_grub_dir(self):
+        return "/boot/grub"
+
+    def get_boot_grub_efi_dir(self):
+        return "/boot/EFI"
+
+    def get_boot_rescue_os_dir(self):
+        return "/boot/rescue"
+
+    def get_boot_rescue_os_kernel_filepath(self):
+        return "/boot/rescue/vmlinuz"
+
+    def get_boot_rescue_os_initrd_filepath(self):
+        return "/boot/rescue/initrd.img"
+
+    def get_kernel_modules_dir(self, kernel_verstr=None):
+        if kernel_verstr is None:
+            return "/lib/modules"
+        else:
+            return "/lib/modules/%s" % (kernel_verstr)
+
+    def get_firmware_dir(self):
+        return "/lib/firmware"
 
 
 class HostInfoUtil:

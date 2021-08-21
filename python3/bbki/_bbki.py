@@ -25,22 +25,22 @@ import os
 import glob
 import robust_layer.simple_fops
 
-from .po import KernelType
-from .po import RescueOsSpec
-from .po import HostMountPoint
-from .po import HostInfoUtil
-from .repo import Repo
-from .boot_entry import BootEntry
-from .kernel import KernelInstaller
-from .initramfs import InitramfsInstaller
+from ._po import KernelType
+from ._po import RescueOsSpec
+from ._po import HostMountPoint
+from ._po import HostInfoUtil
+from ._repo import Repo
+from ._boot_entry import BootEntry
+from ._kernel import KernelInstaller
+from ._initramfs import InitramfsInstaller
 from .exception import RunningEnvironmentError
 
-from .util import Util
+from ._util import Util
 from .fs_layout import FsLayout
-from .repo import BbkiFileExecutor
-from .kernel import BootEntryUtils
-from .kernel import BootEntryWrapper
-from .bootloader import BootLoader
+from ._repo import BbkiFileExecutor
+from ._kernel import BootEntryUtils
+from ._kernel import BootEntryWrapper
+from ._bootloader import BootLoader
 
 
 class Bbki:

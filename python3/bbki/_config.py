@@ -24,10 +24,10 @@
 import os
 import re
 import configparser
-from .util import Util
-from .po import KernelType
-from .po import SystemInit
-from .po import SystemInitInfo
+from ._util import Util
+from ._po import KernelType
+from ._po import SystemInit
+from ._po import SystemInitInfo
 from .exception import ConfigError
 
 

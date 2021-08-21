@@ -31,17 +31,17 @@ import anytree
 import pkg_resources
 import robust_layer.simple_fops
 from ordered_set import OrderedSet
-from .util import Util
-from .util import TempChdir
-from .po import HostMountPoint
-from .po import HostDiskLvmLv
-from .po import HostDiskBcache
-from .po import HostDiskNvmeDisk
-from .po import HostDiskScsiDisk
-from .po import HostDiskXenDisk
-from .po import HostDiskVirtioDisk
-from .po import HostDiskPartition
-from .kernel import BootEntryWrapper
+from ._util import Util
+from ._util import TempChdir
+from ._po import HostMountPoint
+from ._po import HostDiskLvmLv
+from ._po import HostDiskBcache
+from ._po import HostDiskNvmeDisk
+from ._po import HostDiskScsiDisk
+from ._po import HostDiskXenDisk
+from ._po import HostDiskVirtioDisk
+from ._po import HostDiskPartition
+from ._kernel import BootEntryWrapper
 from .exception import InitramfsInstallError
 
 

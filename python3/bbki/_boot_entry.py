@@ -23,7 +23,7 @@
 
 import os
 import re
-from .util import Util
+from ._util import Util
 
 
 class BootEntry:

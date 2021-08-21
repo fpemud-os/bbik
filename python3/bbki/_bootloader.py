@@ -26,10 +26,10 @@ import re
 import glob
 import pathlib
 import robust_layer.simple_fops
-from .util import Util
-from .po import BootMode
-from .boot_entry import BootEntry
-from .kernel import BootEntryUtils
+from ._util import Util
+from ._po import BootMode
+from ._boot_entry import BootEntry
+from ._kernel import BootEntryUtils
 from .exception import BootloaderInstallError
 from .exception import RunningEnvironmentError
 
