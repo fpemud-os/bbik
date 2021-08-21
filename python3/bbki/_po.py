@@ -64,21 +64,11 @@ class RescueOsSpec:
 
 class HostInfo:
 
-    def __init__(self, arch=None, boot_mode=None, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
-        self.arch = None
+    def __init__(self, boot_mode=None, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
         self.boot_mode = None
         self.mount_point_list = None
         self.aux_os_list = None
         self.aux_kernel_init_cmdline = None
-
-        # self.arch
-        if arch is None:
-            assert False
-        elif arch == "native":
-            self.arch = os.uname().machine
-        else:
-            assert Util.isValidKernelArch(arch)
-            self.arch = arch
 
         # self.boot_mode
         if boot_mode is None:
