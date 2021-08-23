@@ -58,6 +58,8 @@ class Bbki:
             Repo(self, self._cfg.data_repo_dir),
         ]
 
+        self._bootloader = BootLoader(self)
+
     @property
     def config(self):
         return self._cfg
@@ -84,16 +86,13 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
     def is_stable(self):
-        bootloader = BootLoader(self)
-        return bootloader.isInstalled() and bootloader.getStableFlag()
+        return self._bootloader.getStatus() == BootLoader.STATUS_NORMAL and self._bootloader.getStableFlag()
 
     def set_stable(self, value):
-        bootloader = BootLoader(self)
-        if not bootloader.isInstalled():
-            raise RunningEnvironmentError("bootloader is not installed")
-
         # we use grub environment variable to store stable status
-        bootloader.setStableFlag(value)
+        if self._bootloader.getStatus() != BootLoader.STATUS_NORMAL:
+            raise RunningEnvironmentError("bootloader is not properly installed")
+        self._bootloader.setStableFlag(value)
 
     def get_current_boot_entry(self):
         assert self._bSelfBoot
@@ -105,15 +104,11 @@ class Bbki:
         raise RunningEnvironmentError("current boot entry is lost")
 
     def get_pending_boot_entry(self):
-        bootloader = BootLoader(self)
-        if bootloader.isInstalled():
-            ret = bootloader.getMainBootEntry()
-            if ret is not None:
-                if not ret.has_kernel_files() or not ret.has_initrd_files():
-                    raise RunningEnvironmentError("invalid pending boot entry")
-                return ret
-            else:
-                return None
+        if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+            ret = self._bootloader.getMainBootEntry()
+            if not ret.has_kernel_files() or not ret.has_initrd_files():
+                raise RunningEnvironmentError("invalid pending boot entry")
+            return ret
         else:
             if not self._bSelfBoot:
                 tlist = BootEntryUtils.getBootEntryList()
@@ -155,29 +150,36 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, target_host_info):
-        assert target_host_info.mount_point_list is not None
-        assert HostInfoUtil.getMountPoint(target_host_info, HostMountPoint.NAME_ROOT) is not None
+    def install_initramfs(self, mount_point_list):
+        assert mount_point_list is not None
+        assert HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT) is not None
 
-        InitramfsInstaller(self, target_host_info, self.get_pending_boot_entry()).install()
+        InitramfsInstaller(self, mount_point_list, self.get_pending_boot_entry()).install()
 
-    def install_bootloader(self, target_host_info):
-        assert target_host_info.boot_mode is not None
-        assert target_host_info.mount_point_list is not None
+    def install_bootloader(self, boot_mode, mount_point_list, aux_os_list, aux_kernel_init_cmdline):
+        assert boot_mode is not None
+        assert mount_point_list is not None
 
-        BootLoader(self).install(target_host_info)
+        if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+            pass
+        elif self._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
+            pass
+        elif self._bootloader.getStatus() == BootLoader.STATUS_INVALID:
+            self._bootloader.remove()
+        else:
+            assert False
+        self._bootloader.install(boot_mode, )
 
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
         pendingBe = self.get_pending_boot_entry()
-        bootLoader = BootLoader(self)
 
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
-            if bootLoader.isInstalled():
-                tset -= set(BootLoader(self).getFilePathList())                                                 # don't delete boot-loader files
+            if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+                tset -= set(self._bootloader.getFilePathList())                                                 # don't delete boot-loader files
             tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():
@@ -254,19 +256,13 @@ class Bbki:
         #     return ret
 
     def remove_bootloader_and_initramfs(self):
-        bootloader = BootLoader(self)
-        if bootloader.isInstalled():
-            bootloader.remove()
-
         be = self.get_pending_boot_entry()
+        self._bootloader.remove()
         robust_layer.simple_fops.rm(be.initrd_filepath)
         robust_layer.simple_fops.rm(be.initrd_tar_filepath)
 
     def remove_all(self):
-        bootloader = BootLoader(self)
-        if bootloader.isInstalled():
-            bootloader.remove()
-
+        self._bootloader.remove()                                                       # remove MBR if necessary
         Util.removeDirContent(self._bbki._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())      # remove /lib/modules

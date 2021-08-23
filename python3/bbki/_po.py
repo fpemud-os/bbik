@@ -303,22 +303,22 @@ class FsLayout:
 class HostInfoUtil:
 
     @staticmethod
-    def getMountPoint(hostInfo, name):
-        assert hostInfo.mount_point_list is not None
+    def getMountPoint(mount_point_list, name):
+        assert mount_point_list is not None
         assert name in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
 
-        for m in hostInfo.mount_point_list:
+        for m in mount_point_list:
             if m.name == name:
                 return m
         return None
 
     @staticmethod
-    def getMountPointList(hostInfo, name):
-        assert hostInfo.mount_point_list is not None
+    def getMountPointList(mount_point_list, name):
+        assert mount_point_list is not None
         assert name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
 
         ret = []
-        for m in hostInfo.mount_point_list:
+        for m in mount_point_list:
             if m.name == name:
                 ret.append(m)
         return re
