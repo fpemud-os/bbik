@@ -58,7 +58,6 @@ class BootLoader:
         self._parseGrubCfg()
 
         # var for install() only
-        self._targetHostInfo = None
         self._grubKernelInitCmdline = None
 
     def getStatus(self):
@@ -109,7 +108,7 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, rootfs_dev=None, esp_dev=None, boot_disk=None, aux_kernel_init_cmdline=""):
+    def install(self, boot_mode, rootfs_dev=None, esp_dev=None, boot_disk=None, aux_kernel_init_cmdline="", aux_os_list=[]):
         assert self._status != self.STATUS_INVALID
         if boot_mode == BootMode.EFI:
             if rootfs_dev != Util.getMountDeviceForPath("/"):
@@ -127,14 +126,14 @@ class BootLoader:
             if rootfs_dev != Util.getMountDeviceForPath("/"):
                 raise ValueError("invalid rootfs mount point")
             if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):
-                raise ValueError("invalid boot device")
+                raise ValueError("invalid boot disk")
             if self._status == self.STATUS_NORMAL:
                 if boot_mode != self._bootMode:
                     raise ValueError("boot mode and bootloader is different")
                 if rootfs_dev != self._rootfsDev:
                     raise ValueError("rootfs device and bootloader is different")
                 if boot_disk != self._bootMode:
-                    raise ValueError("boot device and bootloader is different")
+                    raise ValueError("boot disk and bootloader is different")
         else:
             assert False
 
@@ -169,7 +168,7 @@ class BootLoader:
             assert False
 
         # generate grub.cfg
-        self._genGrubCfg()
+        self._genGrubCfg(boot_mode, rootfsDevUuid, espDevUuid, bootDiskId, aux_os_list)
 
         # record variable value
         self._status = self.STATUS_NORMAL
@@ -194,7 +193,7 @@ class BootLoader:
                 if self._rootfsDev != Util.getMountDeviceForPath("/"):
                     raise ValueError("invalid rootfs mount point")
                 if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
-                    raise ValueError("invalid boot device")
+                    raise ValueError("invalid boot disk")
 
         # remove MBR
         # MBR may not be correctly removed when status==STATUS_INVALID
@@ -219,15 +218,7 @@ class BootLoader:
         self._status = self.STATUS_NOT_INSTALLED
 
     def _parseGrubCfg(self):
-        self._status = None
-        self._bootMode = None
-        self._rootfsDev = None
-        self._rootfsDevUuid = None
-        self._espDev = None
-        self._espDevUuid = None
-        self._bootDisk = None
-        self._bootDiskId = None
-        self._initCmdLine = None
+        assert self._status is None
 
         if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
             self._status = self.STATUS_NOT_INSTALLED
@@ -238,74 +229,61 @@ class BootLoader:
             return
         buf = pathlib.Path(self._grubCfgFile).read_text()
 
+        m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
+        if m is None:
+            self._status = self.STATUS_INVALID
+            return
+        rootfsDevUuid = m.group(1)
+        rootfsDev = Util.getBlkDevByUuid(rootfsDevUuid)
+
+        espDevUuid = None
+        espDev = None
+        bootDiskId = None
+        bootDisk = None
         if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
             if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
                 self._status = self.STATUS_INVALID
                 return
 
-            m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
+            m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
             if m is None:
                 self._status = self.STATUS_INVALID
                 return
-            rootfsDevUuid = m.group(1)
-            rootfsDev
-
-
-
-            m2 = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
-            if m2 is None:
+            espDevUuid = m.group(1)
+            espDev = Util.getBlkDevByUuid(espDevUuid)
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+            m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
+            if m is None:
                 self._status = self.STATUS_INVALID
                 return
-
-
-
-
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
-            buf += '#   boot disk ID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
-        else:
-            assert False
-        if initCmdline != "":
-            buf += '#   kernel command line: %s\n' % (initCmdline)
-
-
-
-
-        self._rootfsDev = None
-        self._espDev = None
-        self._bootDisk = None
-        self._initCmdLine = None
-
-
-        if self._targetHostInfo.boot_mode == BootMode.EFI:
-            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
-            buf += '#   ESP partition UUID: %s\n' % (self._targetHostInfo.mount_point_list[1].dev_uuid)        # MOUNT_TYPE_BOOT
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+            bootDiskId = m.group(1)
+            bootDisk = Util.getDiskById(bootDiskId)
         else:
             assert False
 
+        m = re.search(r'#   init command line: (.*)', buf, re.M)
+        if m is not None:
+            initCmdLine = m.group(1)
+        else:
+            initCmdLine = ""
 
+        self._status = self.STATUS_NORMAL
+        self._bootMode = BootMode
+        self._rootfsDev = rootfsDev
+        self._rootfsDevUuid = rootfsDevUuid
+        self._espDev = espDev
+        self._espDevUuid = espDevUuid
+        self._bootDisk = bootDisk
+        self._bootDiskId = bootDiskId
+        self._initCmdLine = initCmdLine
 
-            self._status = self.STATUS_NORMAL
-            self._boot_mode = BootMode.EFI
-            return
-
-        if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
-            self._status = self.STATUS_NORMAL
-            self._bootMode = BootMode.BIOS
-            return
-
-        self._status = self.STATUS_INVALID
-        return
-
-    def _genGrubCfg(self):
+    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList):
         buf = ''
-        if self._targetHostInfo.boot_mode == BootMode.EFI:
-            grubRootDevUuid = self._targetHostInfo.mount_point_list[1].dev_uuid       # MOUNT_TYPE_BOOT
+        if bootMode == BootMode.EFI:
+            grubRootDevUuid = rootfsDevUuid
             _prefixedPath = _prefixedPathEfi
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-            grubRootDevUuid = self._targetHostInfo.mount_point_list[0].dev_uuid       # MOUNT_TYPE_ROOT
+        elif bootMode == BootMode.BIOS:
+            grubRootDevUuid = espDevUuid
             _prefixedPath = _prefixedPathBios
         else:
             assert False
@@ -322,10 +300,10 @@ class BootLoader:
         buf += '\n'
 
         # specify default menuentry and timeout
-        if self._targetHostInfo.boot_mode == BootMode.EFI:
+        if bootMode == BootMode.EFI:
             buf += 'insmod efi_gop\n'
             buf += 'insmod efi_uga\n'
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif bootMode == BootMode.BIOS:
             buf += 'insmod vbe\n'
         else:
             assert False
@@ -344,16 +322,16 @@ class BootLoader:
 
         # write comments
         buf += '# Parameters:\n'
-        if self._targetHostInfo.boot_mode == BootMode.EFI:
-            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
-            buf += '#   ESP partition UUID: %s\n' % (self._targetHostInfo.mount_point_list[1].dev_uuid)        # MOUNT_TYPE_BOOT
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
-            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
-            buf += '#   boot disk PTUUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+        if bootMode == BootMode.EFI:
+            buf += '#   rootfs device UUID: %s\n' % (rootfsDevUuid)
+            buf += '#   ESP partition UUID: %s\n' % (espDevUuid)
+        elif bootMode == BootMode.BIOS:
+            buf += '#   rootfs device UUID: %s\n' % (rootfsDevUuid)
+            buf += '#   boot disk ID: %s\n' % (bootDiskId)
         else:
             assert False
         if initCmdline != "":
-            buf += '#   kernel command line: %s\n' % (initCmdline)
+            buf += '#   init command line: %s\n' % (initCmdline)
         buf += '\n'
 
         # write menu entry for main kernel
@@ -402,7 +380,7 @@ class BootLoader:
             buf += '\n'
 
         # write menu entry for auxillary os
-        for auxOs in self._targetHostInfo.aux_os_list:
+        for auxOs in auxOsList:
             buf += 'menuentry "Auxillary: %s" {\n' % (auxOs.name)
             buf += '  %s\n' % (_grubRootDevCmd(auxOs.partition_uuid))
             buf += '  chainloader +%d\n' % (auxOs.chainloader_number)
@@ -435,12 +413,12 @@ class BootLoader:
         buf += '\n'
 
         # write menu entry for restarting to UEFI setup
-        if self._targetHostInfo.boot_mode == BootMode.EFI:
+        if bootMode == BootMode.EFI:
             buf += 'menuentry "Restart to UEFI setup" {\n'
             buf += '  fwsetup\n'
             buf += '}\n'
             buf += '\n'
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif bootMode == BootMode.BIOS:
             pass
         else:
             assert False
