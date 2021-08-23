@@ -53,7 +53,7 @@ class BootLoader:
         self._espDev = None
         self._espDevUuid = None
         self._bootDisk = None
-        self._bootDiskPtuuid = None
+        self._bootDiskId = None
         self._initCmdLine = None
         self._parseGrub()
 
@@ -137,7 +137,7 @@ class BootLoader:
 
         rootfsDevUuid = None
         espDevUuid = None
-        bootDiskPtUuid = None
+        bootDiskId = None
 
         if boot_mode == BootMode.EFI:
             rootfsDevUuid = Util.getBlkDevUuid(rootfs_dev) if rootfs_dev is not None else None
@@ -145,8 +145,8 @@ class BootLoader:
             self._uefiInstall(rootfs_dev, rootfsDevUuid, esp_dev, espDevUuid, grubKernelInitCmdline)
         elif boot_mode == BootMode.BIOS:
             espDevUuid = Util.getBlkDevUuid(esp_dev) if esp_dev is not None else None
-            bootDiskPtUuid = Util.getBlkDevPtUuid(boot_disk) if boot_disk is not None else None
-            self._biosInstall(rootfs_dev, rootfsDevUuid, boot_disk, bootDiskPtUuid, grubKernelInitCmdline)
+            bootDiskId = Util.getDiskById(boot_disk) if boot_disk is not None else None
+            self._biosInstall(rootfs_dev, rootfsDevUuid, boot_disk, bootDiskId, grubKernelInitCmdline)
         else:
             assert False
 
@@ -157,7 +157,7 @@ class BootLoader:
         self._espDev = esp_dev
         self._espDevUuid = espDevUuid
         self._bootDisk = boot_disk
-        self._bootDiskPtuuid = bootDiskPtUuid
+        self._bootDiskId = bootDiskId
         self._initCmdLine = grubKernelInitCmdline
 
     def remove(self):
@@ -185,7 +185,7 @@ class BootLoader:
 
         # clear variables
         self._initCmdLine = None
-        self._bootDiskPtuuid = None
+        self._bootDiskId = None
         self._bootDisk = None
         self._espDevUuid = None
         self._espDev = None
@@ -223,8 +223,11 @@ class BootLoader:
         self._status = None
         self._bootMode = None
         self._rootfsDev = None
+        self._rootfsDevUuid = None
         self._espDev = None
+        self._espDevUuid = None
         self._bootDisk = None
+        self._bootDiskId = None
         self._initCmdLine = None
 
         if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
@@ -234,13 +237,37 @@ class BootLoader:
         if not os.path.exists(self._grubCfgFile):
             self._status = self.STATUS_INVALID
             return
+        buf = pathlib.Path(self._grubCfgFile).read_text()
 
         if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
             if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
                 self._status = self.STATUS_INVALID
                 return
 
+            m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
+            if m is None:
+                self._status = self.STATUS_INVALID
+                return
+            rootfsDevUuid = m.group(1)
+            rootfsDev
 
+
+
+            m2 = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
+            if m2 is None:
+                self._status = self.STATUS_INVALID
+                return
+
+
+
+
+        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+            buf += '#   rootfs device UUID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+            buf += '#   boot disk ID: %s\n' % (self._targetHostInfo.mount_point_list[0].dev_uuid)        # MOUNT_TYPE_ROOT
+        else:
+            assert False
+        if initCmdline != "":
+            buf += '#   kernel command line: %s\n' % (initCmdline)
 
 
 
@@ -327,7 +354,7 @@ class BootLoader:
         else:
             assert False
         if initCmdline != "":
-            buf += '#   init program: %s\n' % (initCmdline)
+            buf += '#   kernel command line: %s\n' % (initCmdline)
         buf += '\n'
 
         # write menu entry for main kernel

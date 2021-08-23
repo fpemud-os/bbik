@@ -71,15 +71,29 @@ class Util:
             return ""
 
     @staticmethod
-    def getBlkDevPtuuid(devPath):
-        """PTUUID is for block device that owns partition table"""
+    def getBlkDevByUuid(uuid):
+        path = os.path.join("/dev", "disk", "by-uuid", uuid)
+        if not os.path.exists(path):
+            return None
+        return os.path.realpath(path)
 
-        ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search("PTUUID=\"(\\S*)\"", ret, re.M)
-        if m is not None:
-            return m.group(1)
+    @staticmethod
+    def getDiskId(devPath):
+        for fn in os.listdir("/dev/disk/by-id"):
+            fullfn = os.path.join("/dev/disk/by-id", fn)
+            if os.path.realpath(fullfn) == devPath:
+                return fn
+        return ""
+
+    @staticmethod
+    def getDiskById(diskId):
+        path = os.path.join("/dev", "disk", "by-id", diskId)
+        path = os.path.realpath(path)
+        if path.startswith("/dev/disk"):
+            return None
         else:
-            return ""
+            return path
+
 
     @staticmethod
     def splitToTuple(s, d, count):
