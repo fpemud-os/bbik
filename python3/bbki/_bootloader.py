@@ -69,7 +69,7 @@ class BootLoader:
         return self._bootMode
 
     def getFilePathList(self):
-        assert self.isInstalled()
+        assert self._status == self.STATUS_NORMAL
 
         myBootMode = self.getBootMode()
         ret = []
@@ -83,10 +83,7 @@ class BootLoader:
         return ret
 
     def getMainBootEntry(self):
-        assert self.isInstalled()
-
-        if not os.path.exists(self._grubCfgFile):
-            return None
+        assert self._status == self.STATUS_NORMAL
 
         buf = pathlib.Path(self._grubCfgFile).read_text()
         m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
@@ -96,13 +93,13 @@ class BootLoader:
             return None
 
     def getStableFlag(self):
-        assert self.isInstalled()
+        assert self._status == self.STATUS_NORMAL
 
         out = Util.cmdCall("grub-editenv", self._grubEnvFile, "list")
         return re.search("^stable=", out, re.M) is not None
 
     def setStableFlag(self, value):
-        assert self.isInstalled()
+        assert self._status == self.STATUS_NORMAL
         assert value is not None and isinstance(value, bool)
 
         if not self.isInstalled():
