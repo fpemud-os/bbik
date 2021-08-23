@@ -71,6 +71,17 @@ class Util:
             return ""
 
     @staticmethod
+    def getBlkDevPtuuid(devPath):
+        """PTUUID is for block device that owns partition table"""
+
+        ret = Util.cmdCall("/sbin/blkid", devPath)
+        m = re.search("PTUUID=\"(\\S*)\"", ret, re.M)
+        if m is not None:
+            return m.group(1)
+        else:
+            return ""
+
+    @staticmethod
     def splitToTuple(s, d, count):
         ret = s.split(d)
         assert len(ret) == count

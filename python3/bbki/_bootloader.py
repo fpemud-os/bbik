@@ -111,10 +111,20 @@ class BootLoader:
 
     def install(self, boot_mode, rootfs_dev=None, esp_dev=None, boot_disk=None, aux_kernel_init_cmdline=""):
         assert boot_mode in [BootMode.EFI, BootMode.BIOS]
-        if self._status == self.STATUS_NORMAL:
-            assert self._bootMode == boot_mode
-        elif self._status == self.STATUS_NOT_INSTALLED:
-            pass
+
+        if self._status == self.STATUS_NORMAL and not self._bootMode == boot_mode:
+            raise ValueError("boot mode and bootloader is different")
+
+        if boot_mode == BootMode.EFI:
+            if rootfs_dev != Util.getMountDeviceForPath("/"):
+               raise ValueError("invalid rootfs mount point")
+            if esp_dev != Util.getMountDeviceForPath("/boot"):
+                raise ValueError("invalid ESP partition mount point")
+        elif boot_mode == BootMode.BIOS:
+            if rootfs_dev != Util.getMountDeviceForPath("/"):
+                raise ValueError("invalid rootfs mount point")
+            if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):
+                raise ValueError("invalid boot device")
         else:
             assert False
 
@@ -125,43 +135,69 @@ class BootLoader:
             grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
             grubKernelInitCmdline = grubKernelInitCmdline.strip()
 
+        rootfsDevUuid = None
+        espDevUuid = None
+        bootDiskPtUuid = None
+
         if boot_mode == BootMode.EFI:
-            if rootfs_dev != Util.getMountDeviceForPath("/"):
-               raise ValueError("invalid target host rootfs mount point")
-            if esp_dev != Util.getMountDeviceForPath("/boot"):
-                raise ValueError("invalid target host boot device mount point")
-            self._uefiInstall(rootfs_dev, esp_dev, grubKernelInitCmdline)
+            rootfsDevUuid = Util.getBlkDevUuid(rootfs_dev) if rootfs_dev is not None else None
+            espDevUuid = Util.getBlkDevUuid(esp_dev) if esp_dev is not None else None
+            self._uefiInstall(rootfs_dev, rootfsDevUuid, esp_dev, espDevUuid, grubKernelInitCmdline)
         elif boot_mode == BootMode.BIOS:
-            assert rootfs_dev is not None and boot_disk is not None
-            self._biosInstall(rootfs_dev, boot_disk, grubKernelInitCmdline)
+            espDevUuid = Util.getBlkDevUuid(esp_dev) if esp_dev is not None else None
+            bootDiskPtUuid = Util.getBlkDevPtUuid(boot_disk) if boot_disk is not None else None
+            self._biosInstall(rootfs_dev, rootfsDevUuid, boot_disk, bootDiskPtUuid, grubKernelInitCmdline)
         else:
             assert False
+
+        self._status = self.STATUS_NORMAL
+        self._bootMode = boot_mode
+        self._rootfsDev = rootfs_dev
+        self._rootfsDevUuid = rootfsDevUuid
+        self._espDev = esp_dev
+        self._espDevUuid = espDevUuid
+        self._bootDisk = boot_disk
+        self._bootDiskPtuuid = bootDiskPtUuid
+        self._initCmdLine = grubKernelInitCmdline
 
     def remove(self):
-        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
-        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
+        # check 
+        if self._status == self.STATUS_NORMAL:
+            if self._bootMode == BootMode.EFI:
+                if self._rootfsDev != Util.getMountDeviceForPath("/"):
+                    raise ValueError("invalid rootfs mount point")
+                if self._espDev != Util.getMountDeviceForPath("/boot"):
+                    raise ValueError("invalid ESP partition mount point")
+            elif self._bootMode == BootMode.BIOS:
+                if self._rootfsDev != Util.getMountDeviceForPath("/"):
+                    raise ValueError("invalid rootfs mount point")
+                if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
+                    raise ValueError("invalid boot device")
 
-        boot_mode = self.getBootMode()
-        if boot_mode == BootMode.EFI:
-            pass
-        elif boot_mode == BootMode.BIOS:
-
-            # remove MBR
-            devPath = Util.getMountDeviceForPath("/")
-            bootDisk = Util.devPathPartitionOrDiskToDisk(devPath)
-            with open(bootDisk, "wb+") as f:
+        # remove MBR, MBR may not be removed for STATUS_INVALID
+        if self._status == self.STATUS_NORMAL and self._bootMode == BootMode.BIOS:
+            with open(self._bootDisk, "wb+") as f:
                 f.write(Util.newBuffer(0, 440))
 
-            # remove /boot/grub directory
-            robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
+        # delete files
+        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_dir())
+        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
 
-        else:
-            assert False
+        # clear variables
+        self._initCmdLine = None
+        self._bootDiskPtuuid = None
+        self._bootDisk = None
+        self._espDevUuid = None
+        self._espDev = None
+        self._rootfsDevUuid = None
+        self._rootfsDev = None
+        self._bootMode = None
+        self._status = self.STATUS_NOT_INSTALLED
 
     def _uefiInstall(self, rootfsDev, espDev, grubKernelInitCmdline):
         # remove old directory
-        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "EFI"))
-        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
+        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_dir())
+        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
 
         # install /boot/grub and /boot/EFI directory
         # install grub into ESP
@@ -172,9 +208,6 @@ class BootLoader:
         self._genGrubCfg()
 
     def _biosInstall(self):
-        if self._targetHostInfo.mount_point_list[0].dev_path != Util.getMountDeviceForPath("/"):
-            raise ValueError("invalid target host rootfs mount point")
-
         # remove old directory
         robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
 
