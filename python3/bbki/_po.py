@@ -62,13 +62,12 @@ class RescueOsSpec:
         self.initrd_filepath = bbki._fsLayout.get_boot_rescue_os_initrd_filepath()
 
 
-class HostInfo:
+class HostMountPointList:
 
-    def __init__(self, boot_mode=None, mount_point_list=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+    def __init__(self, boot_mode, mount_points, boot_disk=None):
         self.boot_mode = None
-        self.mount_point_list = None
-        self.aux_os_list = None
-        self.aux_kernel_init_cmdline = None
+        self.mount_points = None
+        self.boot_disk = None
 
         # self.boot_mode
         if boot_mode is None:
@@ -84,24 +83,42 @@ class HostInfo:
             assert False
 
         # self.mount_point_list
-        if mount_point_list is not None:
-            self._assertMountPointListIsValid(mount_point_list)
-            self.mount_point_list = mount_point_list
+        if mount_points is not None:
+            self._assertMountPointsIsValid(mount_points)
+            self.mount_points = mount_points
 
-        # self.aux_os_list
-        assert len(aux_os_list) >= 0
-        self.aux_os_list = aux_os_list
+        # self.boot_disk
+        self.boot_disk = boot_disk
 
-        # self.aux_kernel_init_cmdline
-        assert isinstance(aux_kernel_init_cmdline, str)
-        self.aux_kernel_init_cmdline = aux_kernel_init_cmdline
+    def get_root_mount_point(self):
+        for m in self.mount_points:
+            if m.name == HostMountPoint.NAME_ROOT:
+                return m
+        assert False
 
-    def attach_mount_point_list(self, mount_point_list):
-        assert self.mount_point_list is None and mount_point_list is not None
-        self._assertMountPointListIsValid(mount_point_list)
-        self.mount_point_list = mount_point_list
 
-    def _assertMountPointListIsValid(self, mount_point_list):
+    @staticmethod
+    def getMountPoint(mount_point_list, name):
+        assert mount_point_list is not None
+        assert name in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
+
+        for m in mount_point_list:
+            if m.name == name:
+                return m
+        return None
+
+    @staticmethod
+    def getMountPointList(mount_point_list, name):
+        assert mount_point_list is not None
+        assert name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_BOOT]
+
+        ret = []
+        for m in mount_point_list:
+            if m.name == name:
+                ret.append(m)
+        return re
+
+    def _assertMountPointsIsValid(self, mount_point_list):
         if self.boot_mode == BootMode.EFI:
             assert len(mount_point_list) >= 2
             assert mount_point_list[0].name == HostMountPoint.NAME_ROOT

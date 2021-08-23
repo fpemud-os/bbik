@@ -25,6 +25,7 @@ import os
 import glob
 import robust_layer.simple_fops
 
+from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
 from ._po import HostMountPoint
@@ -156,9 +157,14 @@ class Bbki:
 
         InitramfsInstaller(self, mount_point_list, self.get_pending_boot_entry()).install()
 
-    def install_bootloader(self, boot_mode, mount_point_list, aux_os_list, aux_kernel_init_cmdline):
-        assert boot_mode is not None
-        assert mount_point_list is not None
+    def install_bootloader(self, boot_mode, mount_point_list, boot_disk=None, aux_os_list, aux_kernel_init_cmdline):
+        if boot_mode == BootMode.EFI:
+            rootfsMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT)
+            espMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_BOOT)
+        elif boot_mode == BootMode.BIOS:
+            rootfsMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT)
+        else:
+            assert False
 
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             pass
@@ -168,7 +174,20 @@ class Bbki:
             self._bootloader.remove()
         else:
             assert False
+
+
+
+
+
         self._bootloader.install(boot_mode, )
+
+
+
+
+
+    def install(self, boot_mode, rootfs_dev=None, rootfs_dev_uuid=None, esp_dev=None, esp_dev_uuid=None, boot_disk=None, boot_disk_id=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+
+
 
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
