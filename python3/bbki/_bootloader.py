@@ -55,7 +55,7 @@ class BootLoader:
         self._bootDisk = None
         self._bootDiskId = None
         self._initCmdLine = None
-        self._parseGrub()
+        self._parseGrubCfg()
 
         # var for install() only
         self._targetHostInfo = None
@@ -110,21 +110,31 @@ class BootLoader:
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
     def install(self, boot_mode, rootfs_dev=None, esp_dev=None, boot_disk=None, aux_kernel_init_cmdline=""):
-        assert boot_mode in [BootMode.EFI, BootMode.BIOS]
-
-        if self._status == self.STATUS_NORMAL and not self._bootMode == boot_mode:
-            raise ValueError("boot mode and bootloader is different")
-
+        assert self._status != self.STATUS_INVALID
         if boot_mode == BootMode.EFI:
             if rootfs_dev != Util.getMountDeviceForPath("/"):
                raise ValueError("invalid rootfs mount point")
             if esp_dev != Util.getMountDeviceForPath("/boot"):
                 raise ValueError("invalid ESP partition mount point")
+            if self._status == self.STATUS_NORMAL:
+                if boot_mode != self._bootMode:
+                    raise ValueError("boot mode and bootloader is different")
+                if rootfs_dev != self._rootfsDev:
+                    raise ValueError("rootfs device and bootloader is different")
+                if esp_dev != self._espDev:
+                    raise ValueError("ESP partition and bootloader is different")
         elif boot_mode == BootMode.BIOS:
             if rootfs_dev != Util.getMountDeviceForPath("/"):
                 raise ValueError("invalid rootfs mount point")
             if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):
                 raise ValueError("invalid boot device")
+            if self._status == self.STATUS_NORMAL:
+                if boot_mode != self._bootMode:
+                    raise ValueError("boot mode and bootloader is different")
+                if rootfs_dev != self._rootfsDev:
+                    raise ValueError("rootfs device and bootloader is different")
+                if boot_disk != self._bootMode:
+                    raise ValueError("boot device and bootloader is different")
         else:
             assert False
 
@@ -142,14 +152,26 @@ class BootLoader:
         if boot_mode == BootMode.EFI:
             rootfsDevUuid = Util.getBlkDevUuid(rootfs_dev) if rootfs_dev is not None else None
             espDevUuid = Util.getBlkDevUuid(esp_dev) if esp_dev is not None else None
-            self._uefiInstall(rootfs_dev, rootfsDevUuid, esp_dev, espDevUuid, grubKernelInitCmdline)
+
+            # install /boot/grub and /boot/EFI directory
+            # install grub into ESP
+            # *NO* UEFI firmware variable is touched, so that we are portable
+            Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
+
         elif boot_mode == BootMode.BIOS:
-            espDevUuid = Util.getBlkDevUuid(esp_dev) if esp_dev is not None else None
+            rootfsDevUuid = Util.getBlkDevUuid(rootfs_dev) if rootfs_dev is not None else None
             bootDiskId = Util.getDiskById(boot_disk) if boot_disk is not None else None
-            self._biosInstall(rootfs_dev, rootfsDevUuid, boot_disk, bootDiskId, grubKernelInitCmdline)
+
+            # install /boot/grub directory
+            # install grub into disk MBR
+            Util.cmdCall("grub-install", "--target=i386-pc", boot_disk)
         else:
             assert False
 
+        # generate grub.cfg
+        self._genGrubCfg()
+
+        # record variable value
         self._status = self.STATUS_NORMAL
         self._bootMode = boot_mode
         self._rootfsDev = rootfs_dev
@@ -161,7 +183,7 @@ class BootLoader:
         self._initCmdLine = grubKernelInitCmdline
 
     def remove(self):
-        # check 
+        # check
         if self._status == self.STATUS_NORMAL:
             if self._bootMode == BootMode.EFI:
                 if self._rootfsDev != Util.getMountDeviceForPath("/"):
@@ -174,10 +196,12 @@ class BootLoader:
                 if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
                     raise ValueError("invalid boot device")
 
-        # remove MBR, MBR may not be removed for STATUS_INVALID
-        if self._status == self.STATUS_NORMAL and self._bootMode == BootMode.BIOS:
-            with open(self._bootDisk, "wb+") as f:
-                f.write(Util.newBuffer(0, 440))
+        # remove MBR
+        # MBR may not be correctly removed when status==STATUS_INVALID
+        if self._status == self.STATUS_NORMAL:
+            if self._bootMode == BootMode.BIOS:
+                with open(self._bootDisk, "wb+") as f:
+                    f.write(Util.newBuffer(0, 440))
 
         # delete files
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_dir())
@@ -194,32 +218,7 @@ class BootLoader:
         self._bootMode = None
         self._status = self.STATUS_NOT_INSTALLED
 
-    def _uefiInstall(self, rootfsDev, espDev, grubKernelInitCmdline):
-        # remove old directory
-        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_dir())
-        robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
-
-        # install /boot/grub and /boot/EFI directory
-        # install grub into ESP
-        # *NO* UEFI firmware variable is touched, so that we are portable
-        Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
-
-        # generate grub.cfg
-        self._genGrubCfg()
-
-    def _biosInstall(self):
-        # remove old directory
-        robust_layer.simple_fops.rm(os.path.join(self._bbki._fsLayout.get_boot_dir(), "grub"))
-
-        # install /boot/grub directory
-        # install grub into disk MBR
-        bootDisk = Util.devPathPartitionOrDiskToDisk(self._targetHostInfo.mount_point_list[0].dev_path)
-        Util.cmdCall("grub-install", "--target=i386-pc", bootDisk)
-
-        # generate grub.cfg
-        self._genGrubCfg()
-
-    def _parseGrub(self):
+    def _parseGrubCfg(self):
         self._status = None
         self._bootMode = None
         self._rootfsDev = None
