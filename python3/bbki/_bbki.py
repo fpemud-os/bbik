@@ -158,14 +158,6 @@ class Bbki:
         InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
 
     def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
-        if boot_mode == BootMode.EFI:
-            rootfsMp = host_storage.get_root_mount_point()
-            espMp = host_storage.get_esp_mount_point()
-        elif boot_mode == BootMode.BIOS:
-            rootfsMp = host_storage.get_root_mount_point()
-        else:
-            assert False
-
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             pass
         elif self._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
@@ -175,8 +167,19 @@ class Bbki:
         else:
             assert False
 
-        # self._bootloader.install(boot_mode, )
-        # def install(self, boot_mode, rootfs_dev=None, rootfs_dev_uuid=None, esp_dev=None, esp_dev_uuid=None, boot_disk=None, boot_disk_id=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+        if boot_mode == BootMode.EFI:
+            rootfsMp = host_storage.get_root_mount_point()
+            espMp = host_storage.get_esp_mount_point()
+            self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
+                                     None, None,
+                                     aux_os_list, aux_kernel_init_cmdline)
+        elif boot_mode == BootMode.BIOS:
+            rootfsMp = host_storage.get_root_mount_point()
+            self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
+                                     host_storage.boot_disk_path, host_storage.boot_disk_id,
+                                     aux_os_list, aux_kernel_init_cmdline)
+        else:
+            assert False
 
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
