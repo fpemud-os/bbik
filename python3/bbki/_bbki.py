@@ -37,7 +37,7 @@ from ._exception import RunningEnvironmentError
 from ._util import Util
 from ._po import FsLayout
 from ._repo import BbkiFileExecutor
-from ._boot_entry import MountBootDirRw
+from ._boot_entry import BootDirWriter
 from ._kernel import BootEntryUtils
 from ._kernel import BootEntryWrapper
 from ._bootloader import BootLoader
@@ -58,6 +58,7 @@ class Bbki:
             Repo(self, self._cfg.data_repo_dir),
         ]
 
+        self._bootDirWriter = BootDirWriter(self)
         self._bootloader = BootLoader(self)
 
     @property
@@ -71,6 +72,10 @@ class Bbki:
     @property
     def rescue_os_spec(self):
         return RescueOsSpec(self)
+
+    @property
+    def boot_dir_writer(self):
+        return self._bootDirWriter
 
     def check_running_environment(self):
         if not os.path.isdir(self._fsLayout.get_boot_dir()):
@@ -92,7 +97,7 @@ class Bbki:
         # we use grub environment variable to store stable status
         if self._bootloader.getStatus() != BootLoader.STATUS_NORMAL:
             raise RunningEnvironmentError("bootloader is not properly installed")
-        with MountBootDirRw(self):
+        with self._bootDirWriter:
             self._bootloader.setStableFlag(value)
 
     def get_current_boot_entry(self):
@@ -155,11 +160,11 @@ class Bbki:
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
 
-        with MountBootDirRw(self):
+        with self._bootDirWriter:
             InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
 
     def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
-        with MountBootDirRw(self):
+        with self._bootDirWriter:
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
                 pass
             elif self._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
@@ -231,7 +236,7 @@ class Bbki:
 
         # delete files
         if not pretend:
-            with MountBootDirRw(self):
+            with self._bootDirWriter:
                 for fullfn in bootFileList:
                     robust_layer.simple_fops.rm(fullfn)
                 for fullfn in modulesFileList:
@@ -271,13 +276,13 @@ class Bbki:
 
     def remove_bootloader_and_initramfs(self):
         be = self.get_pending_boot_entry()
-        with MountBootDirRw(self):
+        with self._bootDirWriter:
             self._bootloader.remove()
             robust_layer.simple_fops.rm(be.initrd_filepath)
             robust_layer.simple_fops.rm(be.initrd_tar_filepath)
 
     def remove_all(self):
-        with MountBootDirRw(self):
+        with self._bootDirWriter:
             self._bootloader.remove()                                                 # remove MBR if necessary
             Util.removeDirContent(self._fsLayout.get_boot_dir())                      # remove /boot/*
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())                # remove /lib/firmware

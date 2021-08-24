@@ -213,32 +213,44 @@ class BootEntry:
         return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
 
 
-class MountBootDirRw:
+class BootDirWriter:
 
     def __init__(self, bbki):
         self._bbki = bbki
-        self._entry = None
+        self._refcount = 0              # support nest use
+        self._remounted = False
 
-        # check if remount-boot-rw is allowed
-        if not self._bbki.config.get_remount_boot_rw():
-            return
+    def start(self):
+        while self._refcount == 0:
+            # check if remount-boot-rw is allowed
+            if not self._bbki.config.get_remount_boot_rw():
+                break
 
-        # find and check mount point for /boot
-        entry = SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
-        if entry is None or "rw" in entry.mnt_opts:
-            return
+            # find and check mount point for /boot
+            entry = SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
+            if entry is None or "rw" in entry.mnt_opts:
+                break
 
-        # remount as rw
-        Util.cmdCall("/bin/mount", entry.dev, entry.mount_point, "-o", "rw,remount")
-        self._entry = entry
+            # remount as rw
+            Util.cmdCall("/bin/mount", self._bbki._fsLayout.get_boot_dir(), "-o", "rw,remount")
+            self._remounted = True
+            break
+
+        self._refcount += 1
+
+    def end(self):
+        assert self._refcount >= 0
+        try:
+            if self._refcount == 1 and self._remounted:
+                # remount as ro
+                Util.cmdCall("/bin/mount", self._bbki._fsLayout.get_boot_dir(), "-o", "ro,remount")
+                self._remounted = False
+        finally:
+            self._refcount -= 1
 
     def __enter__(self):
+        self.start()
         return self
 
     def __exit__(self, type, value, traceback):
-        if self._entry is None:
-            return
-
-        # remount as ro
-        Util.cmdCall("/bin/mount", self._entry.dev, self._entry.mount_point, "-o", "ro,remount")
-        self._entry = None
+        self.end()
