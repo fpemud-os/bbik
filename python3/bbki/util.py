@@ -26,7 +26,7 @@ import pathlib
 from ._po import BootMode
 
 
-def get_native_boot_mode(self):
+def get_boot_mode(self):
     if os.path.exists("/sys/firmware/efi"):
         return BootMode.EFI
     else:
