@@ -189,7 +189,7 @@ class HostMountPoint:
             self.underlay_disks = underlay_disks
         else:
             assert self.dev_path is not None
-            self.underlay_disks = HostInfoUtil.getUnderlayDisks(self.dev_path)
+            self.underlay_disks = _getUnderlayDisks(self.dev_path)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
@@ -309,86 +309,62 @@ class FsLayout:
         return "/lib/firmware"
 
 
-class HostInfoUtil:
+def _getUnderlayDisks(devPath, parent=None):
+    # HostDiskLvmLv
+    lvmInfo = Util.getBlkDevLvmInfo(devPath)
+    if lvmInfo is not None:
+        bdi = HostDiskLvmLv(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent=parent)
+        for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
+            _getUnderlayDisks(slaveDevPath, parent=bdi)
+        return bdi
 
-    @staticmethod
-    def getMountPoint(mount_point_list, name):
-        assert mount_point_list is not None
-        assert name in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_ESP]
-
-        for m in mount_point_list:
-            if m.name == name:
-                return m
-        return None
-
-    @staticmethod
-    def getMountPointList(mount_point_list, name):
-        assert mount_point_list is not None
-        assert name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_ESP]
-
-        ret = []
-        for m in mount_point_list:
-            if m.name == name:
-                ret.append(m)
-        return re
-
-    @staticmethod
-    def getUnderlayDisks(devPath, parent=None):
-        # HostDiskLvmLv
-        lvmInfo = Util.getBlkDevLvmInfo(devPath)
-        if lvmInfo is not None:
-            bdi = HostDiskLvmLv(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent=parent)
-            for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
-                HostInfoUtil.getUnderlayDisks(slaveDevPath, parent=bdi)
-            return bdi
-
-        # HostDiskPartition
-        m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
+    # HostDiskPartition
+    m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
+    if m is None:
+        m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
         if m is None:
-            m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
+            m = re.fullmatch("(/dev/vd[a-z])[0-9]+", devPath)
             if m is None:
-                m = re.fullmatch("(/dev/vd[a-z])[0-9]+", devPath)
-                if m is None:
-                    m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
-        if m is not None:
-            bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)        # FIXME: currently there's no difference when processing mbr and gpt partition
-            HostInfoUtil.getUnderlayDisks(m.group(1), parent=bdi)
-            return bdi
+                m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
+    if m is not None:
+        bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)        # FIXME: currently there's no difference when processing mbr and gpt partition
+        _getUnderlayDisks(m.group(1), parent=bdi)
+        return bdi
 
-        # HostDiskScsiDisk
-        m = re.fullmatch("/dev/sd[a-z]", devPath)
-        if m is not None:
-            return HostDiskScsiDisk(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerName(devPath), parent=parent)
+    # HostDiskScsiDisk
+    m = re.fullmatch("/dev/sd[a-z]", devPath)
+    if m is not None:
+        return HostDiskScsiDisk(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerName(devPath), parent=parent)
 
-        # HostDiskXenDisk
-        m = re.fullmatch("/dev/xvd[a-z]", devPath)
-        if m is not None:
-            return HostDiskXenDisk(Util.getBlkDevUuid(devPath), parent=parent)
+    # HostDiskXenDisk
+    m = re.fullmatch("/dev/xvd[a-z]", devPath)
+    if m is not None:
+        return HostDiskXenDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
-        # HostDiskVirtioDisk
-        m = re.fullmatch("/dev/vd[a-z]", devPath)
-        if m is not None:
-            return HostDiskVirtioDisk(Util.getBlkDevUuid(devPath), parent=parent)
+    # HostDiskVirtioDisk
+    m = re.fullmatch("/dev/vd[a-z]", devPath)
+    if m is not None:
+        return HostDiskVirtioDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
-        # HostDiskNvmeDisk
-        m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
-        if m is not None:
-            return HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
+    # HostDiskNvmeDisk
+    m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
+    if m is not None:
+        return HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
-        # bcache
-        m = re.fullmatch("/dev/bcache[0-9]+", devPath)
-        if m is not None:
-            bdi = HostDiskBcache(Util.getBlkDevUuid(devPath))
-            slist = Util.bcacheGetSlaveDevPathList(devPath)
-            for i in range(0, len(slist)):
-                if i < len(slist) - 1:
-                    bdi.add_cache_dev(HostInfoUtil.getUnderlayDisks(slist[i], parent=bdi))
-                else:
-                    bdi.add_backing_dev(HostInfoUtil.getUnderlayDisks(slist[i], parent=bdi))
-            return bdi
+    # bcache
+    m = re.fullmatch("/dev/bcache[0-9]+", devPath)
+    if m is not None:
+        bdi = HostDiskBcache(Util.getBlkDevUuid(devPath))
+        slist = Util.bcacheGetSlaveDevPathList(devPath)
+        for i in range(0, len(slist)):
+            if i < len(slist) - 1:
+                bdi.add_cache_dev(_getUnderlayDisks(slist[i], parent=bdi))
+            else:
+                bdi.add_backing_dev(_getUnderlayDisks(slist[i], parent=bdi))
+        return bdi
 
-        # unknown
-        assert False
+    # unknown
+    assert False
 
 
 # def get_disk_stack(self):

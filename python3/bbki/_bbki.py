@@ -151,18 +151,18 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
 
-    def install_initramfs(self, mount_point_list):
-        assert mount_point_list is not None
-        assert HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT) is not None
+    def install_initramfs(self, host_storage):
+        assert host_storage is not None
+        assert host_storage.get_root_mount_point() is not None
 
-        InitramfsInstaller(self, mount_point_list, self.get_pending_boot_entry()).install()
+        InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
 
-    def install_bootloader(self, boot_mode, mount_point_list, boot_disk=None, aux_os_list, aux_kernel_init_cmdline):
+    def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
         if boot_mode == BootMode.EFI:
-            rootfsMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT)
-            espMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_BOOT)
+            rootfsMp = host_storage.get_root_mount_point()
+            espMp = host_storage.get_esp_mount_point()
         elif boot_mode == BootMode.BIOS:
-            rootfsMp = HostInfoUtil.getMountPoint(mount_point_list, HostMountPoint.NAME_ROOT)
+            rootfsMp = host_storage.get_root_mount_point()
         else:
             assert False
 
