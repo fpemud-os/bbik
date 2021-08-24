@@ -24,6 +24,7 @@
 import os
 import re
 from ._util import Util
+from ._util import SystemMounts
 
 
 class BootEntry:
@@ -210,3 +211,34 @@ class BootEntry:
 
     def ___eq___(self, other):
         return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
+
+
+class MountBootDirRw:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+        self._entry = None
+
+        # check if remount-boot-rw is allowed
+        if not self._bbki.config.get_remount_boot_rw():
+            return
+
+        # find and check mount point for /boot
+        entry = SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
+        if entry is None or "rw" in entry.mnt_opts:
+            return
+
+        # remount as rw
+        Util.cmdCall("/bin/mount", entry.dev, entry.mount_point, "-o", "rw,remount")
+        self._entry = entry
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if self._entry is None:
+            return
+
+        # remount as ro
+        Util.cmdCall("/bin/mount", self._entry.dev, self._entry.mount_point, "-o", "ro,remount")
+        self._entry = None

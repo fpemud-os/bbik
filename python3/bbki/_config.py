@@ -168,18 +168,18 @@ class EtcDirConfig(Config):
         if self._tOptions["system"]["init"].startswith("/"):
             return SystemInitInfo(SystemInit.CUSTOM, self._tOptions["system"]["init"])
 
-        raise ConfigError("invalid system init configuration")
+        assert False
+
+    def get_remount_boot_rw(self):
+        self._filltOptions()            # fill cache
+        return self._tOptions["system"]["remount-boot-rw"]
 
     def get_bootloader_extra_time(self):
-        # fill cache
-        self._filltOptions()
-
+        self._filltOptions()            # fill cache
         return self._tOptions["bootloader"]["wait-time"]
 
     def get_kernel_extra_init_cmdline(self):
-        # fill cache
-        self._filltOptions()
-
+        self._filltOptions()            # fill cache
         return self._tOptions["kernel"]["init-cmdline"]
 
     def check_version_mask(self, item_fullname, item_verstr):
@@ -235,11 +235,29 @@ class EtcDirConfig(Config):
                 cfg = configparser.ConfigParser()
                 cfg.read(path)
                 if cfg.has_option("bootloader", "wait-time"):
-                    self._tOptions["bootloader"]["wait-time"] = cfg.get("bootloader", "wait-time")
+                    v = cfg.get("bootloader", "wait-time")
+                    try:
+                        v = int(v)
+                    except ValueError:
+                        raise ConfigError("invalid value of bbki option bootloader/wait-time")
+                    if not (0 <= v <= 3600):
+                        raise ConfigError("invalid value of bbki option bootloader/wait-time")
+                    self._tOptions["bootloader"]["wait-time"] = v
                 if cfg.has_option("kernel", "init-cmdline"):
                     self._tOptions["kernel"]["init-cmdline"] = cfg.get("kernel", "init-cmdline")
                 if cfg.has_option("system", "init"):
-                    self._tOptions["system"]["init"] = cfg.get("system", "init")
+                    v = cfg.get("system", "init")
+                    if v != "auto-detect" and v not in [SystemInit.SYSVINIT, SystemInit.OPENRC, SystemInit.SYSTEMD] and not v.startswith("/"):
+                        raise ConfigError("invalid value of bbki option system/init")
+                    self._tOptions["system"]["init"] = v
+                if cfg.has_option("system", "remount-boot-rw"):
+                    v = cfg.get("system", "remount-boot-rw")
+                    if v == "true":
+                        self._tOptions["system"]["remount-boot-rw"] = True
+                    elif v == "false":
+                        self._tOptions["system"]["remount-boot-rw"] = False
+                    else:
+                        raise ConfigError("invalid value of bbki option system/remount-boot-rw")
 
         self._tOptions = {
             "bootloader": {
@@ -250,6 +268,7 @@ class EtcDirConfig(Config):
             },
             "system": {
                 "init": "auto-detect",
+                "remount-boot-rw": True,
             },
         }
         _myParse(self._profileOptionsFile)      # step1: use /etc/bbki/profile/bbki.*
