@@ -56,10 +56,6 @@ class Util:
         return bytes(ret)
 
     @staticmethod
-    def isEfi():
-        return os.path.exists("/sys/firmware/efi")
-
-    @staticmethod
     def getBlkDevUuid(devPath):
         """UUID is also called FS-UUID, PARTUUID is another thing"""
 

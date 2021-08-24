@@ -21,7 +21,16 @@
 # THE SOFTWARE.
 
 
+import os
 import pathlib
+from .po import BootMode
+
+
+def get_native_boot_mode(self):
+    if os.path.exists("/sys/firmware/efi"):
+        return BootMode.EFI
+    else:
+        return BootMode.BIOS
 
 
 def compare_kernel_config_files(file1, file2):

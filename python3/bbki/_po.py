@@ -69,27 +69,14 @@ class HostStorage:
         self.boot_disk_path = None
         self.boot_disk_id = None
 
-        # self._bootMode
-        if boot_mode is None:
-            self._bootMode = None
-        elif boot_mode == "native":
-            if Util.isEfi():
-                self._bootMode = BootMode.EFI
-            else:
-                self._bootMode = BootMode.BIOS
-        elif boot_mode in [BootMode.EFI, BootMode.BIOS]:
-            self._bootMode = boot_mode
-        else:
-            assert False
-
         # self.mount_points
-        if self._bootMode == BootMode.EFI:
+        if boot_mode == BootMode.EFI:
             assert len(mount_points) >= 2
             assert mount_points[0].name == HostMountPoint.NAME_ROOT
             assert mount_points[1].name == HostMountPoint.NAME_ESP
             assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ROOT]) == 1
             assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ESP]) == 1
-        elif self._bootMode == BootMode.BIOS:
+        elif boot_mode == BootMode.BIOS:
             assert mount_points[0].name == HostMountPoint.NAME_ROOT
             assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ROOT]) == 1
             assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ESP]) == 0
@@ -99,12 +86,17 @@ class HostStorage:
         self.mount_points = mount_points
 
         # self.boot_disk_path and self.boot_disk_id
-        if boot_disk_path_or_id.startswith("/dev/"):
-            self.boot_disk_path = boot_disk_path_or_id
-            self.boot_disk_id = Util.getDiskById(self.boot_disk_path)
+        if boot_mode == BootMode.EFI:
+            assert boot_disk_path_or_id is None
+        elif boot_mode == BootMode.BIOS:
+            if boot_disk_path_or_id.startswith("/dev/"):
+                self.boot_disk_path = boot_disk_path_or_id
+                self.boot_disk_id = Util.getDiskById(self.boot_disk_path)
+            else:
+                self.boot_disk_path = None
+                self.boot_disk_id = boot_disk_path_or_id
         else:
-            self.boot_disk_path = None
-            self.boot_disk_id = boot_disk_path_or_id
+            assert False
 
     def get_root_mount_point(self):
         for m in self.mount_points:
@@ -121,7 +113,7 @@ class HostStorage:
     def get_other_mount_points(self):
         ret = []
         for m in self.mount_points:
-            if m.name == HostMountPoint.NAME_ESP:
+            if m.name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_ESP]:
                 ret.append(m)
         return ret
 
