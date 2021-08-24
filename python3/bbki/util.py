@@ -23,7 +23,7 @@
 
 import os
 import pathlib
-from .po import BootMode
+from ._po import BootMode
 
 
 def get_native_boot_mode(self):
