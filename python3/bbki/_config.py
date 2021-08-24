@@ -27,7 +27,6 @@ import configparser
 from ._util import Util
 from ._po import KernelType
 from ._po import SystemInit
-from ._po import SystemInitInfo
 from ._exception import ConfigError
 
 
@@ -144,29 +143,29 @@ class EtcDirConfig(Config):
 
         return self._tKernelAddonNameList
 
-    def get_system_init_info(self):
+    def get_system_init(self):
         # fill cache
         self._filltOptions()
 
         if self._tOptions["system"]["init"] == "auto-detect":
             if os.path.exists("/sbin/openrc-init"):
-                return SystemInitInfo(SystemInit.OPENRC, "/sbin/openrc-init")
+                return SystemInit(SystemInit.TYPE_OPENRC, "/sbin/openrc-init")
             if os.path.exists("/usr/lib/systemd/systemd"):
-                return SystemInitInfo(SystemInit.SYSTEMD, "/usr/lib/systemd/systemd")
+                return SystemInit(SystemInit.TYPE_SYSTEMD, "/usr/lib/systemd/systemd")
             else:
                 raise ConfigError("auto detect system init failed")
 
-        if self._tOptions["system"]["init"] == SystemInit.SYSVINIT:
-            return SystemInitInfo(SystemInit.SYSVINIT, "")
+        if self._tOptions["system"]["init"] == SystemInit.TYPE_SYSVINIT:
+            return SystemInit(SystemInit.TYPE_SYSVINIT, "")
 
-        if self._tOptions["system"]["init"] == SystemInit.OPENRC:
-            return SystemInitInfo(SystemInit.OPENRC, "/sbin/openrc-init")
+        if self._tOptions["system"]["init"] == SystemInit.TYPE_OPENRC:
+            return SystemInit(SystemInit.TYPE_OPENRC, "/sbin/openrc-init")
 
-        if self._tOptions["system"]["init"] == SystemInit.SYSTEMD:
-            return SystemInitInfo(SystemInit.SYSTEMD, "/usr/lib/systemd/systemd")
+        if self._tOptions["system"]["init"] == SystemInit.TYPE_SYSTEMD:
+            return SystemInit(SystemInit.TYPE_SYSTEMD, "/usr/lib/systemd/systemd")
 
         if self._tOptions["system"]["init"].startswith("/"):
-            return SystemInitInfo(SystemInit.CUSTOM, self._tOptions["system"]["init"])
+            return SystemInit(SystemInit.TYPE_CUSTOM, self._tOptions["system"]["init"])
 
         assert False
 
@@ -247,7 +246,7 @@ class EtcDirConfig(Config):
                     self._tOptions["kernel"]["init-cmdline"] = cfg.get("kernel", "init-cmdline")
                 if cfg.has_option("system", "init"):
                     v = cfg.get("system", "init")
-                    if v != "auto-detect" and v not in [SystemInit.SYSVINIT, SystemInit.OPENRC, SystemInit.SYSTEMD] and not v.startswith("/"):
+                    if v != "auto-detect" and v not in [SystemInit.TYPE_SYSVINIT, SystemInit.TYPE_OPENRC, SystemInit.TYPE_SYSTEMD] and not v.startswith("/"):
                         raise ConfigError("invalid value of bbki option system/init")
                     self._tOptions["system"]["init"] = v
                 if cfg.has_option("system", "remount-boot-rw"):

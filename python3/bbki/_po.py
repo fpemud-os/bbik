@@ -40,18 +40,15 @@ class BootMode:
 
 class SystemInit:
 
-    SYSVINIT = "sysv-init"
-    OPENRC = "openrc"
-    SYSTEMD = "systemd"
-    CUSTOM = "custom"
+    TYPE_SYSVINIT = "sysv-init"
+    TYPE_OPENRC = "openrc"
+    TYPE_SYSTEMD = "systemd"
+    TYPE_CUSTOM = "custom"
 
-
-class SystemInitInfo:
-
-    def __init__(self, name, init_cmd):
-        assert name in [SystemInit.SYSVINIT, SystemInit.OPENRC, SystemInit.SYSTEMD, SystemInit.CUSTOM]
+    def __init__(self, name, cmd):
+        assert name in [self.TYPE_SYSVINIT, self.TYPE_OPENRC, self.TYPE_SYSTEMD, self.TYPE_CUSTOM]
         self.name = name
-        self.init_cmd = init_cmd
+        self.cmd = cmd
 
 
 class RescueOsSpec:
