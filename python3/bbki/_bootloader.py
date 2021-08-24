@@ -29,7 +29,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._util import SystemMounts
 from ._po import BootMode
-from ._boot_entry import BootEntry
+from ._boot_dir import BootEntry
 from ._kernel import BootEntryUtils
 from ._exception import BootloaderInstallError
 

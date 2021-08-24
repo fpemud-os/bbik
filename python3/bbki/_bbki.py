@@ -29,7 +29,7 @@ from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
 from ._repo import Repo
-from ._boot_entry import BootEntry
+from ._boot_dir import BootEntry
 from ._kernel import KernelInstaller
 from ._initramfs import InitramfsInstaller
 from ._exception import RunningEnvironmentError
@@ -37,7 +37,7 @@ from ._exception import RunningEnvironmentError
 from ._util import Util
 from ._po import FsLayout
 from ._repo import BbkiFileExecutor
-from ._boot_entry import BootDirWriter
+from ._boot_dir import BootDirWriter
 from ._kernel import BootEntryUtils
 from ._kernel import BootEntryWrapper
 from ._bootloader import BootLoader
@@ -100,7 +100,7 @@ class Bbki:
         with self._bootDirWriter:
             self._bootloader.setStableFlag(value)
 
-    def get_current_boot_entry(self):
+    def get_current_boot_dir(self):
         assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
@@ -109,7 +109,7 @@ class Bbki:
                 return ret
         raise RunningEnvironmentError("current boot entry is lost")
 
-    def get_pending_boot_entry(self):
+    def get_pending_boot_dir(self):
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             ret = self._bootloader.getMainBootEntry()
             if not ret.has_kernel_files() or not ret.has_initrd_files():
@@ -161,7 +161,7 @@ class Bbki:
         assert host_storage.get_root_mount_point() is not None
 
         with self._bootDirWriter:
-            InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
+            InitramfsInstaller(self, host_storage, self.get_pending_boot_dir()).install()
 
     def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
         with self._bootDirWriter:
@@ -189,8 +189,8 @@ class Bbki:
                 assert False
 
     def clean_boot_dir(self, pretend=False):
-        currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
-        pendingBe = self.get_pending_boot_entry()
+        currentBe = self.get_current_boot_dir() if self._bSelfBoot else None
+        pendingBe = self.get_pending_boot_dir()
 
         # get to-be-deleted files in /boot
         bootFileList = None
@@ -275,7 +275,7 @@ class Bbki:
         #     return ret
 
     def remove_bootloader_and_initramfs(self):
-        be = self.get_pending_boot_entry()
+        be = self.get_pending_boot_dir()
         with self._bootDirWriter:
             self._bootloader.remove()
             robust_layer.simple_fops.rm(be.initrd_filepath)

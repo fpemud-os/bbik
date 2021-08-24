@@ -29,7 +29,7 @@ import pylkcutil
 import pkg_resources
 from ._util import Util
 from ._util import TempChdir
-from ._boot_entry import BootEntry
+from ._boot_dir import BootEntry
 from ._repo import BbkiFileExecutor
 
 
@@ -229,7 +229,7 @@ class KernelInstallProgress:
         return self._progress
 
     @property
-    def target_boot_entry(self):
+    def target_boot_dir(self):
         return self._parent._targetBootEntry
 
     @property

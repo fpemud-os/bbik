@@ -57,8 +57,8 @@ from ._config import EtcDirConfig
 from ._repo import Repo
 from ._repo import RepoAtom
 
-from ._boot_entry import BootEntry
-from ._boot_entry import BootDirWriter
+from ._boot_dir import BootEntry
+from ._boot_dir import BootDirWriter
 
 from ._kernel import KernelInstaller
 from ._kernel import KernelInstallProgress
