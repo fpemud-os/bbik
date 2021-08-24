@@ -56,9 +56,6 @@ class BootLoader:
         self._initCmdLine = None
         self._parseGrubCfg()
 
-        # var for install() only
-        self._grubKernelInitCmdline = None
-
     def getStatus(self):
         return self._status
 
@@ -137,22 +134,27 @@ class BootLoader:
                     raise ValueError("boot mode and bootloader is different")
                 if rootfs_dev != self._rootfsDev:
                     raise ValueError("rootfs device and bootloader is different")
-                if boot_disk != self._bootMode:
+                if boot_disk != self._bootDisk:
                     raise ValueError("boot disk and bootloader is different")
         else:
             assert False
 
-        grubKernelInitCmdline = ""
+        # kernel command line
+        kernelCmdLine = ""
         if True:
-            grubKernelInitCmdline += " console=ttynull"                                               # global data: only use console when debug boot process
-            grubKernelInitCmdline += " %s" % (aux_kernel_init_cmdline)                                # host level extra data
-            grubKernelInitCmdline += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
-            grubKernelInitCmdline = grubKernelInitCmdline.strip()
+            kernelCmdLine += " console=ttynull"                                               # global data: only use console when debug boot process
+            kernelCmdLine += " %s" % (aux_kernel_init_cmdline)                                # host level extra data
+            kernelCmdLine += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
+            kernelCmdLine = kernelCmdLine.strip()
+
+        # init command line
+        initCmdline = self._bbki.config.get_system_init_info()[1]
 
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list)
+        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list, kernelCmdLine, initCmdline)
 
+        # install grub binaries
         if boot_mode == BootMode.EFI:
             # install /boot/grub and /boot/EFI directory
             # install grub into ESP
@@ -178,10 +180,9 @@ class BootLoader:
         self._espDevUuid = esp_dev_uuid
         self._bootDisk = boot_disk
         self._bootDiskId = boot_disk_id
-        self._initCmdLine = grubKernelInitCmdline
+        self._initCmdLine = initCmdline
 
     def remove(self):
-        # check
         if self._status == self.STATUS_NORMAL:
             if self._bootMode == BootMode.EFI:
                 if self._rootfsDev != Util.getMountDeviceForPath("/"):
@@ -244,13 +245,17 @@ class BootLoader:
                 self._status = self.STATUS_INVALID
                 return
 
+            bootMode = BootMode.EFI
+
             m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
             if m is None:
                 self._status = self.STATUS_INVALID
                 return
             espDevUuid = m.group(1)
             espDev = Util.getBlkDevByUuid(espDevUuid)
-        elif self._targetHostInfo.boot_mode == BootMode.BIOS:
+        elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
+            bootMode = BootMode.BIOS
+
             m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
             if m is None:
                 self._status = self.STATUS_INVALID
@@ -267,7 +272,7 @@ class BootLoader:
             initCmdLine = ""
 
         self._status = self.STATUS_NORMAL
-        self._bootMode = BootMode
+        self._bootMode = bootMode
         self._rootfsDev = rootfsDev
         self._rootfsDevUuid = rootfsDevUuid
         self._espDev = espDev
@@ -276,7 +281,7 @@ class BootLoader:
         self._bootDiskId = bootDiskId
         self._initCmdLine = initCmdLine
 
-    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList):
+    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine, initCmdLine):
         buf = ''
         if bootMode == BootMode.EFI:
             grubRootDevUuid = rootfsDevUuid
@@ -286,7 +291,6 @@ class BootLoader:
             _prefixedPath = _prefixedPathBios
         else:
             assert False
-        initName, initCmdline = self._bbki.config.get_system_init_info()
 
         # deal with recordfail variable
         buf += 'load_env\n'
@@ -329,8 +333,8 @@ class BootLoader:
             buf += '#   boot disk ID: %s\n' % (bootDiskId)
         else:
             assert False
-        if initCmdline != "":
-            buf += '#   init command line: %s\n' % (initCmdline)
+        if initCmdLine != "":
+            buf += '#   init command line: %s\n' % (initCmdLine)
         buf += '\n'
 
         # write menu entry for main kernel
@@ -350,7 +354,7 @@ class BootLoader:
             buf += '  set recordfail=1\n'
             buf += '  save_env recordfail\n'
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-            buf += '  linux %s quiet %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+            buf += '  linux %s quiet %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
             buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
             buf += '}\n'
             buf += '\n'
@@ -360,7 +364,7 @@ class BootLoader:
             buf += 'menuentry "Current: Linux-%s" {\n' % (bootEntry.postfix)
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  echo "Loading Linux kernel ..."\n'
-            buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+            buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
             buf += '  echo "Loading initial ramdisk ..."\n'
             buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
             buf += '}\n'
@@ -394,7 +398,7 @@ class BootLoader:
                     buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
                     buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
                     buf += '  echo "Loading Linux kernel ..."\n'
-                    buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), self._grubKernelInitCmdline)
+                    buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
                     buf += '  echo "Loading initial ramdisk ..."\n'
                     buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
                     buf += '}\n'
