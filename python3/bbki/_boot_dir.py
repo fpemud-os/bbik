@@ -22,82 +22,11 @@
 
 
 import os
-import re
 from ._util import Util
 from ._util import SystemMounts
 
 
 class BootEntry:
-
-    @staticmethod
-    def new_from_postfix(bbki, postfix, history_entry=False):
-        # postfix example: x86_64-3.9.11-gentoo-r1
-        partList = postfix.split("-")
-        if len(partList) < 2:
-            raise ValueError("illegal postfix")
-        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal postfix")
-        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
-            raise ValueError("illegal postfix")
-
-        arch = partList[0]
-        verstr = "-".join(partList[1:])
-        return BootEntry(bbki, arch, verstr, history_entry)
-
-    @staticmethod
-    def new_from_verstr(bbki, arch, verstr, history_entry=False):
-        if arch == "native":
-            arch = os.uname().machine
-        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal arch")
-
-        # verstr example: 3.9.11-gentoo-r1
-        partList = verstr.split("-")
-        if len(partList) < 1:
-            raise ValueError("illegal verstr")
-        if not Util.isValidKernelVer(partList[0]):          # FIXME: isValidKernelVer should be moved out from util
-            raise ValueError("illegal verstr")
-
-        return BootEntry(bbki, arch, verstr, history_entry)
-
-    @staticmethod
-    def new_from_kernel_srcdir(bbki, arch, kernel_srcdir, history_entry=False):
-        if arch == "native":
-            arch = os.uname().machine
-        if not Util.isValidKernelArch(arch):         # FIXME: isValidKernelArch should be moved out from util
-            raise ValueError("illegal arch")
-
-        version = None
-        patchlevel = None
-        sublevel = None
-        extraversion = None
-        with open(os.path.join(kernel_srcdir, "Makefile")) as f:
-            buf = f.read()
-
-            m = re.search("VERSION = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            version = int(m.group(1))
-
-            m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            patchlevel = int(m.group(1))
-
-            m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
-            if m is None:
-                raise ValueError("illegal kernel source directory")
-            sublevel = int(m.group(1))
-
-            m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
-            if m is not None:
-                extraversion = m.group(1)
-
-        if extraversion is not None:
-            verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
-        else:
-            verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
-        return BootEntry(bbki, arch, verstr, history_entry)
 
     def __init__(self, bbki, arch, verstr, history_entry=False):
         self._bbki = bbki

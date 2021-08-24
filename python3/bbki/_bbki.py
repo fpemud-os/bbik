@@ -41,6 +41,7 @@ from ._boot_dir import BootDirWriter
 from ._kernel import BootEntryUtils
 from ._kernel import BootEntryWrapper
 from ._bootloader import BootLoader
+from ._check import Checker
 
 
 class Bbki:
@@ -85,6 +86,9 @@ class Bbki:
 
         if not Util.cmdCallTestSuccess("make", "-v"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
+
+        if not Util.cmdCallTestSuccess("grub-script-check", "-V"):
+            raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
         if not Util.cmdCallTestSuccess("grubenv", "-V"):
             raise RunningEnvironmentError("executable \"grubenv\" does not exist")
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
@@ -104,7 +108,7 @@ class Bbki:
         assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
-            ret = BootEntry.new_from_verstr(self, "native", os.uname().release, history_entry=bHistoryEntry)
+            ret = BootEntry(self, os.uname().machine, os.uname().release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
         raise RunningEnvironmentError("current boot entry is lost")
@@ -288,5 +292,7 @@ class Bbki:
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())                # remove /lib/firmware
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())          # remove /lib/modules
 
-    def check(self, autofix=False):
-        assert False
+    def check(self, autofix=False, error_callback=None):
+        obj = Checker(self, autofix, error_callback)
+        obj.checkBootDir()
+        obj.checkFirmwareDir()

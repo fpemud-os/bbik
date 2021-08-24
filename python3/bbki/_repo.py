@@ -355,7 +355,7 @@ class BbkiFileExecutor:
             # default action
             with TempChdir(self._trWorkDir):
                 if self._item.kernel_type == KernelType.LINUX:
-                    bootEntry = BootEntry.new_from_kernel_srcdir(self._bbki, "native", self._trWorkDir)
+                    bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_file)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
@@ -506,3 +506,37 @@ def _tmpdirs(item):
     trTmpDir = os.path.join(tmpRootDir, "temp")
     trWorkDir = os.path.join(tmpRootDir, "work")
     return (tmpRootDir, trTmpDir, trWorkDir)
+
+
+def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir, history_entry=False):
+    version = None
+    patchlevel = None
+    sublevel = None
+    extraversion = None
+    with open(os.path.join(kernel_srcdir, "Makefile")) as f:
+        buf = f.read()
+
+        m = re.search("VERSION = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise ValueError("illegal kernel source directory")
+        version = int(m.group(1))
+
+        m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise ValueError("illegal kernel source directory")
+        patchlevel = int(m.group(1))
+
+        m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise ValueError("illegal kernel source directory")
+        sublevel = int(m.group(1))
+
+        m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
+        if m is not None:
+            extraversion = m.group(1)
+
+    if extraversion is not None:
+        verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
+    else:
+        verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
+    return BootEntry(bbki, os.uname().machine, verstr, history_entry)

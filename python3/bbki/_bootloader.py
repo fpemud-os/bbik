@@ -29,7 +29,6 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._util import SystemMounts
 from ._po import BootMode
-from ._boot_dir import BootEntry
 from ._kernel import BootEntryUtils
 from ._exception import BootloaderInstallError
 
@@ -84,7 +83,7 @@ class BootLoader:
         buf = pathlib.Path(self._grubCfgFile).read_text()
         m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
         if m is not None:
-            return BootEntry.new_from_postfix(self._bbki, m.group(1))
+            return BootEntryUtils(self._bbki).new_from_postfix(m.group(1))
         else:
             return None
 
@@ -226,6 +225,9 @@ class BootLoader:
             return
 
         if not os.path.exists(self._grubCfgFile):
+            self._status = self.STATUS_INVALID
+            return
+        if not Util.cmdCallTestSuccess("grub-script-check", self._grubCfgFile):
             self._status = self.STATUS_INVALID
             return
         buf = pathlib.Path(self._grubCfgFile).read_text()

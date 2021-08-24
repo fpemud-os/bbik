@@ -47,7 +47,8 @@ class KernelInstaller:
             self._executorDict[item] = BbkiFileExecutor(item)
 
         self._progress = KernelInstallProgress.STEP_INIT
-        self._targetBootEntry = BootEntry.new_from_verstr(self._bbki, os.uname().machine, self._kernelAtom.verstr)
+        self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)
+
         self._kcfgRulesTmpFile = None
         self._dotCfgFile = None
 
@@ -250,6 +251,20 @@ class BootEntryUtils:
     def __init__(self, bbki):
         self._bbki = bbki
 
+    def new_from_postfix(self, postfix, history_entry=False):
+        # postfix example: x86_64-3.9.11-gentoo-r1
+        partList = postfix.split("-")
+        if len(partList) < 2:
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
+            raise ValueError("illegal postfix")
+
+        arch = partList[0]
+        verstr = "-".join(partList[1:])
+        return BootEntry(self._bbki, arch, verstr, history_entry)
+
     def getBootEntryList(self, history_entry=False):
         if not history_entry:
             dirpath = self._bbki._fsLayout.get_boot_dir()
@@ -259,7 +274,7 @@ class BootEntryUtils:
         ret = []
         for kernelFile in sorted(os.listdir(dirpath), reverse=True):
             if kernelFile.startswith("kernel-"):
-                ret.append(BootEntry.new_from_postfix(self._bbki, kernelFile[len("kernel-"):]))
+                ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
 
     def getBootEntryFilePathList(self, bootEntry):
