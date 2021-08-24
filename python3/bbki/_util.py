@@ -47,15 +47,6 @@ class Util:
                 robust_layer.simple_fops.rm(os.path.join(dirPath, fn))
 
     @staticmethod
-    def newBuffer(ch, li):
-        ret = bytearray()
-        i = 0
-        while i < li:
-            ret.append(ch)
-            i += 1
-        return bytes(ret)
-
-    @staticmethod
     def getBlkDevUuid(devPath):
         """UUID is also called FS-UUID, PARTUUID is another thing"""
 
@@ -90,16 +81,11 @@ class Util:
         else:
             return path
 
-
     @staticmethod
     def splitToTuple(s, d, count):
         ret = s.split(d)
         assert len(ret) == count
         return tuple(ret)
-
-    @staticmethod
-    def isValidFsType(fsType):
-        return True
 
     @staticmethod
     def isValidKernelArch(archStr):

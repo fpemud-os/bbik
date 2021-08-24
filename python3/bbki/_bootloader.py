@@ -31,7 +31,6 @@ from ._po import BootMode
 from ._boot_entry import BootEntry
 from ._kernel import BootEntryUtils
 from ._exception import BootloaderInstallError
-from ._exception import RunningEnvironmentError
 
 
 class BootLoader:
@@ -115,7 +114,7 @@ class BootLoader:
             assert esp_dev is not None and esp_dev_uuid is not None
             assert boot_disk is None and boot_disk_id is None
             if rootfs_dev != Util.getMountDeviceForPath("/"):
-               raise ValueError("invalid rootfs mount point")
+                raise ValueError("invalid rootfs mount point")
             if esp_dev != Util.getMountDeviceForPath("/boot"):
                 raise ValueError("invalid ESP partition mount point")
             if self._status == self.STATUS_NORMAL:
@@ -200,7 +199,7 @@ class BootLoader:
         if self._status == self.STATUS_NORMAL:
             if self._bootMode == BootMode.BIOS:
                 with open(self._bootDisk, "wb+") as f:
-                    f.write(Util.newBuffer(0, 440))
+                    f.write(b'\x00' * 440)
 
         # delete files
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_dir())

@@ -28,7 +28,6 @@ import robust_layer.simple_fops
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
-from ._po import HostMountPoint
 from ._repo import Repo
 from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
