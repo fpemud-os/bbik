@@ -70,12 +70,12 @@ class Bbki:
         return self._repoList
 
     @property
-    def rescue_os_spec(self):
-        return RescueOsSpec(self)
-
-    @property
     def boot_dir_writer(self):
         return self._bootDirWriter
+
+    @property
+    def rescue_os_spec(self):
+        return RescueOsSpec(self)
 
     def check_running_environment(self):
         if not os.path.isdir(self._fsLayout.get_boot_dir()):
