@@ -194,20 +194,18 @@ class KernelInstaller:
     def install(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_BUILT
 
-        self._executorDict[self._kernelAtom].exec_kernel_install()
-        for item in self._addonAtomList:
-            self._executorDict[item].exec_kernel_addon_install()
+        with self._bbki._bootDirWriter:
+            self._executorDict[self._kernelAtom].exec_kernel_install()
+            for item in self._addonAtomList:
+                self._executorDict[item].exec_kernel_addon_install()
+
+            os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
+            for be in BootEntryUtils(self).getBootEntryList():
+                if be != self._targetBootEntry:
+                    for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
+                        shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
-
-    def retire_old_boot_entries(self):
-        assert self._progress == KernelInstallProgress.STEP_KERNEL_INSTALLED
-
-        os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-        for be in BootEntryUtils(self).getBootEntryList():
-            if be != self._targetBootEntry:
-                for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
-                    shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
-        self._progress = KernelInstallProgress.STEP_OLD_BOOT_ENTRIES_RETIRED
 
 
 class KernelInstallProgress:
@@ -217,8 +215,7 @@ class KernelInstallProgress:
     STEP_PATCHED = 3
     STEP_KERNEL_CONFIG_FILE_GENERATED = 4
     STEP_KERNEL_BUILT = 5
-    STEP_KERNEL_INSTALLED = 5
-    STEP_OLD_BOOT_ENTRIES_RETIRED = 5
+    STEP_KERNEL_INSTALLED = 6
 
     def __init__(self, parent):
         self._parent = parent
