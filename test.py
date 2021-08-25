@@ -2,10 +2,9 @@
 
 import bbki
 
-hostInfo = bbki.HostInfo("native", "native")
 cfg = bbki.EtcDirConfig(cfgdir="./test-cfg")
 
-obj = bbki.Bbki(hostInfo, cfg=cfg)
+obj = bbki.Bbki(cfg=cfg)
 obj.config
 obj.repositories
 obj.rescue_os_spec
@@ -15,4 +14,4 @@ obj.get_pending_boot_dir()
 obj.has_rescue_os()
 obj.get_kernel_atom()
 obj.get_kernel_addon_atoms()
-
+obj.check()

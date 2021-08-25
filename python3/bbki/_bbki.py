@@ -89,8 +89,8 @@ class Bbki:
 
         if not Util.cmdCallTestSuccess("grub-script-check", "-V"):
             raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
-        if not Util.cmdCallTestSuccess("grubenv", "-V"):
-            raise RunningEnvironmentError("executable \"grubenv\" does not exist")
+        if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
+            raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
