@@ -55,5 +55,5 @@ class Checker:
     def checkFirmwareDir(self):
         pass
 
-    def _doNothing(self):
+    def _doNothing(self, msg):
         pass
