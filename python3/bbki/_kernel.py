@@ -227,7 +227,7 @@ class KernelInstallProgress:
         return self._progress
 
     @property
-    def target_boot_dir(self):
+    def target_boot_entry(self):
         return self._parent._targetBootEntry
 
     @property

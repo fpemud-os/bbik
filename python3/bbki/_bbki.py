@@ -104,7 +104,7 @@ class Bbki:
         with self._bootDirWriter:
             self._bootloader.setStableFlag(value)
 
-    def get_current_boot_dir(self):
+    def get_current_boot_entry(self):
         assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
@@ -113,7 +113,7 @@ class Bbki:
                 return ret
         raise RunningEnvironmentError("current boot entry is lost")
 
-    def get_pending_boot_dir(self):
+    def get_pending_boot_entry(self):
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             ret = self._bootloader.getMainBootEntry()
             if not ret.has_kernel_files() or not ret.has_initrd_files():
@@ -193,8 +193,8 @@ class Bbki:
                 assert False
 
     def clean_boot_dir(self, pretend=False):
-        currentBe = self.get_current_boot_dir() if self._bSelfBoot else None
-        pendingBe = self.get_pending_boot_dir()
+        currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
+        pendingBe = self.get_pending_boot_entry()
 
         # get to-be-deleted files in /boot
         bootFileList = None
@@ -279,7 +279,7 @@ class Bbki:
         #     return ret
 
     def remove_bootloader_and_initramfs(self):
-        be = self.get_pending_boot_dir()
+        be = self.get_pending_boot_entry()
         with self._bootDirWriter:
             self._bootloader.remove()
             robust_layer.simple_fops.rm(be.initrd_filepath)
