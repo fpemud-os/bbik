@@ -53,7 +53,6 @@ class BootLoader:
         self._espDevUuid = None
         self._bootDisk = None
         self._bootDiskId = None
-        self._initCmdLine = None
         self._parseGrubCfg()
 
     def getStatus(self):
@@ -81,11 +80,8 @@ class BootLoader:
         assert self._status == self.STATUS_NORMAL
 
         buf = pathlib.Path(self._grubCfgFile).read_text()
-        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
-        if m is not None:
-            return BootEntryUtils(self._bbki).new_from_postfix(m.group(1))
-        else:
-            return None
+        postfix = self._parseGrubCfgMainBootPostfix(buf)
+        return BootEntryUtils(self._bbki).new_from_postfix(postfix)
 
     def getStableFlag(self):
         assert self._status == self.STATUS_NORMAL
@@ -139,20 +135,9 @@ class BootLoader:
         else:
             assert False
 
-        # kernel command line
-        kernelCmdLine = ""
-        if True:
-            kernelCmdLine += " console=ttynull"                                               # global data: only use console when debug boot process
-            kernelCmdLine += " %s" % (aux_kernel_init_cmdline)                                # host level extra data
-            kernelCmdLine += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
-            kernelCmdLine = kernelCmdLine.strip()
-
-        # init command line
-        initCmdline = self._bbki.config.get_system_init_info()[1]
-
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list, kernelCmdLine, initCmdline)
+        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list, self._getKernelCmdLine(aux_kernel_init_cmdline))
 
         # install grub binaries
         if boot_mode == BootMode.EFI:
@@ -180,7 +165,28 @@ class BootLoader:
         self._espDevUuid = esp_dev_uuid
         self._bootDisk = boot_disk
         self._bootDiskId = boot_disk_id
-        self._initCmdLine = initCmdline
+
+    def update(self, aux_os_list, aux_kernel_init_cmdline):
+        assert self._status == self.STATUS_NORMAL
+
+        # parameters
+        buf = pathlib.Path(self._grubCfgFile).read_text()
+        if aux_os_list is not None:
+            auxOsList = aux_os_list
+        else:
+            auxOsList = self._parseGrubCfgAuxOsList(buf)
+        if aux_kernel_init_cmdline is not None:
+            kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
+        else:
+            kernelCmdLine = self._parseGrubCfgKernelCmdLine(buf)
+
+        # generate grub.cfg
+        # may raise exception
+        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, auxOsList, kernelCmdLine)
+
+        # write grub.cfg file
+        with open(self._grubCfgFile, "w") as f:
+            f.write(buf)
 
     def remove(self):
         if self._status == self.STATUS_NORMAL:
@@ -207,7 +213,6 @@ class BootLoader:
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
 
         # clear variables
-        self._initCmdLine = None
         self._bootDiskId = None
         self._bootDisk = None
         self._espDevUuid = None
@@ -216,6 +221,14 @@ class BootLoader:
         self._rootfsDev = None
         self._bootMode = None
         self._status = self.STATUS_NOT_INSTALLED
+
+    def _getKernelCmdLine(self, aux_kernel_init_cmdline):
+        kernelCmdLine = ""
+        kernelCmdLine += " console=ttynull"                                               # global data: only use console when debug boot process
+        kernelCmdLine += " %s" % (aux_kernel_init_cmdline)                                # host level extra data
+        kernelCmdLine += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
+        kernelCmdLine = kernelCmdLine.strip()
+        return kernelCmdLine
 
     def _parseGrubCfg(self):
         assert self._status is None
@@ -268,12 +281,6 @@ class BootLoader:
         else:
             assert False
 
-        m = re.search(r'#   init command line: (.*)', buf, re.M)
-        if m is not None:
-            initCmdLine = m.group(1)
-        else:
-            initCmdLine = ""
-
         self._status = self.STATUS_NORMAL
         self._bootMode = bootMode
         self._rootfsDev = rootfsDev
@@ -282,9 +289,8 @@ class BootLoader:
         self._espDevUuid = espDevUuid
         self._bootDisk = bootDisk
         self._bootDiskId = bootDiskId
-        self._initCmdLine = initCmdLine
 
-    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine, initCmdLine):
+    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine):
         buf = ''
         if bootMode == BootMode.EFI:
             grubRootDevUuid = rootfsDevUuid
@@ -294,6 +300,7 @@ class BootLoader:
             _prefixedPath = _prefixedPathBios
         else:
             assert False
+        initCmdline = self._bbki.config.get_system_init_info()[1]
 
         # deal with recordfail variable
         buf += 'load_env\n'
@@ -436,6 +443,20 @@ class BootLoader:
         buf += '\n'
 
         return buf
+
+    def _parseGrubCfgMainBootPostfix(self, buf):
+        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
+        return m.group(1)
+
+    def _parseGrubCfgAuxOsList(self, buf):
+        ret = []
+        for m in re.finditer(r'menuentry "Auxillary: (.*)" {\n  (\S+)\n  chainloader +([0-9]+)\n}', buf):
+            ret.append(HostAuxOs(m.group(1), None, m.group(2), m.group(3)))
+        return ret
+
+    def _parseGrubCfgKernelCmdLine(self, buf):
+        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S+ quiet (.*)\n}', buf)
+        return m.group(1)
 
 
 def _prefixedPathEfi(path):
