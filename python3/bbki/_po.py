@@ -253,8 +253,9 @@ class HostDiskPartition(HostDisk):
 
 class HostAuxOs:
 
-    def __init__(self, name, partition_uuid, chainloader_number):
+    def __init__(self, name, partition_path, partition_uuid, chainloader_number):
         self.name = name
+        self.partition_path = partition_path
         self.partition_uuid = partition_uuid
         self.chainloader_number = chainloader_number
 
