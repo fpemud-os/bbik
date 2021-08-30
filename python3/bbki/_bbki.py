@@ -28,6 +28,7 @@ import robust_layer.simple_fops
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
+from .config import EtcDirConfig
 from ._repo import Repo
 from ._boot_dir import BootEntry
 from ._kernel import KernelInstaller
@@ -46,7 +47,7 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg=None, self_boot=True):
+    def __init__(self, cfg=EtcDirConfig(), self_boot=True):
         self._cfg = cfg
         self._bSelfBoot = self_boot
 
