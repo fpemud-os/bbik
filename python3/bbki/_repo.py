@@ -44,6 +44,10 @@ class Repo:
         self._bbki = bbki
         self._path = path
 
+    @property
+    def name(self):
+        return "main"
+
     def get_dir(self):
         return self._path
 
