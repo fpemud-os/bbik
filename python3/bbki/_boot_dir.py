@@ -107,7 +107,7 @@ class BootEntry:
 
     @property
     def initrd_tar_filename(self):
-        # string, eg: "initramfs-x86_64-3.9.11-gentoo-r1.tar.bz2"
+        # string, eg: "initramfs-files-x86_64-3.9.11-gentoo-r1.tar.bz2"
         return "initramfs-files-" + self.postfix + ".tar.bz2"
 
     @property

@@ -9,6 +9,7 @@ obj.config
 obj.repositories
 obj.rescue_os_spec
 obj.check_running_environment()
+print(obj.is_stable())
 obj.get_current_boot_entry()
 obj.get_pending_boot_entry()
 obj.has_rescue_os()

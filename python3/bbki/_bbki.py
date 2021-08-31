@@ -28,7 +28,7 @@ import robust_layer.simple_fops
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
-from .config import EtcDirConfig
+from ._config import EtcDirConfig
 from ._repo import Repo
 from ._boot_dir import BootEntry
 from ._kernel import KernelInstaller
