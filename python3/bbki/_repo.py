@@ -532,7 +532,7 @@ def _new_atom_from_bbki_filepath(repo, bbki_file):
     assert repo is not None and isinstance(repo, Repo)
     assert bbki_file.startswith(repo.get_dir())
 
-    bbki_file = bbki_file[len(repo.get_dir()):]
+    bbki_file = bbki_file[len(repo.get_dir())+1:]               # /var/lib/bbki/linux/vanilla/5.13.8.bbki -> linux/vanilla/5.13.8.bbki
     catdir, atomName, fn = Util.splitToTuple(bbki_file, "/", 3)
     atomType = _parse_catdir(catdir)[0]
     ver, rev = _parse_bbki_filename(fn)
