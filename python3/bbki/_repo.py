@@ -77,18 +77,17 @@ class Repo:
 
     def query_atom_type_name(self):
         ret = []
-        for kernel_type in [KernelType.LINUX]:
-            kernelDir = os.path.join(self._path, kernel_type)
-            if os.path.exists(kernelDir):
-                for fn in os.listdir(kernelDir):
-                    ret.append(self.ATOM_TYPE_KERNEL, fn)
-            kernelAddonDir = os.path.join(self._path, kernel_type + "-addon")
-            if os.path.exists(kernelAddonDir):
-                for fn in os.listdir(kernelAddonDir):
-                    ret.append(self.ATOM_TYPE_KERNEL_ADDON, fn)
+        kernelDir = os.path.join(self._path, self._bbki.config.get_kernel_type())
+        if os.path.exists(kernelDir):
+            for fn in os.listdir(kernelDir):
+                ret.append((self.ATOM_TYPE_KERNEL, fn))
+        kernelAddonDir = os.path.join(self._path, self._bbki.config.get_kernel_type() + "-addon")
+        if os.path.exists(kernelAddonDir):
+            for fn in os.listdir(kernelAddonDir):
+                ret.append((self.ATOM_TYPE_KERNEL_ADDON, fn))
         return ret
 
-    def get_items_by_type_name(self, atom_type, item_name):
+    def get_atoms_by_type_name(self, atom_type, item_name):
         assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []

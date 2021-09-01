@@ -136,7 +136,7 @@ class Bbki:
         return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
 
     def get_kernel_atom(self):
-        items = self._repoList[0].get_items_by_type_name(Repo.ATOM_TYPE_KERNEL, self._cfg.get_kernel_type())
+        items = self._repoList[0].get_atoms_by_type_name(Repo.ATOM_TYPE_KERNEL, self._cfg.get_kernel_type())
         items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
         if len(items) > 0:
             return items[-1]
@@ -146,7 +146,7 @@ class Bbki:
     def get_kernel_addon_atoms(self):
         ret = []
         for name in self._cfg.get_kernel_addon_names():
-            items = self._repoList[0].get_items_by_type_name(Repo.ATOM_TYPE_KERNEL_ADDON, name)
+            items = self._repoList[0].get_atoms_by_type_name(Repo.ATOM_TYPE_KERNEL_ADDON, name)
             items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                # filter by bbki-config
             if len(items) > 0:
                 ret.append(items[-1])
@@ -258,7 +258,7 @@ class Bbki:
         #     keepFiles = set()
         #     for repo in self._bbki.repositories:
         #         for atomType, atomName in repo.query_atom_type_name():
-        #             items = repo.get_items_by_type_name(atomType, atomName)
+        #             items = repo.get_atoms_by_type_name(atomType, atomName)
         #             if destructive:
         #                 items = [items[-1]]
         #             for item in items:
