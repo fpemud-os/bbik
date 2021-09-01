@@ -136,8 +136,8 @@ class EtcDirConfig(Config):
 
         if self._tKernelTypeName is None:
             raise ConfigError("no kernel type and kernel name specified")
-        if self._tKernelTypeName not in [KernelType.LINUX]:
-            raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelTypeName))
+        if self._tKernelTypeName[0] not in [KernelType.LINUX]:
+            raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelTypeName[0]))
         return self._tKernelTypeName[0]
 
     def get_kernel_name(self):
