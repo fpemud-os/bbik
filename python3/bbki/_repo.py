@@ -93,36 +93,19 @@ class Repo:
         ret = []
         dirpath = os.path.join(self._path, _format_catdir(atom_type, self._bbki.config.get_kernel_type()), item_name)
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
-            ret.append(RepoAtom.new_by_bbki_filepath(fullfn))
+            ret.append(_new_atom_from_bbki_filepath(self, fullfn))
         return ret
 
 
 class RepoAtom:
 
-    @staticmethod
-    def new_by_bbki_filepath(self, repo, bbki_file):
-        assert repo is not None and isinstance(repo, Repo)
-        assert bbki_file.startswith(repo.get_dir())
-
-        bbki_file = bbki_file[len(repo.get_dir()):]
-        catdir, atomName, fn = Util.splitToTuple(bbki_file, "/", 3)
-        atomType, kernelType = _parse_catdir(catdir)
-        ver, rev = _parse_bbki_filename(fn)
-
-        ret = RepoAtom(repo)
-        ret._atomType = atomType
-        ret._atomName = atomName
-        ret._ver = ver
-        ret._rev = rev
-        return ret
-
-    def __init__(self, repo):
+    def __init__(self, repo, atom_type, atom_name, ver, rev):
         self._bbki = repo._bbki
         self._repo = repo
-        self._atomType = None
-        self._atomName = None
-        self._ver = None
-        self._rev = None
+        self._atomType = atom_type
+        self._atomName = atom_name
+        self._ver = ver
+        self._rev = rev
 
         self._tVarDict = None
         self._tFuncList = None
@@ -543,3 +526,20 @@ def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir, history_entry=False)
     else:
         verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
     return BootEntry(bbki, os.uname().machine, verstr, history_entry)
+
+
+def _new_atom_from_bbki_filepath(repo, bbki_file):
+    assert repo is not None and isinstance(repo, Repo)
+    assert bbki_file.startswith(repo.get_dir())
+
+    bbki_file = bbki_file[len(repo.get_dir()):]
+    catdir, atomName, fn = Util.splitToTuple(bbki_file, "/", 3)
+    atomType = _parse_catdir(catdir)[0]
+    ver, rev = _parse_bbki_filename(fn)
+
+    ret = RepoAtom(repo, atomType, atomName, ver, rev)
+    ret._atomType = atomType
+    ret._atomName = atomName
+    ret._ver = ver
+    ret._rev = rev
+    return ret
