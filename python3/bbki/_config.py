@@ -54,6 +54,9 @@ class Config:
     def get_kernel_type(self):
         raise NotImplementedError()
 
+    def get_kernel_name(self):
+        raise NotImplementedError()
+
     def get_kernel_addon_names(self):
         raise NotImplementedError()
 
@@ -84,12 +87,12 @@ class EtcDirConfig(Config):
         self._makeConf = os.path.join(cfgdir, "make.conf")
 
         self._profileDir = os.path.join(cfgdir, "profile")
-        self._profileKernelTypeFile = os.path.join(self._profileDir, "bbki.kernel_type")
+        self._profileKernelFile = os.path.join(self._profileDir, "bbki.kernel")
         self._profileKernelAddonDir = os.path.join(self._profileDir, "bbki.kernel_addon")
         self._profileOptionsFile = os.path.join(self._profileDir, "bbki.options")
         self._profileMaskDir = os.path.join(self._profileDir, "bbki.mask")
 
-        self._cfgKernelTypeFile = os.path.join(cfgdir, "bbki.kernel_type")
+        self._cfgKernelFile = os.path.join(cfgdir, "bbki.kernel")
         self._cfgKernelAddonDir = os.path.join(cfgdir, "bbki.kernel_addon")
         self._cfgOptionsFile = os.path.join(cfgdir, "bbki.options")
         self._cfgMaskDir = os.path.join(cfgdir, "bbki.mask")
@@ -103,7 +106,7 @@ class EtcDirConfig(Config):
 
         self._tmpDir = self.DEFAULT_TMP_DIR
 
-        self._tKernelType = None
+        self._tKernelTypeName = None
         self._tKernelAddonNameList = None
         self._tOptions = None
         self._tMaskBufList = None
@@ -129,13 +132,21 @@ class EtcDirConfig(Config):
 
     def get_kernel_type(self):
         # fill cache
-        self._filltKernelType()
+        self._filltKernel()
 
-        if self._tKernelType is None:
-            raise ConfigError("no kernel type specified")
-        if self._tKernelType not in [KernelType.LINUX]:
-            raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelType))
-        return self._tKernelType
+        if self._tKernelTypeName is None:
+            raise ConfigError("no kernel type and kernel name specified")
+        if self._tKernelTypeName not in [KernelType.LINUX]:
+            raise ConfigError("invalid kernel type \"%s\" specified" % (self._tKernelTypeName))
+        return self._tKernelTypeName[0]
+
+    def get_kernel_name(self):
+        # fill cache
+        self._filltKernel()
+
+        if self._tKernelTypeName is None:
+            raise ConfigError("no kernel type and kernel name specified")
+        return self._tKernelTypeName[1]
 
     def get_kernel_addon_names(self):
         # fill cache
@@ -192,18 +203,21 @@ class EtcDirConfig(Config):
                     return False
         return True
 
-    def _filltKernelType(self):
-        if self._tKernelType is not None:
+    def _filltKernel(self):
+        if self._tKernelTypeName is not None:
             return
 
         def _myParse(path):
             if os.path.exists(path):
                 ret = Util.readListFile(path)
                 if len(ret) > 0:
-                    self._tKernelType = ret[0]
+                    tlist = ret[0].split("/")
+                    if len(tlist) != 2:
+                        raise ConfigError("invalid value of kernel type and kernel name")
+                    self._tKernelTypeName = (tlist[0], tlist[1])
 
-        _myParse(self._profileKernelTypeFile)       # step1: use /etc/bbki/profile/bbki.*
-        _myParse(self._cfgKernelTypeFile)           # step2: use /etc/bbki/bbki.*
+        _myParse(self._profileKernelFile)       # step1: use /etc/bbki/profile/bbki.*
+        _myParse(self._cfgKernelFile)           # step2: use /etc/bbki/bbki.*
 
     def _filltKernelAddonNameList(self):
         if self._tKernelAddonNameList is not None:
