@@ -166,7 +166,7 @@ class Bbki:
         assert host_storage.get_root_mount_point() is not None
 
         with self._bootDirWriter:
-            InitramfsInstaller(self, host_storage, self.get_pending_boot_dir()).install()
+            InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
 
     def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
         with self._bootDirWriter:
