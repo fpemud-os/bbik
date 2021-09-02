@@ -432,6 +432,11 @@ class BbkiFileExecutor:
         assert parent_func_name.startswith("exec_")
         return self._atom.has_function(parent_func_name[len("exec_"):])
 
+    def _var_A(self):
+        fnlist = [localFn for url, localFn in _distfiles_get(self._atom)]
+        fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x) for x in fnlist]
+        return "A='%s'\n" % ("' '".join(fnlist))
+
 
 def _format_catdir(kernel_type, atom_type):
     if atom_type == Repo.ATOM_TYPE_KERNEL:
