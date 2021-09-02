@@ -215,9 +215,9 @@ class KernelInstaller:
                 self._executorDict[item].exec_kernel_addon_install()
 
             os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
-            for be in BootEntryUtils(self).getBootEntryList():
+            for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    for fullfn in BootEntryUtils(self).getBootEntryFilePathList(be):
+                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be):
                         shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
