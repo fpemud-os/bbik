@@ -35,16 +35,19 @@ from ._repo import BbkiFileExecutor
 
 class KernelInstaller:
 
-    def __init__(self, bbki, kernel_atom, kernel_atom_item_list):
+    def __init__(self, bbki, kernel_atom, kernel_atom_item_list, initramfs_atom):
         self._bbki = bbki
 
         self._kernelAtom = kernel_atom
         self._addonAtomList = kernel_atom_item_list
+        self._initramfsAtom = initramfs_atom
 
         self._executorDict = dict()
         self._executorDict[kernel_atom] = BbkiFileExecutor(kernel_atom)
         for item in kernel_atom_item_list:
             self._executorDict[item] = BbkiFileExecutor(item)
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom] = BbkiFileExecutor(self._initramfsAtom)
 
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)
@@ -56,8 +59,12 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].create_tmpdirs()
         for item in self._addonAtomList:
             self._executorDict[item].create_tmpdirs()
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom].create_tmpdirs()
 
     def dispose(self):
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom].remove_tmpdirs()
         for item in reversed(self._addonAtomList):
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelAtom].remove_tmpdirs()
@@ -71,6 +78,8 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].exec_src_unpack()
         for item in self._addonAtomList:
             self._executorDict[item].exec_src_unpack()
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom].exec_src_unpack()
         self._progress = KernelInstallProgress.STEP_UNPACKED
 
     def patch_kernel(self):
@@ -155,6 +164,11 @@ class KernelInstaller:
         for addon_item in self._addonAtomList:
             buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
             rulesDict[addon_item.name] = buf
+
+        # initramfs rules
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules()
+            rulesDict["initramfs_2"] = buf       # FIXME, duplicate name
 
         # sysadmin rules
         rulesDict["custom"] = ""            # FIXME

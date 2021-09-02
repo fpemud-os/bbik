@@ -159,7 +159,7 @@ class Bbki:
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
-        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list)
+        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, None)
 
     def install_initramfs(self, host_storage):
         assert host_storage is not None

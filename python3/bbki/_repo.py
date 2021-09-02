@@ -390,11 +390,11 @@ class BbkiFileExecutor:
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
-                cmd += "kernel_addon_patch_kernel\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
+                cmd += "kernel_addon_contribute_config_rules\n"
+                return Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # no-op as the default action
-            pass
+            return ""
 
     def exec_kernel_addon_build(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
@@ -429,8 +429,22 @@ class BbkiFileExecutor:
     def exec_initramfs_contribute_config_rules(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
-        # FIXME
-        assert False
+        if self._item_has_me():
+            # custom action
+            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+            with TempChdir(kernelDir):
+                cmd = ""
+                cmd += self._var_A()
+                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (self._atom.bbki_file)
+                cmd += "\n"
+                cmd += "initramfs_contribute_config_rules\n"
+                return Util.cmdCall("/bin/bash", "-c", cmd)
+        else:
+            # no-op as the default action
+            return ""
 
     def exec_initramfs_install(self, host_storage, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
