@@ -186,9 +186,11 @@ class RepoAtom:
         if self._tVarDict is not None and self._tFuncList is not None:
             return
 
+        lineList = pathlib.Path(self.bbki_file).read_text().split("\n")
+        lineList = [x.rstrip() for x in lineList]
+
         self._tVarDict = dict()
-        for line in pathlib.Path(self.bbki_file).read_text().split("\n"):
-            line = line.rstrip()
+        for line in lineList:
             m = re.fullmatch(r'^(\S+)=(.*)', line)
             if m is not None:
                 k = m.group(1)
@@ -198,8 +200,7 @@ class RepoAtom:
                 self._tVarDict[k] = v
 
         self._tFuncList = []
-        for line in pathlib.Path(self.bbki_file).read_text().split("\n"):
-            line = line.rstrip()
+        for line in lineList:
             m = re.fullmatch(r'^(\S+)\(\) {', line)
             if m is not None:
                 if m.group(1) in BbkiFileExecutor.get_valid_bbki_functions():
