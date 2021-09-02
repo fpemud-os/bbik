@@ -68,7 +68,7 @@ class KernelInstaller:
     def unpack(self):
         assert self._progress == KernelInstallProgress.STEP_INIT
 
-        self._executorDict[self._kernelAtom].src_unpack()
+        self._executorDict[self._kernelAtom].exec_src_unpack()
         for item in self._addonAtomList:
             self._executorDict[item].exec_src_unpack()
         self._progress = KernelInstallProgress.STEP_UNPACKED
