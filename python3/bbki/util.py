@@ -58,8 +58,10 @@ def compare_kernel_config(content1, content2):
 
 
 def compare_kernel_config_rules_files(file1, file2):
+    # FIXME
     assert False
 
 
 def compare_kernel_config_rules(content1, content2):
+    # FIXME
     assert False
