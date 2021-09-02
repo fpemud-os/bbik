@@ -216,7 +216,7 @@ class BbkiFileExecutor:
 
     @staticmethod
     def get_valid_bbki_functions():
-        return [m[len("exec_"):] for m in dir(BbkiFileExecutor) if not m.startswith("exec_")]
+        return [m[len("exec_"):] for m in dir(BbkiFileExecutor) if m.startswith("exec_")]
 
     def __init__(self, atom):
         self._bbki = atom._bbki
