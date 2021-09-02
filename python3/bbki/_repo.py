@@ -46,6 +46,7 @@ class Repo:
 
     @property
     def name(self):
+        # FIXME
         return "main"
 
     def get_dir(self):
@@ -77,21 +78,22 @@ class Repo:
 
     def query_atom_type_name(self):
         ret = []
-        kernelDir = os.path.join(self._path, self._bbki.config.get_kernel_type())
-        if os.path.exists(kernelDir):
-            for fn in os.listdir(kernelDir):
-                ret.append((self.ATOM_TYPE_KERNEL, fn))
-        kernelAddonDir = os.path.join(self._path, self._bbki.config.get_kernel_type() + "-addon")
-        if os.path.exists(kernelAddonDir):
-            for fn in os.listdir(kernelAddonDir):
-                ret.append((self.ATOM_TYPE_KERNEL_ADDON, fn))
+        for kernelType in [KernelType.LINUX]:
+            kernelDir = os.path.join(self._path, kernelType)
+            if os.path.exists(kernelDir):
+                for fn in os.listdir(kernelDir):
+                    ret.append((kernelType, self.ATOM_TYPE_KERNEL, fn))
+            kernelAddonDir = os.path.join(self._path, kernelType + "-addon")
+            if os.path.exists(kernelAddonDir):
+                for fn in os.listdir(kernelAddonDir):
+                    ret.append((kernelType, self.ATOM_TYPE_KERNEL_ADDON, fn))
         return ret
 
-    def get_atoms_by_type_name(self, atom_type, item_name):
+    def get_atoms_by_type_name(self, kernel_type, atom_type, name):
         assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []
-        dirpath = os.path.join(self._path, _format_catdir(atom_type, self._bbki.config.get_kernel_type()), item_name)
+        dirpath = os.path.join(self._path, _format_catdir(kernel_type, atom_type), name)
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
             ret.append(_new_atom_from_bbki_filepath(self, fullfn))
         return ret
@@ -99,11 +101,12 @@ class Repo:
 
 class RepoAtom:
 
-    def __init__(self, repo, atom_type, atom_name, ver, rev):
+    def __init__(self, repo, kernel_type, atom_type, name, ver, rev):
         self._bbki = repo._bbki
         self._repo = repo
+        self._kernelType = kernel_type
         self._atomType = atom_type
-        self._atomName = atom_name
+        self._name = name
         self._ver = ver
         self._rev = rev
 
@@ -112,7 +115,7 @@ class RepoAtom:
 
     @property
     def kernel_type(self):
-        return self._bbki.config.get_kernel_type()
+        return self._kernelType
 
     @property
     def atom_type(self):
@@ -120,11 +123,11 @@ class RepoAtom:
 
     @property
     def name(self):
-        return self._atomName
+        return self._name
 
     @property
     def fullname(self):
-        return os.path.join(_format_catdir(self.atom_type, self.kernel_type), self._atomName)
+        return os.path.join(_format_catdir(self._kernelType, self._atomType), self._name)
 
     @property
     def ver(self):
@@ -428,7 +431,7 @@ class BbkiFileExecutor:
         return self._item.has_function(parent_func_name[len("exec_"):])
 
 
-def _format_catdir(atom_type, kernel_type):
+def _format_catdir(kernel_type, atom_type):
     if atom_type == Repo.ATOM_TYPE_KERNEL:
         return kernel_type
     elif atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
@@ -439,9 +442,13 @@ def _format_catdir(atom_type, kernel_type):
 
 def _parse_catdir(catdir):
     if not catdir.endswith("-addon"):
-        return (Repo.ATOM_TYPE_KERNEL, catdir)
+        kernelType = catdir
+        atomType = Repo.ATOM_TYPE_KERNEL
     else:
-        return (Repo.ATOM_TYPE_KERNEL_ADDON, catdir[:len("-addon") * -1])
+        kernelType = catdir[:len("-addon") * -1]
+        atomType = Repo.ATOM_TYPE_KERNEL_ADDON
+    assert kernelType in [KernelType.LINUX]
+    return (kernelType, atomType)
 
 
 def _parse_bbki_filename(filename):
@@ -534,12 +541,12 @@ def _new_atom_from_bbki_filepath(repo, bbki_file):
 
     bbki_file = bbki_file[len(repo.get_dir())+1:]               # /var/lib/bbki/linux/vanilla/5.13.8.bbki -> linux/vanilla/5.13.8.bbki
     catdir, atomName, fn = Util.splitToTuple(bbki_file, "/", 3)
-    atomType = _parse_catdir(catdir)[0]
+    atomType = _parse_catdir(catdir)[1]
     ver, rev = _parse_bbki_filename(fn)
 
     ret = RepoAtom(repo, atomType, atomName, ver, rev)
     ret._atomType = atomType
-    ret._atomName = atomName
+    ret._name = atomName
     ret._ver = ver
     ret._rev = rev
     return ret
