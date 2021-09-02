@@ -452,7 +452,7 @@ def _parse_catdir(catdir):
 
 
 def _parse_bbki_filename(filename):
-    m = re.fullmatch("(.*)(-r([0-9]+))?", filename)
+    m = re.fullmatch(r'(.*)(-r([0-9]+))?\.bbki', filename)
     if m.group(2) is None:
         return (m.group(1), 0)
     else:
