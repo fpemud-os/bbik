@@ -89,11 +89,11 @@ class Repo:
                     ret.append((kernelType, self.ATOM_TYPE_KERNEL_ADDON, fn))
         return ret
 
-    def get_atoms_by_type_name(self, kernel_type, atom_type, name):
+    def get_atoms_by_type_name(self, kernel_type, atom_type, atom_name):
         assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
 
         ret = []
-        dirpath = os.path.join(self._path, _format_catdir(kernel_type, atom_type), name)
+        dirpath = os.path.join(self._path, _format_catdir(kernel_type, atom_type), atom_name)
         for fullfn in glob.glob(os.path.join(dirpath, "*.bbki")):
             ret.append(_new_atom_from_bbki_filepath(self, fullfn))
         return ret
@@ -101,12 +101,12 @@ class Repo:
 
 class RepoAtom:
 
-    def __init__(self, repo, kernel_type, atom_type, name, ver, rev):
+    def __init__(self, repo, kernel_type, atom_type, atom_name, ver, rev):
         self._bbki = repo._bbki
         self._repo = repo
         self._kernelType = kernel_type
         self._atomType = atom_type
-        self._name = name
+        self._name = atom_name
         self._ver = ver
         self._rev = rev
 
