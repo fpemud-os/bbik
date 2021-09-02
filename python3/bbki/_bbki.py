@@ -122,7 +122,7 @@ class Bbki:
             return ret
         else:
             if not self._bSelfBoot:
-                tlist = BootEntryUtils.getBootEntryList()
+                tlist = BootEntryUtils(self).getBootEntryList()
                 if len(tlist) > 0:
                     if len(tlist) > 1:
                         raise RunningEnvironmentError("multiple pending boot entries")
@@ -208,11 +208,11 @@ class Bbki:
                 if currentBe.is_historical():
                     tset.discard(self._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
                     tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))      # mark /boot/history/* (no recursion) as to-be-deleted
-                    tset -= set(BootEntryUtils(self._bbki).getBootEntryFilePathList(currentBe))           # don't delete files of current-boot-entry
+                    tset -= set(BootEntryUtils(self).getBootEntryFilePathList(currentBe))           # don't delete files of current-boot-entry
                 else:
                     assert currentBe == pendingBe
             if pendingBe is not None:
-                tset -= set(BootEntryUtils(self._bbki).getBootEntryFilePathList(pendingBe))               # don't delete files of pending-boot-entry
+                tset -= set(BootEntryUtils(self).getBootEntryFilePathList(pendingBe))               # don't delete files of pending-boot-entry
             bootFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/modules
