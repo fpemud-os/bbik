@@ -268,7 +268,7 @@ class BbkiFileExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -289,7 +289,7 @@ class BbkiFileExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -308,7 +308,7 @@ class BbkiFileExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -335,7 +335,7 @@ class BbkiFileExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -362,7 +362,7 @@ class BbkiFileExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
@@ -383,7 +383,7 @@ class BbkiFileExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(kernelDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
@@ -404,7 +404,7 @@ class BbkiFileExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_item)
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += "A='%s'\n" % ("' '".join(_distfiles_get(self._atom)))
+                cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
@@ -434,7 +434,7 @@ class BbkiFileExecutor:
 
     def _var_A(self):
         fnlist = [localFn for url, localFn in _distfiles_get(self._atom)]
-        fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x) for x in fnlist]
+        fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
         return "A='%s'\n" % ("' '".join(fnlist))
 
 
