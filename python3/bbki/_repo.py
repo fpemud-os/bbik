@@ -40,6 +40,7 @@ class Repo:
 
     ATOM_TYPE_KERNEL = 1
     ATOM_TYPE_KERNEL_ADDON = 2
+    ATOM_TYPE_INITRAMFS = 3
 
     def __init__(self, bbki, path):
         self._bbki = bbki
@@ -353,13 +354,13 @@ class BbkiFileExecutor:
                 else:
                     assert False
 
-    def exec_kernel_addon_patch_kernel(self, kernel_item):
+    def exec_kernel_addon_patch_kernel(self, kernel_atom):
         if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
             # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
+            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
@@ -374,13 +375,13 @@ class BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def exec_kernel_addon_contribute_config_rules(self, kernel_item):
+    def exec_kernel_addon_contribute_config_rules(self, kernel_atom):
         if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
             # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
+            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
@@ -395,13 +396,13 @@ class BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def exec_kernel_addon_build(self, kernel_item):
+    def exec_kernel_addon_build(self, kernel_atom):
         if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
             # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_item)
+            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
@@ -416,7 +417,7 @@ class BbkiFileExecutor:
             # no-op as the default action
             pass
 
-    def exec_kernel_addon_install(self, kernel_item):
+    def exec_kernel_addon_install(self, kernel_atom):
         if self._atom.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
