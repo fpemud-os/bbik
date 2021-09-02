@@ -26,6 +26,7 @@ import re
 import glob
 import shutil
 import inspect
+import pathlib
 import urllib.parse
 import robust_layer.simple_git
 from ._util import Util
@@ -186,25 +187,23 @@ class RepoAtom:
             return
 
         self._tVarDict = dict()
-        with open(self.bbki_file) as f:
-            for line in f.split("\n"):
-                line = line.rstrip()
-                m = re.fullmatch(r'^(\S+)=(.*)', line)
-                if m is not None:
-                    k = m.group(1)
-                    v = m.group(2)
-                    if v.startswith("\"") and v.endswith("\""):
-                        v = v[1:-1]
-                    self._tVarDict[k] = v
+        for line in pathlib.Path(self.bbki_file).read_text().split("\n"):
+            line = line.rstrip()
+            m = re.fullmatch(r'^(\S+)=(.*)', line)
+            if m is not None:
+                k = m.group(1)
+                v = m.group(2)
+                if v.startswith("\"") and v.endswith("\""):
+                    v = v[1:-1]
+                self._tVarDict[k] = v
 
         self._tFuncList = []
-        with open(self.bbki_file) as f:
-            for line in f.split("\n"):
-                line = line.rstrip()
-                m = re.fullmatch(r'^(\S+)\(\) {', line)
-                if m is not None:
-                    if m.group(1) in BbkiFileExecutor.get_valid_bbki_functions():
-                        self._tFuncList.append(m.group(1))
+        for line in pathlib.Path(self.bbki_file).read_text().split("\n"):
+            line = line.rstrip()
+            m = re.fullmatch(r'^(\S+)\(\) {', line)
+            if m is not None:
+                if m.group(1) in BbkiFileExecutor.get_valid_bbki_functions():
+                    self._tFuncList.append(m.group(1))
 
         if "fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
             raise RepoError("fetch() and SRC_URI are mutally exclusive")
