@@ -111,12 +111,12 @@ class RepoAtom:
         self._tFuncList = None
 
     @property
-    def atom_type(self):
-        return self._atomType
-
-    @property
     def kernel_type(self):
         return self._bbki.config.get_kernel_type()
+
+    @property
+    def atom_type(self):
+        return self._atomType
 
     @property
     def name(self):
@@ -136,10 +136,10 @@ class RepoAtom:
 
     @property
     def verstr(self):
-        if self.revision == 0:
+        if self.rev == 0:
             return self.ver
         else:
-            return self.ver + "-r" + self.revision
+            return self.ver + "-r" + self.rev
 
     @property
     def bbki_dir(self):
