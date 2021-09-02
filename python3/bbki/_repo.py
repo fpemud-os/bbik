@@ -350,8 +350,8 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 if self._atom.kernel_type == KernelType.LINUX:
                     bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
-                    shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_file)
-                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_file)
+                    shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
+                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
@@ -427,7 +427,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_initramfs_contribute_config_rules(self, kernel_atom):
-        self._restrict_atom_type(self.ATOM_TYPE_INITRAMFS)
+        self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
         # FIXME
         assert False
