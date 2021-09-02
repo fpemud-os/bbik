@@ -111,12 +111,12 @@ class RepoAtom:
         self._tFuncList = None
 
     @property
-    def kernel_type(self):
-        return self._repo._bbki._kernelType
-
-    @property
     def atom_type(self):
         return self._atomType
+
+    @property
+    def kernel_type(self):
+        return self._repo._bbki.cofnig.get_kernel_type()
 
     @property
     def name(self):
