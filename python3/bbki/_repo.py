@@ -116,7 +116,7 @@ class RepoAtom:
 
     @property
     def kernel_type(self):
-        return self._repo._bbki.cofnig.get_kernel_type()
+        return self._bbki.cofnig.get_kernel_type()
 
     @property
     def name(self):
