@@ -301,7 +301,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_build(self):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL:
+        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -328,7 +328,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_install(self):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL:
+        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -354,7 +354,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_addon_patch_kernel(self, kernel_item):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
+        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -375,7 +375,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_contribute_config_rules(self, kernel_item):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
+        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
@@ -396,7 +396,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_build(self, kernel_item):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
+        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
             raise NotImplementedError()
 
         if self._item_has_me():
