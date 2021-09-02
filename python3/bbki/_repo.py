@@ -89,10 +89,14 @@ class Repo:
             if os.path.exists(kernelAddonDir):
                 for fn in os.listdir(kernelAddonDir):
                     ret.append((kernelType, self.ATOM_TYPE_KERNEL_ADDON, fn))
+            initramfsDir = os.path.join(self._path, kernelType + "-initramfs")
+            if os.path.exists(initramfsDir):
+                for fn in os.listdir(initramfsDir):
+                    ret.append((kernelType, self.ATOM_TYPE_INITRAMFS, fn))
         return ret
 
     def get_atoms_by_type_name(self, kernel_type, atom_type, atom_name):
-        assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON]
+        assert atom_type in [self.ATOM_TYPE_KERNEL, self.ATOM_TYPE_KERNEL_ADDON, self.ATOM_TYPE_INITRAMFS]
 
         ret = []
         dirpath = os.path.join(self._path, _format_catdir(kernel_type, atom_type), atom_name)
@@ -302,8 +306,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_build(self):
-        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if self._item_has_me():
             # custom action
@@ -329,8 +332,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_install(self):
-        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if self._item_has_me():
             # custom action
@@ -355,8 +357,7 @@ class BbkiFileExecutor:
                     assert False
 
     def exec_kernel_addon_patch_kernel(self, kernel_atom):
-        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if self._item_has_me():
             # custom action
@@ -376,8 +377,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_contribute_config_rules(self, kernel_atom):
-        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if self._item_has_me():
             # custom action
@@ -397,8 +397,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_build(self, kernel_atom):
-        if self._atom.atom_type != Repo.ATOM_TYPE_KERNEL_ADDON:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if self._item_has_me():
             # custom action
@@ -418,8 +417,7 @@ class BbkiFileExecutor:
             pass
 
     def exec_kernel_addon_install(self, kernel_atom):
-        if self._atom.atom_type != self.ATOM_TYPE_KERNEL_ADDON:
-            raise NotImplementedError()
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if self._item_has_me():
             # custom action
@@ -427,6 +425,22 @@ class BbkiFileExecutor:
         else:
             # no-op as the default action
             pass
+
+    def exec_initramfs_contribute_config_rules(self, kernel_atom):
+        self._restrict_atom_type(self.ATOM_TYPE_INITRAMFS)
+
+        # FIXME
+        assert False
+
+    def exec_initramfs_install(self, host_storage):
+        self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
+
+        # FIXME
+        assert False
+
+    def _restrict_atom_type(self, *atomTypes):
+        if self._atom.atom_type not in atomTypes:
+            raise NotImplementedError()
 
     def _item_has_me(self):
         parent_func_name = inspect.getouterframes(inspect.currentframe())[1].function
@@ -444,17 +458,22 @@ def _format_catdir(kernel_type, atom_type):
         return kernel_type
     elif atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
         return kernel_type + "-addon"
+    elif atom_type == Repo.ATOM_TYPE_INITRAMFS:
+        return kernel_type + "-initramfs"
     else:
         assert False
 
 
 def _parse_catdir(catdir):
-    if not catdir.endswith("-addon"):
-        kernelType = catdir
-        atomType = Repo.ATOM_TYPE_KERNEL
-    else:
+    if catdir.endswith("-addon"):
         kernelType = catdir[:len("-addon") * -1]
         atomType = Repo.ATOM_TYPE_KERNEL_ADDON
+    elif catdir.endswith("-initramfs"):
+        kernelType = catdir[:len("-initramfs") * -1]
+        atomType = Repo.ATOM_TYPE_INITRAMFS
+    else:
+        kernelType = catdir
+        atomType = Repo.ATOM_TYPE_KERNEL
     assert kernelType in [KernelType.LINUX]
     return (kernelType, atomType)
 
