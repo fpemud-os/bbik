@@ -217,7 +217,7 @@ class KernelInstaller:
             robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
             for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be, exists_only=True):
+                    for fullfn in BootEntryWrapper(be).getFilePathList(exists_only=True):
                         robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
@@ -291,18 +291,6 @@ class BootEntryUtils:
                 ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
 
-    def getBootEntryFilePathList(self, bootEntry, exists_only=False):
-        ret = [
-            bootEntry.kernel_filepath,
-            bootEntry.kernel_config_filepath,
-            bootEntry.kernel_config_rules_filepath,
-            bootEntry.initrd_filepath,
-            bootEntry.initrd_tar_filepath,
-        ]
-        if exists_only:
-            ret = [x for x in ret if os.path.exists(x)]
-        return ret
-
 
 class BootEntryWrapper:
 
@@ -331,6 +319,18 @@ class BootEntryWrapper:
             return "sh64"
         else:
             return self._bootEntry.arch
+
+    def getFilePathList(self, exists_only=False):
+        ret = [
+            self._bootEntry.kernel_filepath,
+            self._bootEntry.kernel_config_filepath,
+            self._bootEntry.kernel_config_rules_filepath,
+            self._bootEntry.initrd_filepath,
+            self._bootEntry.initrd_tar_filepath,
+        ]
+        if exists_only:
+            ret = [x for x in ret if os.path.exists(x)]
+        return ret
 
     def get_kmod_filenames(self, kmod_alias, with_deps=False):
         return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]

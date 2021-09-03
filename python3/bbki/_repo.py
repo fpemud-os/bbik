@@ -350,7 +350,9 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 if self._atom.kernel_type == KernelType.LINUX:
                     bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
+                    print(bootEntry.kernel_filepath)
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
+                    print(bootEntry.kernel_config_filepath)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
@@ -542,7 +544,7 @@ def _tmpdirs(atom):
     return (tmpRootDir, trTmpDir, trWorkDir)
 
 
-def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir, history_entry=False):
+def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir):
     version = None
     patchlevel = None
     sublevel = None
@@ -573,7 +575,7 @@ def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir, history_entry=False)
         verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
     else:
         verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
-    return BootEntry(bbki, os.uname().machine, verstr, history_entry)
+    return BootEntry(bbki, os.uname().machine, verstr)
 
 
 def _new_atom_from_bbki_filepath(repo, bbki_file):
