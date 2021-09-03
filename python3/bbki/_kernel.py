@@ -217,7 +217,7 @@ class KernelInstaller:
             os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
             for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be):
+                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be, only_exists=True):
                         shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
@@ -291,14 +291,17 @@ class BootEntryUtils:
                 ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
 
-    def getBootEntryFilePathList(self, bootEntry):
-        return [
+    def getBootEntryFilePathList(self, bootEntry, only_exists=False):
+        ret = [
             bootEntry.kernel_filepath,
             bootEntry.kernel_config_filepath,
             bootEntry.kernel_config_rules_filepath,
             bootEntry.initrd_filepath,
             bootEntry.initrd_tar_filepath,
         ]
+        if only_exists:
+            ret = [x for x in ret if os.path.exists(x)]
+        return ret
 
 
 class BootEntryWrapper:
