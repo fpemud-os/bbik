@@ -184,7 +184,8 @@ class HostMountPoint:
 class HostDisk(anytree.node.nodemixin.NodeMixin):
 
     def __init__(self, uuid, parent):
-        super().__init__(parent=parent)
+        super().__init__()
+        self.parent = parent
         self.uuid = uuid
 
     def ___eq___(self, other):
