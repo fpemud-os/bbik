@@ -24,9 +24,9 @@
 import os
 import re
 import kmod
-import shutil
 import pylkcutil
 import pkg_resources
+import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._boot_dir import BootEntry
@@ -217,8 +217,8 @@ class KernelInstaller:
             os.makedirs(self._bbki._fsLayout.get_boot_history_dir(), exist_ok=True)
             for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be, only_exists=True):
-                        shutil.move(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+                    for fullfn in BootEntryUtils(self._bbki).getBootEntryFilePathList(be, exists_only=True):
+                        robust_layer.simple_fops.mv(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 
@@ -291,7 +291,7 @@ class BootEntryUtils:
                 ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
 
-    def getBootEntryFilePathList(self, bootEntry, only_exists=False):
+    def getBootEntryFilePathList(self, bootEntry, exists_only=False):
         ret = [
             bootEntry.kernel_filepath,
             bootEntry.kernel_config_filepath,
@@ -299,7 +299,7 @@ class BootEntryUtils:
             bootEntry.initrd_filepath,
             bootEntry.initrd_tar_filepath,
         ]
-        if only_exists:
+        if exists_only:
             ret = [x for x in ret if os.path.exists(x)]
         return ret
 
