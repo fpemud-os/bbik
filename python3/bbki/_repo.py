@@ -353,7 +353,7 @@ class BbkiFileExecutor:
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
                     shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
-                    Util.shellCall("make modules install")
+                    Util.shellCall("make modules_install")
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
