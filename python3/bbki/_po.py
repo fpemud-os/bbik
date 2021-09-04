@@ -191,6 +191,9 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
     def __eq__(self, other):
         return type(self) == type(other) and self.uuid == other.uuid
 
+    def __hash__(self):
+        return hash(self.uuid)
+
 
 class HostDiskLvmLv(HostDisk):
 
