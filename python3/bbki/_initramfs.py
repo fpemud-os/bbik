@@ -442,7 +442,7 @@ class InitramfsInstaller:
             "VFAT_FS": "m",
         }
 
-        buf = pathlib.Path(self._be.kernel_config_file).read_text()
+        buf = pathlib.Path(self._be.kernel_config_filepath).read_text()
         for k, v in symDict.items():
             if not re.fullmatch("%s=%s" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
