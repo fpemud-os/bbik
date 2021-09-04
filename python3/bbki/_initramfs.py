@@ -67,9 +67,8 @@ class InitramfsInstaller:
         # deduplicated disk list
         diskList = OrderedSet()
         for mp in self._mountPointList:
-            for rootDisk in mp.underlay_disks:
-                for disk in anytree.PostOrderIter(rootDisk):
-                    diskList.add(disk)
+            for disk in anytree.PostOrderIter(mp.underlay_disk):
+                diskList.add(disk)
 
         # get kernel module file list (order is important)
         kmodList = OrderedSet()

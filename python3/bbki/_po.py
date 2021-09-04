@@ -124,14 +124,14 @@ class HostMountPoint:
     FS_TYPE_EXT4 = "ext4"           # deprecated
     FS_TYPE_BTRFS = "btrfs"
 
-    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disks=None):
+    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disk=None):
         self.name = None
         self.mount_point = None
         self.dev_path = None
         self.dev_uuid = None
         self.fs_type = None
         self.mnt_opt = None
-        self.underlay_disks = None
+        self.underlay_disk = None
 
         # self.name
         assert isinstance(name, str)
@@ -171,14 +171,14 @@ class HostMountPoint:
             assert self.dev_path is not None
             self.mnt_opt = ""                                               # FIXME
 
-        # self.underlay_disks
-        if underlay_disks is not None:
-            assert self.dev_path is None                                    # self.dev_path and parameter "underlay_disks" are mutally exclusive
-            assert all([isinstance(x, HostDisk) for x in underlay_disks])
-            self.underlay_disks = underlay_disks
+        # self.underlay_disk
+        if underlay_disk is not None:
+            assert self.dev_path is None                                    # self.dev_path and parameter "underlay_disk" are mutally exclusive
+            assert all([isinstance(x, HostDisk) for x in anytree.PostOrderIter(underlay_disk)])
+            self.underlay_disk = underlay_disk
         else:
             assert self.dev_path is not None
-            self.underlay_disks = _getUnderlayDisks(self.dev_path)
+            self.underlay_disk = _getUnderlayDisk(self.dev_path)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
@@ -300,13 +300,13 @@ class FsLayout:
         return "/lib/firmware"
 
 
-def _getUnderlayDisks(devPath, parent=None):
+def _getUnderlayDisk(devPath, parent=None):
     # HostDiskLvmLv
     lvmInfo = Util.getBlkDevLvmInfo(devPath)
     if lvmInfo is not None:
         bdi = HostDiskLvmLv(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent=parent)
         for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
-            _getUnderlayDisks(slaveDevPath, parent=bdi)
+            _getUnderlayDisk(slaveDevPath, parent=bdi)
         return bdi
 
     # HostDiskPartition
@@ -319,7 +319,7 @@ def _getUnderlayDisks(devPath, parent=None):
                 m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
     if m is not None:
         bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)        # FIXME: currently there's no difference when processing mbr and gpt partition
-        _getUnderlayDisks(m.group(1), parent=bdi)
+        _getUnderlayDisk(m.group(1), parent=bdi)
         return bdi
 
     # HostDiskScsiDisk
@@ -349,9 +349,9 @@ def _getUnderlayDisks(devPath, parent=None):
         slist = Util.bcacheGetSlaveDevPathList(devPath)
         for i in range(0, len(slist)):
             if i < len(slist) - 1:
-                bdi.add_cache_dev(_getUnderlayDisks(slist[i], parent=bdi))
+                bdi.add_cache_dev(_getUnderlayDisk(slist[i], parent=bdi))
             else:
-                bdi.add_backing_dev(_getUnderlayDisks(slist[i], parent=bdi))
+                bdi.add_backing_dev(_getUnderlayDisk(slist[i], parent=bdi))
         return bdi
 
     # unknown
