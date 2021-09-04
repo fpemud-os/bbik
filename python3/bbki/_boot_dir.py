@@ -139,7 +139,9 @@ class BootEntry:
         return True
 
     def __eq__(self, other):
-        return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
+        return type(self) == type(other) and self._bbki == other._bbki and \
+               self._arch == other._arch and self._verstr == other._verstr and \
+               self._bootDir == other._bootDir
 
 
 class BootDirWriter:
