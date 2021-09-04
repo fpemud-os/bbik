@@ -67,7 +67,7 @@ class InitramfsInstaller:
         # deduplicated disk list
         diskList = OrderedSet()
         for mp in self._mountPointList:
-            for rootDisk in mp.underlay_disk_list:
+            for rootDisk in mp.underlay_disks:
                 for disk in anytree.PostOrderIter(rootDisk):
                     diskList.add(disk)
 
