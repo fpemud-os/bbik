@@ -352,15 +352,11 @@ class BbkiFileExecutor:
                 if self._atom.kernel_type == KernelType.LINUX:
                     bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
                     # shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
-                    # shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
-                    # shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
-                    # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                     with open(bootEntry.kernel_filepath, "w") as f:
                         f.write("\n")
-                    with open(bootEntry.kernel_config_filepath, "w") as f:
-                        f.write("\n")
-                    with open(bootEntry.kernel_config_rules_filepath, "w") as f:
-                        f.write("\n")
+                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
+                    shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
+                    # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
 
