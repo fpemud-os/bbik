@@ -121,14 +121,11 @@ class Bbki:
                 raise RunningEnvironmentError("invalid pending boot entry")
             return ret
         else:
-            if not self._bSelfBoot:
-                tlist = BootEntryUtils(self).getBootEntryList()
-                if len(tlist) > 0:
-                    if len(tlist) > 1:
-                        raise RunningEnvironmentError("multiple pending boot entries")
-                    return tlist[-1]
-                else:
-                    return None
+            tlist = BootEntryUtils(self).getBootEntryList()
+            if len(tlist) > 0:
+                if len(tlist) > 1:
+                    raise RunningEnvironmentError("multiple pending boot entries")
+                return tlist[-1]
             else:
                 return None
 
