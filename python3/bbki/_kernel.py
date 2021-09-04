@@ -166,9 +166,7 @@ class KernelInstaller:
 
         # initramfs rules
         if self._initramfsAtom is not None:
-            buf = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
-            print(buf)
-            rulesDict["initramfs"] = buf
+            rulesDict["initramfs"] = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
 
         # sysadmin rules
         rulesDict["custom"] = ""            # FIXME
@@ -217,7 +215,6 @@ class KernelInstaller:
             robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
             for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    print(be._arch, be._verstr, be._bootDir, self._targetBootEntry._arch, self._targetBootEntry._verstr, self._targetBootEntry._bootDir)
                     for fullfn in BootEntryWrapper(be).getFilePathList(exists_only=True):
                         robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
