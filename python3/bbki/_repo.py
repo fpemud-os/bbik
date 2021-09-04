@@ -29,7 +29,6 @@ import inspect
 import pathlib
 import urllib.parse
 import robust_layer.simple_git
-import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
@@ -351,9 +350,9 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 if self._atom.kernel_type == KernelType.LINUX:
                     bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
-                    robust_layer.simple_fops.cp("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
-                    robust_layer.simple_fops.cp(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
-                    robust_layer.simple_fops.cp(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
+                    shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
+                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
+                    shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
