@@ -29,6 +29,7 @@ import inspect
 import pathlib
 import urllib.parse
 import robust_layer.simple_git
+import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
@@ -320,17 +321,16 @@ class BbkiFileExecutor:
                 cmd += "kernel_build\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
-            pass
             # default action
-            # with TempChdir(self._trWorkDir):
-            #     if self._atom.kernel_type == KernelType.LINUX:
-            #         optList = []
-            #         optList.append("CFLAGS=\"-Wno-error\"")
-            #         optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
-            #         Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
-            #         Util.shellCall("/usr/bin/make %s modules" % (" ".join(optList)))
-            #     else:
-            #         assert False
+            with TempChdir(self._trWorkDir):
+                if self._atom.kernel_type == KernelType.LINUX:
+                    optList = []
+                    optList.append("CFLAGS=\"-Wno-error\"")
+                    optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
+                    Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
+                    Util.shellCall("/usr/bin/make %s modules" % (" ".join(optList)))
+                else:
+                    assert False
 
     def exec_kernel_install(self):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
@@ -351,11 +351,9 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 if self._atom.kernel_type == KernelType.LINUX:
                     bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
-                    # shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
-                    with open(bootEntry.kernel_filepath, "w") as f:
-                        f.write("\n")
-                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
-                    shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
+                    robust_layer.simple_fops.cp("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
+                    robust_layer.simple_fops.cp(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
+                    robust_layer.simple_fops.cp(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
