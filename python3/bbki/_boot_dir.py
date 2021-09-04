@@ -138,7 +138,7 @@ class BootEntry:
             return False
         return True
 
-    def ___eq___(self, other):
+    def __eq__(self, other):
         print("debug")
         return self._bbki == other._bbki and self._arch == other._arch and self._verstr == other._verstr and self._bootDir == other._bootDir
 

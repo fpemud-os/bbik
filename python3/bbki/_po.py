@@ -188,7 +188,7 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
         self.parent = parent
         self.uuid = uuid
 
-    def ___eq___(self, other):
+    def __eq__(self, other):
         return type(self) == type(other) and self.uuid == other.uuid
 
 
