@@ -162,12 +162,12 @@ class KernelInstaller:
 
         # addon rules
         for addon_item in self._addonAtomList:
-            buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules()
+            buf = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules(self._kernelAtom)
             rulesDict[addon_item.name] = buf
 
         # initramfs rules
         if self._initramfsAtom is not None:
-            self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules()
+            self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
             rulesDict["initramfs"] = buf
 
         # sysadmin rules
