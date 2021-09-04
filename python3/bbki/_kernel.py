@@ -166,7 +166,9 @@ class KernelInstaller:
 
         # initramfs rules
         if self._initramfsAtom is not None:
-            rulesDict["initramfs"] = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
+            buf = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
+            print(buf)
+            rulesDict["initramfs"] = buf
 
         # sysadmin rules
         rulesDict["custom"] = ""            # FIXME
