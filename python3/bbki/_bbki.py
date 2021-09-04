@@ -149,16 +149,25 @@ class Bbki:
                 ret.append(items[-1])
         return ret
 
+    def get_initramfs_atom(self, name):
+        items = self._repoList[0].get_atoms_by_type_name(self._cfg.get_kernel_type(), Repo.ATOM_TYPE_INITRAMFS, name)
+        items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
+        if len(items) > 0:
+            return items[-1]
+        else:
+            return None
+
     def fetch(self, atom):
         BbkiFileExecutor(atom).exec_fetch()
 
-    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list):
+    def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list, initramfs_atom=None):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
         assert all([x.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON for x in kernel_addon_atom_list])
 
-        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, None)
+        return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
-    def install_initramfs(self, host_storage):
+    def install_initramfs(self, initramfs_atom, host_storage):
+        assert initramfs_atom is None                                   # FIXME
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
 

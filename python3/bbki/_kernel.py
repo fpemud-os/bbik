@@ -168,7 +168,7 @@ class KernelInstaller:
         # initramfs rules
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules()
-            rulesDict["initramfs_2"] = buf       # FIXME, duplicate name
+            rulesDict["initramfs"] = buf
 
         # sysadmin rules
         rulesDict["custom"] = ""            # FIXME
