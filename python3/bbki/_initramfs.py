@@ -452,5 +452,5 @@ class InitramfsInstaller:
                 print(line)
         print("ddd")
         for k, v in symDict.items():
-            if not re.fullmatch("CONFIG_%s=%s" % (k, v), buf, re.M):
+            if not re.search("^CONFIG_%s=%s$" % (k, v), buf, re.M):
                 raise InitramfsInstallError("config symbol %s must be selected as \"%s\"!" % (k, v))
