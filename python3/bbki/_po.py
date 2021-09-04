@@ -50,6 +50,15 @@ class SystemInit:
         self.name = name
         self.cmd = cmd
 
+    def __eq__(self, other):
+        ret = (type(self) == type(other) and self.name == other.name)
+        if ret:
+            assert self.cmd == other.cmd
+        return ret
+
+    def __hash__(self):
+        return hash(self.name)
+
 
 class RescueOsSpec:
 
@@ -257,11 +266,31 @@ class HostDiskPartition(HostDisk):
 
 class HostAuxOs:
 
-    def __init__(self, name, partition_path, partition_uuid, chainloader_number):
+    def __init__(self, name, partition_path_or_uuid, chainloader_number):
         self.name = name
-        self.partition_path = partition_path
-        self.partition_uuid = partition_uuid
+        if partition_path_or_uuid.startswith("/dev/"):
+            self.partition_path = partition_path_or_uuid
+            self.partition_uuid = Util.getBlkDevUuid(self.partition_path)   # FS-UUID, not PART-UUID
+        else:
+            self.partition_path = None
+            self.partition_uuid = partition_path_or_uuid
         self.chainloader_number = chainloader_number
+
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        if self.name != other.name:
+            return False
+        if self.partition_uuid != other.partition_uuid:
+            return False
+        if self.chainloader_number != other.chainloader_number:
+            return False
+        if self.partition_path is not None and other.partition_path is not None:
+            assert self.partition_path == other.partition_path
+        return True
+
+    def __hash__(self):
+        return hash((self.name, self.partition_uuid, self.chainloader_number))
 
 
 class FsLayout:
