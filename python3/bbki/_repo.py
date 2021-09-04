@@ -326,8 +326,8 @@ class BbkiFileExecutor:
                     optList = []
                     optList.append("CFLAGS=\"-Wno-error\"")
                     optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
-                    Util.shellCall("/usr/bin/make %s" % (" ".join(optList)))
-                    Util.shellCall("/usr/bin/make %s modules" % (" ".join(optList)))
+                    Util.shellCall("make %s" % (" ".join(optList)))
+                    Util.shellCall("make %s modules" % (" ".join(optList)))
                 else:
                     assert False
 
@@ -353,7 +353,7 @@ class BbkiFileExecutor:
                     shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
                     shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
                     shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
-                    Util.shellCall("/usr/bin/make modules install")
+                    Util.shellCall("make modules install")
                     # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
                 else:
                     assert False
