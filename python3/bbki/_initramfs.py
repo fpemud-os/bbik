@@ -281,11 +281,11 @@ class InitramfsInstaller:
             cmdStr = "/usr/bin/find . -print0 "
             cmdStr += "| /bin/cpio --null -H newc -o "
             cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
-            cmdStr += "> \"%s\" " % (self._be.initrd_file)
+            cmdStr += "> \"%s\" " % (self._be.initrd_filepath)
             Util.shellCall(cmdStr)
 
             # tar file
-            with tarfile.open(self._be.initrd_tar_file, "w:bz2") as f:
+            with tarfile.open(self._be.initrd_tar_filepath, "w:bz2") as f:
                 for fn in glob.glob("*"):
                     f.add(fn)
 
