@@ -63,7 +63,7 @@ class Config:
     def get_initramfs_name(self):
         raise NotImplementedError()
 
-    def get_system_init_info(self):
+    def get_system_init(self):
         raise NotImplementedError()
 
     def get_bootloader_extra_time(self):

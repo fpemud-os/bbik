@@ -301,7 +301,7 @@ class BootLoader:
             _prefixedPath = _prefixedPathBios
         else:
             assert False
-        initCmdLine = self._bbki.config.get_system_init_info()[1]
+        initCmdLine = self._bbki.config.get_system_init()[1]
 
         # deal with recordfail variable
         buf += 'load_env\n'

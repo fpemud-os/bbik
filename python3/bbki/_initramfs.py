@@ -366,7 +366,7 @@ class InitramfsInstaller:
 
     def _installStartupRc(self, rootDir, kmodList, blkOpList):
         buf = ""
-        initCmdline = self._bbki.config.get_system_init_info()[1]
+        initCmdline = self._bbki.config.get_system_init()[1]
 
         def _getPrefixedMountPoint(mi):
             return os.path.join("/sysroot", mi.mount_point[1:])
