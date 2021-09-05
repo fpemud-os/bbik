@@ -465,7 +465,7 @@ class BbkiFileExecutor:
                 return Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # FIXME
-            InitramfsInstaller(self, host_storage, boot_entry).install()
+            InitramfsInstaller(self._bbki, host_storage, boot_entry).install()
 
     def _restrict_atom_type(self, *atomTypes):
         if self._atom.atom_type not in atomTypes:
