@@ -34,6 +34,7 @@ from ._util import TempChdir
 from ._po import KernelType
 from ._boot_dir import BootEntry
 from ._exception import RepoError
+from ._initramfs import InitramfsInstaller
 
 
 class Repo:
@@ -384,7 +385,7 @@ class BbkiFileExecutor:
         if self._item_has_me():
             # custom action
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(kernelDir):
+            with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
@@ -451,8 +452,20 @@ class BbkiFileExecutor:
     def exec_initramfs_install(self, host_storage, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
-        # FIXME
-        assert False
+        if self._item_has_me():
+            # custom action
+            with TempChdir(self._trWorkDir):
+                cmd = ""
+                cmd += self._var_A()
+                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (self._atom.bbki_file)
+                cmd += "\n"
+                cmd += "initramfs_install\n"
+                return Util.cmdCall("/bin/bash", "-c", cmd)
+        else:
+            # FIXME
+            InitramfsInstaller(self, host_storage, boot_entry).install()
 
     def _restrict_atom_type(self, *atomTypes):
         if self._atom.atom_type not in atomTypes:

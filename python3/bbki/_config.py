@@ -60,6 +60,9 @@ class Config:
     def get_kernel_addon_names(self):
         raise NotImplementedError()
 
+    def get_initramfs_name(self):
+        raise NotImplementedError()
+
     def get_system_init_info(self):
         raise NotImplementedError()
 
@@ -153,6 +156,9 @@ class EtcDirConfig(Config):
         self._filltKernelAddonNameList()
 
         return self._tKernelAddonNameList
+
+    def get_initramfs_name(self):
+        return "minitrd"            # FIXME
 
     def get_system_init(self):
         # fill cache

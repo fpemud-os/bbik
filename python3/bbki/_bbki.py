@@ -32,7 +32,6 @@ from ._config import EtcDirConfig
 from ._repo import Repo
 from ._boot_dir import BootEntry
 from ._kernel import KernelInstaller
-from ._initramfs import InitramfsInstaller
 from ._exception import RunningEnvironmentError
 
 from ._util import Util
@@ -149,8 +148,8 @@ class Bbki:
                 ret.append(items[-1])
         return ret
 
-    def get_initramfs_atom(self, name):
-        items = self._repoList[0].get_atoms_by_type_name(self._cfg.get_kernel_type(), Repo.ATOM_TYPE_INITRAMFS, name)
+    def get_initramfs_atom(self):
+        items = self._repoList[0].get_atoms_by_type_name(self._cfg.get_kernel_type(), Repo.ATOM_TYPE_INITRAMFS, self._cfg.get_initramfs_name())
         items = [x for x in items if self._cfg.check_version_mask(x.fullname, x.verstr)]                    # filter by bbki-config
         if len(items) > 0:
             return items[-1]
@@ -171,8 +170,13 @@ class Bbki:
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
 
-        with self._bootDirWriter:
-            InitramfsInstaller(self, host_storage, self.get_pending_boot_entry()).install()
+        obj = BbkiFileExecutor(initramfs_atom)
+        obj.create_tmpdirs()
+        try:
+            with self._bootDirWriter:
+                obj.exec_initramfs_install(host_storage, self.get_pending_boot_entry())
+        finally:
+            obj.remove_tmpdirs()
 
     def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
         with self._bootDirWriter:
