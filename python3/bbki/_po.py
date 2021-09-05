@@ -25,6 +25,7 @@ import os
 import re
 import anytree
 from ._util import Util
+from ._exception import RunningEnvironmentError
 
 
 class KernelType:
@@ -374,10 +375,10 @@ def _getUnderlayDisk(devPath, parent=None):
     if m is not None:
         return HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
 
-    # bcache
+    # HostDiskBcache
     m = re.fullmatch("/dev/bcache[0-9]+", devPath)
     if m is not None:
-        bdi = HostDiskBcache(Util.getBlkDevUuid(devPath))
+        bdi = HostDiskBcache(Util.getBlkDevUuid(devPath), parent=parent)
         slist = Util.bcacheGetSlaveDevPathList(devPath)
         for i in range(0, len(slist)):
             if i < len(slist) - 1:
@@ -387,4 +388,4 @@ def _getUnderlayDisk(devPath, parent=None):
         return bdi
 
     # unknown
-    assert False
+    raise RunningEnvironmentError("unknown device \"%s\"" % (devPath))
