@@ -23,7 +23,6 @@
 
 import os
 import re
-import kmod
 import pylkcutil
 import pkg_resources
 import robust_layer.simple_fops
