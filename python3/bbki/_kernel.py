@@ -30,6 +30,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._boot_dir import BootEntry
+from ._boot_dir import BootEntryWrapper
 from ._repo import BbkiFileExecutor
 
 
@@ -288,100 +289,3 @@ class BootEntryUtils:
             if kernelFile.startswith("kernel-"):
                 ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
-
-
-class BootEntryWrapper:
-
-    def __init__(self, boot_entry):
-        self._bbki = boot_entry._bbki
-        self._bootEntry = boot_entry
-        self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
-
-    @property
-    def modules_dir(self):
-        return self._modulesDir
-
-    @property
-    def firmware_dir(self):
-        return self._bbki._fsLayout.get_firmware_dir()
-
-    @property
-    def src_arch(self):
-        # FIXME: what's the difference with arch?
-
-        if self._bootEntry.arch == "i386" or self._bootEntry.arch == "x86_64":
-            return "x86"
-        elif self._bootEntry.arch == "sparc32" or self._bootEntry.arch == "sparc64":
-            return "sparc"
-        elif self._bootEntry.arch == "sh":
-            return "sh64"
-        else:
-            return self._bootEntry.arch
-
-    def getFilePathList(self, exists_only=False):
-        ret = [
-            self._bootEntry.kernel_filepath,
-            self._bootEntry.kernel_config_filepath,
-            self._bootEntry.kernel_config_rules_filepath,
-            self._bootEntry.initrd_filepath,
-            self._bootEntry.initrd_tar_filepath,
-        ]
-        if exists_only:
-            ret = [x for x in ret if os.path.exists(x)]
-        return ret
-
-    def get_kmod_filenames(self, kmod_alias, with_deps=False):
-        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]
-
-    def get_kmod_filepaths(self, kmod_alias, with_deps=False):
-        kmodList = dict()                                           # use dict to remove duplication while keeping order
-        ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
-        self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
-        return list(kmodList)
-
-    def get_firmware_filenames(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, True)
-
-    def get_firmware_filepaths(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, False)
-
-    def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
-        ret = []
-
-        # python-kmod bug: can only recognize the last firmware in modinfo
-        # so use the command output of modinfo directly
-        for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
-            m = re.fullmatch("firmware: +(\\S.*)", line)
-            if m is not None:
-                if bReturnNameOrPath:
-                    ret.append(m.group(1))
-                else:
-                    ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
-
-        # add standard files
-        standardFiles = [
-            ".ctime",
-            "regulatory.db",
-            "regulatory.db.p7s",
-        ]
-        if bReturnNameOrPath:
-            ret += standardFiles
-        else:
-            ret += [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in standardFiles]
-
-        # return value
-        return ret
-
-    def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
-        kmodObjList = list(ctx.lookup(kmodAlias))
-        if len(kmodObjList) > 0:
-            assert len(kmodObjList) == 1
-            kmodObj = kmodObjList[0]
-
-            if withDeps and "depends" in kmodObj.info and kmodObj.info["depends"] != "":
-                for kmodAlias in kmodObj.info["depends"].split(","):
-                    self._getKmodAndDeps(ctx, kmodAlias, result)
-
-            if kmodObj.path is not None:
-                # this module is not built into the kernel
-                result[kmodObj.path] = None

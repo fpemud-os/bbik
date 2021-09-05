@@ -38,8 +38,8 @@ from ._util import Util
 from ._po import FsLayout
 from ._repo import BbkiFileExecutor
 from ._boot_dir import BootDirWriter
+from ._boot_dir import BootEntryWrapper
 from ._kernel import BootEntryUtils
-from ._kernel import BootEntryWrapper
 from ._bootloader import BootLoader
 from ._check import Checker
 
