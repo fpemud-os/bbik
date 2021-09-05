@@ -388,7 +388,7 @@ class BootLoader:
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()),
                                                              grubRootDevUuid,
-                                                             _prefixedPath(self._bbki._fsLayout.get_boot_rescue_dir()))
+                                                             _prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_dir()))
             buf += '  initrd %s\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_initrd_filepath()))
             buf += '}\n'
             buf += '\n'
