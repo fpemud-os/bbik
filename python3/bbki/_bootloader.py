@@ -155,6 +155,7 @@ class BootLoader:
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
+            print("writed", self._grubCfgFile)
             f.write(buf)
 
         # record variable value
@@ -187,6 +188,7 @@ class BootLoader:
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
+            print("writed2", self._grubCfgFile)
             f.write(buf)
 
     def remove(self):
