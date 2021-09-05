@@ -323,7 +323,7 @@ class InitramfsInstaller:
             self._copyToInitrd(df, rootDir)
 
     def _installBinFromInitDataDir(self, binFilename, rootDir, targetDir):
-        srcFilename = pkg_resources.resource_filename(__name__, binFilename)
+        srcFilename = pkg_resources.resource_filename(__name__, "initramfs", binFilename)
         dstFilename = os.path.join(rootDir, targetDir, binFilename)
 
         Util.cmdCall("/bin/cp", "-f", srcFilename, dstFilename)
