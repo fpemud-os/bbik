@@ -337,7 +337,7 @@ class BootEntryWrapper:
         kmodList = dict()                                           # use dict to remove duplication while keeping order
         ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
         self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
-        return list(kmodList.fromkeys())
+        return list(kmodList)
 
     def get_firmware_filenames(self, kmod_filepath):
         return self._getFirmwareImpl(kmod_filepath, True)
