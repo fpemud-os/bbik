@@ -368,7 +368,11 @@ class InitramfsInstaller:
         buf = ""
 
         def _getPrefixedMountPoint(mi):
-            return os.path.join("/sysroot", mi.mount_point[1:])
+            if mi.mount_point == "/":
+                return "/sysroot"
+            else:
+                assert mi.mount_point.startswith("/")
+                return "/sysroot" + mi.mount_point
 
         # write comments
         for mi in self._mountPointList:
