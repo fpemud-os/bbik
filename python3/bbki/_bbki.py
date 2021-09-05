@@ -202,6 +202,10 @@ class Bbki:
             else:
                 assert False
 
+    def update_bootloader(self, aux_os_list, aux_kernel_init_cmdline):
+        assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
+        self._bootloader.update(aux_os_list, aux_kernel_init_cmdline)
+
     def clean_boot_dir(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
         pendingBe = self.get_pending_boot_entry()
