@@ -22,6 +22,7 @@
 
 
 import os
+import re
 import kmod
 from ._util import Util
 from ._util import SystemMounts

@@ -166,7 +166,6 @@ class Bbki:
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
     def install_initramfs(self, initramfs_atom, host_storage):
-        assert initramfs_atom is None                                   # FIXME
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
 
