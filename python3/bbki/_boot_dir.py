@@ -279,7 +279,7 @@ class BootEntryWrapper:
 
             if withDeps and "depends" in kmodObj.info and kmodObj.info["depends"] != "":
                 for kmodAlias in kmodObj.info["depends"].split(","):
-                    self._getKmodAndDeps(ctx, kmodAlias, result)
+                    self._getKmodAndDeps(ctx, kmodAlias, withDeps, result)
 
             if kmodObj.path is not None:
                 # this module is not built into the kernel
