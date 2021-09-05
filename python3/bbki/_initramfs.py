@@ -366,7 +366,6 @@ class InitramfsInstaller:
 
     def _installStartupRc(self, rootDir, kmodList, blkOpList):
         buf = ""
-        initCmdline = self._bbki.config.get_system_init()[1]
 
         def _getPrefixedMountPoint(mi):
             return os.path.join("/sysroot", mi.mount_point[1:])
@@ -394,7 +393,7 @@ class InitramfsInstaller:
             buf += "\n"
 
         # switch to new root
-        buf += ("switchroot \"/sysroot\" %s\n" % (initCmdline)).rstrip()
+        buf += ("switchroot \"/sysroot\" %s\n" % (self._bbki.config.get_system_init().cmd)).rstrip()
         buf += "\n"
 
         # write cfg file
