@@ -203,7 +203,7 @@ class InitramfsInstaller:
 
         # install init executable to initramfs
         self._installInit(self._initramfsTmpDir)
-        self._installStartupRc(self._initramfsTmpDir, kmodList, blkOpList, self.mntInfoDict)
+        self._installStartupRc(self._initramfsTmpDir, kmodList, blkOpList)
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
