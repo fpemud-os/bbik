@@ -371,7 +371,6 @@ class BootLoader:
             buf += '\n'
 
             # write menu entry for main kernel
-            buf = ''
             buf += 'menuentry "Current: Linux-%s" {\n' % (bootEntry.postfix)
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  echo "Loading Linux kernel ..."\n'
@@ -383,7 +382,6 @@ class BootLoader:
 
         # write menu entry for rescue os
         if os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_dir()):
-            buf = ''
             buf += 'menuentry "Rescue OS" {\n'
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  linux %s dev_uuid=%s basedir=%s"\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()),
@@ -405,7 +403,6 @@ class BootLoader:
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
             for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(True):
                 if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
-                    buf = ''
                     buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
                     buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
                     buf += '  echo "Loading Linux kernel ..."\n'
@@ -415,7 +412,6 @@ class BootLoader:
                     buf += '}\n'
                     buf += '\n'
                 else:
-                    buf = ''
                     buf += 'menuentry "History: Linux-%s (Broken)" {\n' % (bootEntry.postfix)
                     buf += '}\n'
                     buf += '\n'
