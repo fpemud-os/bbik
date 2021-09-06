@@ -321,7 +321,7 @@ class Util:
 
     @staticmethod
     def devPathPartitionOrDiskToDisk(devPath):
-        if re.fullmatch(".*[0-9]$"):
+        if re.fullmatch(".*[0-9]+", devPath):
             return Util.devPathPartitionToDiskAndPartitionId(devPath)[0]
         else:
             return devPath
