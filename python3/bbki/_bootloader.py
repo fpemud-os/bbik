@@ -183,7 +183,7 @@ class BootLoader:
 
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, auxOsList, kernelCmdLine)
+        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, auxOsList, kernelCmdLine)
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
