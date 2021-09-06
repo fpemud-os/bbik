@@ -173,13 +173,19 @@ class HostMountPoint:
             self.fs_type = Util.getBlkDevFsType(self.dev_path)
 
         # self.mnt_opt
-        if mnt_opt is not None:
-            assert self.dev_path is None                                    # self.dev_path and parameter "mnt_opt" are mutally exclusive
-            assert isinstance(mnt_opt, str)
-            self.mnt_opt = mnt_opt
+        if self.name == self.NAME_ROOT:
+            if mnt_opt is not None:
+                assert mnt_opt == ""
+            else:
+                mnt_opt = ""
+        elif self.name == self.NAME_ESP:
+            if mnt_opt is not None:
+                assert mnt_opt == "ro,dmask=022,fmask=133"
+            else:
+                mnt_opt = "ro,dmask=022,fmask=133"
         else:
-            assert self.dev_path is not None
-            self.mnt_opt = ""                                               # FIXME
+            assert isinstance(mnt_opt, str)
+        self.mnt_opt = mnt_opt
 
         # self.underlay_disk
         if underlay_disk is not None:
