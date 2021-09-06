@@ -294,10 +294,10 @@ class BootLoader:
     def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine):
         buf = ''
         if bootMode == BootMode.EFI:
-            grubRootDevUuid = rootfsDevUuid
+            grubRootDevUuid = espDevUuid
             _prefixedPath = _prefixedPathEfi
         elif bootMode == BootMode.BIOS:
-            grubRootDevUuid = espDevUuid
+            grubRootDevUuid = rootfsDevUuid
             _prefixedPath = _prefixedPathBios
         else:
             assert False
