@@ -447,8 +447,8 @@ class BootLoader:
 
     def _parseGrubCfgAuxOsList(self, buf):
         ret = []
-        for m in re.finditer(r'menuentry "Auxillary: (.*)" {\n  (\S+)\n  chainloader +([0-9]+)\n}', buf):
-            ret.append(HostAuxOs(m.group(1), None, m.group(2), m.group(3)))
+        for m in re.finditer(r'menuentry "Auxillary: (.*)" {\n  search --fs-uuid --no-floppy --set (\S+)\n  chainloader +([0-9]+)\n}', buf):
+            ret.append(HostAuxOs(m.group(1), m.group(2), m.group(3)))
         return ret
 
     def _parseGrubCfgKernelCmdLine(self, buf):
