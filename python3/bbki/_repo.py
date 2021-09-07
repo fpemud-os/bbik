@@ -266,6 +266,7 @@ class BbkiFileExecutor:
                     os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
                     robust_layer.wget.exec("-O", localFullFn, url)
             for url, localFn in _distfiles_get_git(self._atom):
+                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
                 os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
                 robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
 
