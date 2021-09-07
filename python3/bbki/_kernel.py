@@ -29,6 +29,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._boot_dir import BootEntry
+from ._boot_dir import BootEntryUtils
 from ._boot_dir import BootEntryWrapper
 from ._repo import BbkiFileExecutor
 

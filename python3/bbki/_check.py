@@ -22,7 +22,6 @@
 
 
 import os
-import glob
 import robust_layer.simple_fops
 from ._boot_dir import BootEntryUtils
 from ._boot_dir import BootEntryWrapper
