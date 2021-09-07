@@ -98,7 +98,7 @@ class HostStorage:
         elif boot_mode == BootMode.BIOS:
             if boot_disk_path_or_id.startswith("/dev/"):
                 self.boot_disk_path = boot_disk_path_or_id
-                self.boot_disk_id = Util.getDiskById(self.boot_disk_path)
+                self.boot_disk_id = Util.getDiskId(self.boot_disk_path)
             else:
                 self.boot_disk_path = None
                 self.boot_disk_id = boot_disk_path_or_id
