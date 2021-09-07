@@ -23,8 +23,8 @@
 
 import os
 import robust_layer.simple_fops
-from ._boot_dir import BootEntryUtils
-from ._boot_dir import BootEntryWrapper
+from ._boot_entry import BootEntryUtils
+from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
 
 

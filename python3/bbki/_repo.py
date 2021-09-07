@@ -32,7 +32,7 @@ import robust_layer.simple_git
 from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
-from ._boot_dir import BootEntry
+from ._boot_entry import BootEntry
 from ._exception import RepoError
 from ._initramfs import InitramfsInstaller
 

@@ -30,7 +30,7 @@ from ._po import KernelType
 from ._po import RescueOsSpec
 from ._config import EtcDirConfig
 from ._repo import Repo
-from ._boot_dir import BootEntry
+from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
 from ._exception import RunningEnvironmentError
 
@@ -38,8 +38,8 @@ from ._util import Util
 from ._po import FsLayout
 from ._repo import BbkiFileExecutor
 from ._boot_dir import BootDirWriter
-from ._boot_dir import BootEntryUtils
-from ._boot_dir import BootEntryWrapper
+from ._boot_entry import BootEntryUtils
+from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
 from ._check import Checker
 

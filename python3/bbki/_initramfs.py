@@ -41,7 +41,7 @@ from ._po import HostDiskScsiDisk
 from ._po import HostDiskXenDisk
 from ._po import HostDiskVirtioDisk
 from ._po import HostDiskPartition
-from ._boot_dir import BootEntryWrapper
+from ._boot_entry import BootEntryWrapper
 from ._exception import InitramfsInstallError
 
 
