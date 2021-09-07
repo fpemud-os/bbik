@@ -140,6 +140,11 @@ class BootEntry:
             return False
         return True
 
+    def has_kernel_modules_dir(self):
+        if not os.path.exists(self.kernel_modules_dirpath):
+            return False
+        return True
+
     def __eq__(self, other):
         return type(self) == type(other) and self._bbki == other._bbki and \
                self._arch == other._arch and self._verstr == other._verstr and \

@@ -219,14 +219,14 @@ class Bbki:
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
-            tset = set(glob.glob(os.path.join(self._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
+            tset = set(glob.glob(os.path.join(self._fsLayout.get_boot_dir(), "*")))                     # mark /boot/* (no recursion) as to-be-deleted
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
                 tset -= set(self._bootloader.get_filepaths())                                           # don't delete boot-loader files
-            tset.discard(self._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
+            tset.discard(self._fsLayout.get_boot_rescue_os_dir())                                       # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():
-                    tset.discard(self._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
-                    tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))      # mark /boot/history/* (no recursion) as to-be-deleted
+                    tset.discard(self._fsLayout.get_boot_history_dir())                                 # don't delete /boot/history since some files in it are referenced
+                    tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))    # mark /boot/history/* (no recursion) as to-be-deleted
                     tset -= set(BootEntryWrapper(currentBe).get_filepaths())                            # don't delete files of current-boot-entry
                 else:
                     assert currentBe == pendingBe
@@ -299,6 +299,7 @@ class Bbki:
 
     def check(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
+        obj.checkFreeSpace()
         obj.checkBootDir()
         obj.checkKernelModulesDir()
         obj.checkFirmwareDir()
