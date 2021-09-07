@@ -277,10 +277,10 @@ class BootEntryUtils:
         if not os.path.exists(self._bbki._fsLayout.get_kernel_modules_dir()):
             return []
 
-        ret = os.listdir(self._bbki._fsLayout.get_kernel_modules_dir())              # mark /lib/modules/* (no recursion) as to-be-deleted
+        ret = glob.glob(os.path.join(self._bbki._fsLayout.get_kernel_modules_dir(), "*"))  # mark /lib/modules/* (no recursion) as to-be-deleted
         for be in bootEntryList:
             try:
-                ret.remove(self._bbki._fsLayout.get_kernel_modules_dir(be.verstr))   # don't delete files belongs to a boot-entry
+                ret.remove(self._bbki._fsLayout.get_kernel_modules_dir(be.verstr))         # don't delete files belongs to a boot-entry
             except ValueError:
                 pass
         return ret
