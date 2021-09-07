@@ -27,7 +27,8 @@ import glob
 import shutil
 import inspect
 import pathlib
-import urllib.parse
+import tarfile
+import zipfile
 import robust_layer.simple_git
 from ._util import Util
 from ._util import TempChdir
@@ -183,10 +184,7 @@ class RepoAtom:
         if self.has_function("fetch"):
             return [_custom_src_dir(self)]
         else:
-            ret = []
-            ret += [localFn for url, localFn in _distfiles_get(self)]
-            ret += [localFn for url, localFn in _distfiles_get_git(self)]
-            return ret
+            return [localFn for url, localFn in _distfiles_get(self)]
 
     def _fillt(self):
         if self._tVarDict is not None and self._tFuncList is not None:
@@ -214,8 +212,6 @@ class RepoAtom:
 
         if "fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
             raise RepoError("fetch() and SRC_URI are mutally exclusive")
-        if "fetch" in self._tFuncList and "SRC_URI_GIT" in self._tVarDict:
-            raise RepoError("fetch() and SRC_URI_GIT are mutally exclusive")
 
 
 class BbkiFileExecutor:
@@ -262,13 +258,17 @@ class BbkiFileExecutor:
             # default action
             for url, localFn in _distfiles_get(self._atom):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
-                if not os.path.exists(localFullFn):
-                    os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
-                    robust_layer.wget.exec("-O", localFullFn, url)
-            for url, localFn in _distfiles_get_git(self._atom):
-                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
                 os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
-                robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
+                if url.startswith("git://"):
+                    robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
+                elif url.startswith("git+http://") or url.startswith("git+https://"):
+                    robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url[len("git+"):])
+                elif url.startswith("http://") or url.startswith("https://") or url.startswith("ftp://"):
+                    if not os.path.exists(localFullFn):
+                        os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
+                        robust_layer.wget.exec("-O", localFullFn, url)
+                else:
+                    raise RepoError("invalid URL \"%s\"" % (url))
 
     def exec_src_unpack(self):
         if self._item_has_me():
@@ -286,10 +286,12 @@ class BbkiFileExecutor:
             # default action
             for url, localFn in _distfiles_get(self._atom):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
-                try:
+                if os.path.isdir(localFullFn):
+                    Util.cmdCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
+                elif tarfile.is_tarfile(localFullFn) or zipfile.is_zipfile(localFullFn):
                     shutil.unpack_archive(localFullFn, self._trWorkDir)
-                except ValueError:
-                    pass
+                else:
+                    Util.cmdCall("cp %s %s" % (localFullFn, self._trWorkDir))
 
     def exec_src_prepare(self):
         if self._item_has_me():
@@ -530,19 +532,6 @@ def _distfiles_get(atom):
         line = line.strip()
         if line != "":
             ret.append((line, os.path.basename(line)))
-    return ret
-
-
-def _distfiles_get_git(atom):
-    if not atom.has_variable("SRC_URI_GIT"):
-        return []
-
-    assert not atom.has_function("fetch")
-    ret = []
-    for line in atom.get_variable("SRC_URI_GIT").split("\n"):
-        line = line.strip()
-        if line != "":
-            ret.append((line, "git-src" + urllib.parse.urlparse(line).path))
     return ret
 
 
