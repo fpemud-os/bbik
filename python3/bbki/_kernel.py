@@ -202,7 +202,7 @@ class KernelInstaller:
 
         self._executorDict[self._kernelAtom].exec_kernel_build()
         for item in self._addonAtomList:
-            self._executorDict[item].exec_kernel_addon_build()
+            self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
         self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
 
     def install(self):
@@ -211,7 +211,7 @@ class KernelInstaller:
         with self._bbki._bootDirWriter:
             self._executorDict[self._kernelAtom].exec_kernel_install()
             for item in self._addonAtomList:
-                self._executorDict[item].exec_kernel_addon_install()
+                self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 
             robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
             for be in BootEntryUtils(self._bbki).getBootEntryList():
