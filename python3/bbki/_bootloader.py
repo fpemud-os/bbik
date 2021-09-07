@@ -54,6 +54,8 @@ class BootLoader:
         self._espDevUuid = None
         self._bootDisk = None
         self._bootDiskId = None
+        self._mainBootPostfix = None
+        self._kernelCmdLine = None
         self._parseGrubCfg()
 
     def getStatus(self):
@@ -80,9 +82,7 @@ class BootLoader:
     def getMainBootEntry(self):
         assert self._status == self.STATUS_NORMAL
 
-        buf = pathlib.Path(self._grubCfgFile).read_text()
-        postfix = self._parseGrubCfgMainBootPostfix(buf)
-        return BootEntryUtils(self._bbki).new_from_postfix(postfix)
+        return BootEntryUtils(self._bbki).new_from_postfix(self._mainBootPostfix)
 
     def getStableFlag(self):
         assert self._status == self.STATUS_NORMAL
@@ -138,7 +138,8 @@ class BootLoader:
 
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list, self._getKernelCmdLine(aux_kernel_init_cmdline))
+        kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
+        buf, mainBootPostfix = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, aux_os_list, kernelCmdLine)
 
         # install grub binaries
         if boot_mode == BootMode.EFI:
@@ -166,6 +167,8 @@ class BootLoader:
         self._espDevUuid = esp_dev_uuid
         self._bootDisk = boot_disk
         self._bootDiskId = boot_disk_id
+        self._mainBootPostfix = mainBootPostfix
+        self._kernelCmdLine = kernelCmdLine
 
     def update(self, aux_os_list, aux_kernel_init_cmdline):
         assert self._status == self.STATUS_NORMAL
@@ -179,15 +182,19 @@ class BootLoader:
         if aux_kernel_init_cmdline is not None:
             kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
         else:
-            kernelCmdLine = self._parseGrubCfgKernelCmdLine(buf)
+            kernelCmdLine = self._kernelCmdLine
 
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, auxOsList, kernelCmdLine)
+        buf, mainBootPostfix = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, auxOsList, kernelCmdLine)
+        assert self._mainBootPostfix == mainBootPostfix
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
             f.write(buf)
+
+        # update record variables
+        self._kernelCmdLine = kernelCmdLine
 
     def remove(self):
         if self._status == self.STATUS_NORMAL:
@@ -214,6 +221,8 @@ class BootLoader:
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
 
         # clear variables
+        self._kernelCmdLine = None
+        self._mainBootPostfix = None
         self._bootDiskId = None
         self._bootDisk = None
         self._espDevUuid = None
@@ -282,6 +291,13 @@ class BootLoader:
         else:
             assert False
 
+        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n}', buf)
+        if m is None:
+            self._status = self.STATUS_INVALID
+            return
+        mainBootPostfix = m.group(1)
+        kernelCmdLine = m.group(2)
+
         self._status = self.STATUS_NORMAL
         self._bootMode = bootMode
         self._rootfsDev = rootfsDev
@@ -290,9 +306,14 @@ class BootLoader:
         self._espDevUuid = espDevUuid
         self._bootDisk = bootDisk
         self._bootDiskId = bootDiskId
+        self._mainBootPostfix = mainBootPostfix
+        self._kernelCmdLine = kernelCmdLine
 
     def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine):
         buf = ''
+
+        grubRootDevUuid = None
+        _prefixedPath = None
         if bootMode == BootMode.EFI:
             grubRootDevUuid = espDevUuid
             _prefixedPath = _prefixedPathEfi
@@ -301,7 +322,20 @@ class BootLoader:
             _prefixedPath = _prefixedPathBios
         else:
             assert False
+
         initCmdLine = self._bbki.config.get_system_init().cmd
+
+        bootEntry = None
+        if True:
+            bootEntryList = BootEntryUtils(self._bbki).getBootEntryList()
+            if len(bootEntryList) == 0:
+                raise BootloaderInstallError("no main boot entry")
+            if len(bootEntryList) > 1:
+                raise BootloaderInstallError("multiple main boot entries")
+
+            bootEntry = bootEntryList[0]
+            if not bootEntry.has_kernel_files() or not bootEntry.has_initrd_files():
+                raise BootloaderInstallError("broken main boot entry")
 
         # deal with recordfail variable
         buf += 'load_env\n'
@@ -350,16 +384,6 @@ class BootLoader:
 
         # write menu entry for main kernel
         if True:
-            bootEntryList = BootEntryUtils(self._bbki).getBootEntryList()
-            if len(bootEntryList) == 0:
-                raise BootloaderInstallError("no main boot entry")
-            if len(bootEntryList) > 1:
-                raise BootloaderInstallError("multiple main boot entries")
-
-            bootEntry = bootEntryList[0]
-            if not bootEntry.has_kernel_files() or not bootEntry.has_initrd_files():
-                raise BootloaderInstallError("broken main boot entry")
-
             buf += 'menuentry "Stable: Linux-%s" {\n' % (bootEntry.postfix)
             buf += '  set gfxpayload=keep\n'
             buf += '  set recordfail=1\n'
@@ -439,21 +463,13 @@ class BootLoader:
         buf += '}\n'
         buf += '\n'
 
-        return buf
-
-    def _parseGrubCfgMainBootPostfix(self, buf):
-        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S*/kernel-(\S+) .*\n}', buf)
-        return m.group(1)
+        return (buf, bootEntry.postfix)
 
     def _parseGrubCfgAuxOsList(self, buf):
         ret = []
-        for m in re.finditer(r'menuentry "Auxillary: (.*)" {\n  search --fs-uuid --no-floppy --set (\S+)\n  chainloader +([0-9]+)\n}', buf):
+        for m in re.finditer(r'menuentry "Auxillary: (.*?)" {\n  search --fs-uuid --no-floppy --set (\S+)\n  chainloader +([0-9]+)\n}', buf):
             ret.append(HostAuxOs(m.group(1), m.group(2), m.group(3)))
         return ret
-
-    def _parseGrubCfgKernelCmdLine(self, buf):
-        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*\n  linux \S+ quiet (.*)\n}', buf)
-        return m.group(1)
 
 
 def _prefixedPathEfi(path):
