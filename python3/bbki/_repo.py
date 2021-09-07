@@ -29,6 +29,7 @@ import inspect
 import pathlib
 import tarfile
 import zipfile
+import urllib.parse
 import robust_layer.simple_git
 from ._util import Util
 from ._util import TempChdir
@@ -184,7 +185,7 @@ class RepoAtom:
         if self.has_function("fetch"):
             return [_custom_src_dir(self)]
         else:
-            return [localFn for url, localFn in _distfiles_get(self)]
+            return [localFn for downloadType, url, localFn in _distfiles_get(self)]
 
     def _fillt(self):
         if self._tVarDict is not None and self._tFuncList is not None:
@@ -256,19 +257,17 @@ class BbkiFileExecutor:
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # default action
-            for url, localFn in _distfiles_get(self._atom):
+            for downloadType, url, localFn in _distfiles_get(self._atom):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
                 os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
-                if url.startswith("git://"):
+                if downloadType == "git":
                     robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
-                elif url.startswith("git+http://") or url.startswith("git+https://"):
-                    robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url[len("git+"):])
-                elif url.startswith("http://") or url.startswith("https://") or url.startswith("ftp://"):
+                elif downloadType == "wget":
                     if not os.path.exists(localFullFn):
                         os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
                         robust_layer.wget.exec("-O", localFullFn, url)
                 else:
-                    raise RepoError("invalid URL \"%s\"" % (url))
+                    assert False
 
     def exec_src_unpack(self):
         if self._item_has_me():
@@ -284,7 +283,7 @@ class BbkiFileExecutor:
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # default action
-            for url, localFn in _distfiles_get(self._atom):
+            for downloadType, url, localFn in _distfiles_get(self._atom):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
                 if os.path.isdir(localFullFn):
                     Util.cmdCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
@@ -480,7 +479,7 @@ class BbkiFileExecutor:
         return self._atom.has_function(parent_func_name[len("exec_"):])
 
     def _var_A(self):
-        fnlist = [localFn for url, localFn in _distfiles_get(self._atom)]
+        fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
         fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
         return "A='%s'\n" % ("' '".join(fnlist))
 
@@ -527,11 +526,18 @@ def _distfiles_get(atom):
         return []
 
     assert not atom.has_function("fetch")
+
     ret = []
     for line in atom.get_variable("SRC_URI").split("\n"):
         line = line.strip()
-        if line != "":
-            ret.append((line, os.path.basename(line)))
+        if line == "":
+            continue
+        if line.startswith("git://"):
+            ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
+        elif line.startswith("git+http://") or line.startswith("git+https://"):
+            ret.append(("git", line[len("git+"):], "git-src" + urllib.parse.urlparse(line).path))
+        else:
+            ret.append(("wget", line, os.path.basename(line)))
     return ret
 
 
