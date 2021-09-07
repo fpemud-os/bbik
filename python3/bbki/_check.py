@@ -21,6 +21,11 @@
 # THE SOFTWARE.
 
 
+import os
+import glob
+import robust_layer.simple_fops
+from ._boot_dir import BootEntryUtils
+from ._boot_dir import BootEntryWrapper
 from ._bootloader import BootLoader
 
 
@@ -52,8 +57,54 @@ class Checker:
         if self._bbki.get_current_boot_entry() != pendingBe:
             self._errCb("Current boot entry and pending boot entry are different, reboot needed.")
 
+    def checkKernelModulesDir(self):
+        obj = BootEntryUtils(self._bbki)
+        beList = obj.getBootEntryList() + obj.getBootEntryList(history_entry=True)
+
+        # check missing directories in /lib/modules
+        for be in beList:
+            bew = BootEntryWrapper(be)
+            if not os.path.exists(bew.modules_dir):
+                self._errCb("Kernel module directory \"%s\" does not exist." % (bew.modules_dir))
+
+        # check redundant directories in /lib/modules
+        kmodFileList = obj.getRedundantKernelModulesDirs(beList)
+        if len(kmodFileList) > 0:
+            if self._bAutoFix:
+                for fullfn in kmodFileList:
+                    robust_layer.simple_fops.rm(fullfn)
+                if len(os.listdir(self._bbki._fsLayout.get_kernel_modules_dir())) == 0:
+                    robust_layer.simple_fops.rm(self._bbki._fsLayout.get_kernel_modules_dir())
+            else:
+                for fullfn in kmodFileList:
+                    self._errCb("Redundant kernel module directory \"%s\"." % (fullfn))
+
     def checkFirmwareDir(self):
-        pass
+        obj = BootEntryUtils(self._bbki)
+        beList = obj.getBootEntryList() + obj.getBootEntryList(history_entry=True)
+
+        # check missing files in /lib/firmware
+        processedList = set()
+        for be in beList:
+            for fullfn in BootEntryWrapper(be).get_firmware_filepaths():
+                if fullfn in processedList:
+                    continue
+                if not os.path.exists(fullfn):
+                    self._errCb("Firmware file \"%s\" does not exist." % (fullfn))
+                processedList.add(fullfn)
+
+        # check redundant files in /lib/firmware
+        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(beList)
+        if len(firmwareFileList) > 0:
+            if self._bAutoFix:
+                for fullfn in firmwareFileList:
+                    robust_layer.simple_fops.rm(fullfn)
+                # FIXME: need to delete intermediate empty directories
+                if len(os.listdir(self._bbki._fsLayout.get_firmware_dir())) == 0:
+                    robust_layer.simple_fops.rm(self._bbki._fsLayout.get_firmware_dir())
+            else:
+                for fullfn in firmwareFileList:
+                    self._errCb("Redundant firmware file \"%s\"." % (fullfn))
 
     def _doNothing(self, msg):
         pass

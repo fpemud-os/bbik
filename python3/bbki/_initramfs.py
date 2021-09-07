@@ -115,12 +115,12 @@ class InitramfsInstaller:
                     assert False
 
             for kalias in kaliasList:
-                kmodList |= OrderedSet(self._beWrapper.get_kmod_filepaths(kalias, with_deps=True))
+                kmodList |= OrderedSet(self._beWrapper.get_kmod_filepaths_by_alias(kalias, with_deps=True))
 
         # get firmware file list
         firmwareList = OrderedSet()
         for km in kmodList:
-            firmwareList |= OrderedSet(self._beWrapper.get_firmware_filepaths(km))
+            firmwareList |= OrderedSet(self._beWrapper.get_firmware_filepaths_by_kmod(km))
 
         # get block device preparation operation list
         blkOpList = OrderedSet()

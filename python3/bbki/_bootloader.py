@@ -63,7 +63,7 @@ class BootLoader:
         assert self._status == self.STATUS_NORMAL
         return self._bootMode
 
-    def getFilePathList(self):
+    def get_filepaths(self):
         assert self._status == self.STATUS_NORMAL
 
         myBootMode = self.getBootMode()
@@ -401,7 +401,7 @@ class BootLoader:
 
         # write menu entry for history kernels
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
-            for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(True):
+            for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(history_entry=True):
                 if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
                     buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
                     buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))

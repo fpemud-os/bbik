@@ -24,6 +24,7 @@
 import os
 import re
 import kmod
+import glob
 from ._util import Util
 from ._util import SystemMounts
 
@@ -217,7 +218,7 @@ class BootEntryWrapper:
         else:
             return self._bootEntry.arch
 
-    def getFilePathList(self, exists_only=False):
+    def get_filepaths(self, exists_only=False):
         ret = [
             self._bootEntry.kernel_filepath,
             self._bootEntry.kernel_config_filepath,
@@ -229,47 +230,41 @@ class BootEntryWrapper:
             ret = [x for x in ret if os.path.exists(x)]
         return ret
 
-    def get_kmod_filenames(self, kmod_alias, with_deps=False):
-        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths(kmod_alias, with_deps)]
+    def get_kmod_filenames_by_alias(self, kmod_alias, with_deps=False):
+        return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths_by_alias(kmod_alias, with_deps)]
 
-    def get_kmod_filepaths(self, kmod_alias, with_deps=False):
+    def get_kmod_filepaths_by_alias(self, kmod_alias, with_deps=False):
         kmodList = dict()                                           # use dict to remove duplication while keeping order
         ctx = kmod.Kmod(self._modulesDir.encode("utf-8"))           # FIXME: why encode is neccessary?
         self._getKmodAndDeps(ctx, kmod_alias, with_deps, kmodList)
         return list(kmodList)
 
-    def get_firmware_filenames(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, True)
-
-    def get_firmware_filepaths(self, kmod_filepath):
-        return self._getFirmwareImpl(kmod_filepath, False)
-
-    def _getFirmwareImpl(self, kmodFilePath, bReturnNameOrPath):
-        ret = []
-
+    def get_firmware_filenames_by_kmod(self, kmod_filepath):
         # python-kmod bug: can only recognize the last firmware in modinfo
         # so use the command output of modinfo directly
-        for line in Util.cmdCall("/bin/modinfo", kmodFilePath).split("\n"):
+        ret = []
+        for line in Util.cmdCall("/bin/modinfo", kmod_filepath).split("\n"):
             m = re.fullmatch("firmware: +(\\S.*)", line)
             if m is not None:
-                if bReturnNameOrPath:
-                    ret.append(m.group(1))
-                else:
-                    ret.append(os.path.join(self._bbki._fsLayout.get_firmware_dir(), m.group(1)))
+                ret.append(m.group(1))
+        return ret
 
-        # add standard files
-        standardFiles = [
+    def get_firmware_filepaths_by_kmod(self, kmod_filepath):
+        return [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in self.get_firmware_filenames_by_kmod(kmod_filepath)]
+
+    def get_firmware_filenames(self):
+        ret = set()
+        for fullKoFn in glob.glob(os.path.join(self._modulesDir, "**", "*.ko"), recursive=True):
+            ret |= set(self.get_firmware_filenames_by_kmod(fullKoFn))
+        ret |= set([
             ".ctime",
             "regulatory.db",
             "regulatory.db.p7s",
-        ]
-        if bReturnNameOrPath:
-            ret += standardFiles
-        else:
-            ret += [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in standardFiles]
+        ])
+        return sorted(list(ret))
 
-        # return value
-        return ret
+    def get_firmware_filepaths(self):
+        return [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in self.get_firmware_filenames()]
 
     def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
         kmodObjList = list(ctx.lookup(kmodAlias))
@@ -284,3 +279,56 @@ class BootEntryWrapper:
             if kmodObj.path is not None:
                 # this module is not built into the kernel
                 result[kmodObj.path] = None
+
+
+class BootEntryUtils:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+
+    def new_from_postfix(self, postfix, history_entry=False):
+        # postfix example: x86_64-3.9.11-gentoo-r1
+        partList = postfix.split("-")
+        if len(partList) < 2:
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelArch(partList[0]):         # FIXME: isValidKernelArch should be moved out from util
+            raise ValueError("illegal postfix")
+        if not Util.isValidKernelVer(partList[1]):          # FIXME: isValidKernelVer should be moved out from util
+            raise ValueError("illegal postfix")
+
+        arch = partList[0]
+        verstr = "-".join(partList[1:])
+        return BootEntry(self._bbki, arch, verstr, history_entry)
+
+    def getBootEntryList(self, history_entry=False):
+        if not history_entry:
+            dirpath = self._bbki._fsLayout.get_boot_dir()
+        else:
+            dirpath = self._bbki._fsLayout.get_boot_history_dir()
+
+        ret = []
+        for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+            if kernelFile.startswith("kernel-"):
+                ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
+        return ret
+
+    def getRedundantKernelModulesDirs(self, bootEntryList):
+        if not os.path.exists(self._bbki._fsLayout.get_kernel_modules_dir()):
+            return []
+
+        ret = os.listdir(self._bbki._fsLayout.get_kernel_modules_dir())              # mark /lib/modules/* (no recursion) as to-be-deleted
+        for be in bootEntryList:
+            try:
+                ret.remove(self._bbki._fsLayout.get_kernel_modules_dir(be.verstr))   # don't delete files belongs to a boot-entry
+            except ValueError:
+                pass
+        return ret
+
+    def getRedundantFirmwareFiles(self, bootEntryList):
+        if not os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
+            return []
+
+        tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
+        for be in beList:
+            tset -= set(BootEntryWrapper(be).get_firmware_filepaths())                                       # don't delete files belongs to a boot-entry
+        return sorted(list(tset))

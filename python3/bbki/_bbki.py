@@ -206,61 +206,52 @@ class Bbki:
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
         self._bootloader.update(aux_os_list, aux_kernel_init_cmdline)
 
-    def clean_boot_dir(self, pretend=False):
+    def clean_boot_entry_files(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
         pendingBe = self.get_pending_boot_entry()
+
+        beList = []
+        if currentBe is not None:
+            beList.append(currentBe)
+        if pendingBe is not None:
+            beList.append(pendingBe)
 
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._fsLayout.get_boot_dir(), "*")))                       # mark /boot/* (no recursion) as to-be-deleted
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-                tset -= set(self._bootloader.getFilePathList())                                           # don't delete boot-loader files
+                tset -= set(self._bootloader.get_filepaths())                                           # don't delete boot-loader files
             tset.discard(self._fsLayout.get_boot_rescue_os_dir())                                         # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():
                     tset.discard(self._fsLayout.get_boot_history_dir())                                   # don't delete /boot/history since some files in it are referenced
                     tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))      # mark /boot/history/* (no recursion) as to-be-deleted
-                    tset -= set(BootEntryWrapper(currentBe).getFilePathList())                            # don't delete files of current-boot-entry
+                    tset -= set(BootEntryWrapper(currentBe).get_filepaths())                            # don't delete files of current-boot-entry
                 else:
                     assert currentBe == pendingBe
             if pendingBe is not None:
-                tset -= set(BootEntryWrapper(pendingBe).getFilePathList())                                # don't delete files of pending-boot-entry
+                tset -= set(BootEntryWrapper(pendingBe).get_filepaths())                                # don't delete files of pending-boot-entry
             bootFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/modules
-        modulesFileList = []
-        if os.path.exists(self._fsLayout.get_kernel_modules_dir()):
-            tset = set(glob.glob(os.path.join(self._fsLayout.get_kernel_modules_dir(), "*")))              # mark /lib/modules/* (no recursion) as to-be-deleted
-            if currentBe is not None:
-                tset.discard(currentBe.kernel_modules_dirpath)                                             # don't delete files of current-boot-entry
-            if pendingBe is not None and pendingBe != currentBe:
-                tset.discard(pendingBe.kernel_modules_dirpath)                                             # don't delete files of pending-boot-entry
-            if len(tset) == 0:
-                tset.add(self._fsLayout.get_kernel_modules_dir())                                          # delete /lib/modules since it is empty
-            modulesFileList = sorted(list(tset))
+        modulesFileList = BootEntryUtils(self).getRedundantKernelModulesDirs(beList)
+        if modulesFileList == os.listdir(self._fsLayout.get_kernel_modules_dir()):
+            modulesFileList.append(self._fsLayout.get_kernel_modules_dir())
 
         # get to-be-deleted files in /lib/firmware
-        firmwareFileList = []                                                                              # FIXME
-        if os.path.exists(self._fsLayout.get_firmware_dir()):
-            tset = set(glob.glob(os.path.join(self._fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
-            if currentBe is not None:
-                tset -= set(BootEntryWrapper(currentBe).get_firmware_filepaths())                          # don't delete files of current-boot-entry
-            if pendingBe is not None and pendingBe != currentBe:
-                tset -= set(BootEntryWrapper(pendingBe).get_firmware_filepaths())                          # don't delete files of pending-boot-entry
-            if len(tset) == 0:
-                tset.add(self._fsLayout.get_firmware_dir())                                                # delete /lib/firmware since it is empty
-            firmwareFileList = sorted(list(tset))
+        # FIXME: need to delete empty directories
+        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(beList)
 
         # delete files
         if not pretend:
             with self._bootDirWriter:
                 for fullfn in bootFileList:
                     robust_layer.simple_fops.rm(fullfn)
-                for fullfn in modulesFileList:
-                    robust_layer.simple_fops.rm(fullfn)
-                for fullfn in firmwareFileList:
-                    robust_layer.simple_fops.rm(fullfn)
+            for fullfn in modulesFileList:
+                robust_layer.simple_fops.rm(fullfn)
+            for fullfn in firmwareFileList:
+                robust_layer.simple_fops.rm(fullfn)
 
         # return value
         return (bootFileList, modulesFileList, firmwareFileList)
