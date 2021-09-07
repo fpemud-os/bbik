@@ -59,6 +59,10 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
+        if not os.path.exists(self._beWrapper.modules_dir):
+            raise InitramfsInstallError("\"%s\" does not exist" % (self._beWrapper.modules_dir))
+        if not os.path.exists(self._beWrapper.firmware_dir):
+            raise InitramfsInstallError("\"%s\" does not exist" % (self._beWrapper.firmware_dir))
 
         # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
