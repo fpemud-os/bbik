@@ -300,4 +300,5 @@ class Bbki:
     def check(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
         obj.checkBootDir()
+        obj.checkKernelModulesDir()
         obj.checkFirmwareDir()
