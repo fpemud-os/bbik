@@ -153,6 +153,7 @@ class EtcDirConfig(Config):
 
     def get_kernel_addon_names(self):
         # fill cache
+        self._filltKernel()
         self._filltKernelAddonNameList()
 
         return self._tKernelAddonNameList
@@ -219,7 +220,7 @@ class EtcDirConfig(Config):
                 if len(ret) > 0:
                     tlist = ret[0].split("/")
                     if len(tlist) != 2:
-                        raise ConfigError("invalid value of kernel type and kernel name")
+                        raise ConfigError("invalid value of kernel atom name")
                     self._tKernelTypeName = (tlist[0], tlist[1])
 
         _myParse(self._profileKernelFile)       # step1: use /etc/bbki/profile/bbki.*
@@ -233,11 +234,19 @@ class EtcDirConfig(Config):
             if os.path.exists(path):
                 for fn in os.listdir(path):
                     for line in Util.readListFile(os.path.join(path, fn)):
-                        if not line.startswith("-"):
-                            self._tKernelAddonNameList.add(line)
-                        else:
+                        bAdd = True
+                        if line.startswith("-"):
+                            bAdd = False
                             line = line[1:]
-                            self._tKernelAddonNameList.remove(line)
+                        tlist = line.split("/")
+                        if len(tlist) != 2:
+                            raise ConfigError("invalid value of kernel addon atom name")
+                        if tlist[0] != self._tKernelTypeName[0] + "-addon":
+                            raise ConfigError("invalid value of kernel addon atom name")
+                        if bAdd:
+                            self._tKernelAddonNameList.add(tlist[1])
+                        else:
+                            self._tKernelAddonNameList.remove(tlist[1])
 
         self._tKernelAddonNameList = set()
         _myParse(self._profileKernelAddonDir)                           # step1: use /etc/bbki/profile/bbki.*
