@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-import subprocess
 import distutils.util
 from setuptools import setup
 from setuptools.command.build_py import build_py

@@ -30,6 +30,7 @@ import pathlib
 import tarfile
 import zipfile
 import urllib.parse
+import pkg_resources
 import robust_layer.simple_git
 from ._util import Util
 from ._util import TempChdir
@@ -447,6 +448,8 @@ class BbkiFileExecutor:
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
