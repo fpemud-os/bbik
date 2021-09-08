@@ -286,11 +286,11 @@ class BbkiFileExecutor:
             for downloadType, url, localFn in _distfiles_get(self._atom):
                 localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
                 if os.path.isdir(localFullFn):
-                    Util.cmdCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
+                    Util.shellCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
                 elif tarfile.is_tarfile(localFullFn) or zipfile.is_zipfile(localFullFn):
                     shutil.unpack_archive(localFullFn, self._trWorkDir)
                 else:
-                    Util.cmdCall("cp %s %s" % (localFullFn, self._trWorkDir))
+                    Util.shellCall("cp %s %s" % (localFullFn, self._trWorkDir))
 
     def exec_src_prepare(self):
         if self._item_has_me():
