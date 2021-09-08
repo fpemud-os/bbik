@@ -429,7 +429,18 @@ class BbkiFileExecutor:
 
         if self._item_has_me():
             # custom action
-            pass
+            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+            with TempChdir(self._trWorkDir):
+                cmd = ""
+                cmd += self._var_A()
+                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "\n"
+                cmd += "source %s\n" % (self._atom.bbki_file)
+                cmd += "\n"
+                cmd += "kernel_addon_install\n"
+                Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # no-op as the default action
             pass
