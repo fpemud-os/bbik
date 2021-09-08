@@ -238,7 +238,10 @@ class BbkiFileExecutor:
         del self._trTmpDir
         del self._tmpRootDir
 
-    def get_workdir(self):
+    def get_files_dir(self):
+        return os.path.join(self._atom.bbki_dir, "files")
+
+    def get_work_dir(self):
         return self._trWorkDir
 
     def get_tmpdir(self):
@@ -275,6 +278,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -298,6 +302,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -316,6 +321,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -342,6 +348,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -370,6 +377,7 @@ class BbkiFileExecutor:
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
@@ -391,6 +399,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
@@ -412,6 +421,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
@@ -433,6 +443,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
@@ -454,6 +465,7 @@ class BbkiFileExecutor:
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
@@ -474,6 +486,7 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
+                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -482,7 +495,7 @@ class BbkiFileExecutor:
                 return Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # FIXME
-            InitramfsInstaller(self._bbki, host_storage, boot_entry).install()
+            InitramfsInstaller(self._bbki, self._trWorkDir, host_storage, boot_entry).install()
 
     def _restrict_atom_type(self, *atomTypes):
         if self._atom.atom_type not in atomTypes:
