@@ -371,6 +371,7 @@ class BbkiFileExecutor:
                 cmd = ""
                 cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -391,6 +392,7 @@ class BbkiFileExecutor:
                 cmd = ""
                 cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -411,6 +413,7 @@ class BbkiFileExecutor:
                 cmd = ""
                 cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -441,6 +444,7 @@ class BbkiFileExecutor:
                 cmd = ""
                 cmd += self._var_A()
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
