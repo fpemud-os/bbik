@@ -30,14 +30,6 @@ classif = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 
-class custom_build_py(build_py):
-    def run(self):
-        self._compile_initramfs()
-        super().run()
-
-    def _compile_initramfs(self):
-        subprocess.check_call('make', cwd='./python3/bbki/initramfs', shell=True)
-
 # Do setup
 setup(
     name='bbki',
@@ -55,9 +47,6 @@ setup(
         'bbki': 'python3/bbki',
     },
     package_data={
-        'bbki': ['kernel-config-rules/*', 'initramfs/init', 'initramfs/lvm-lv-activate'],
-    },
-    cmdclass={
-        'build_py': custom_build_py,
+        'bbki': ['kernel-config-rules/*', 'helpers/*'],
     },
 )
