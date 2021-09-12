@@ -279,8 +279,8 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -303,8 +303,8 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -322,8 +322,8 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -349,8 +349,8 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -378,10 +378,10 @@ class BbkiFileExecutor:
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -400,10 +400,10 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -422,10 +422,10 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -444,12 +444,12 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
-                cmd += "FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
+                cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
                 cmd += "\n"
@@ -470,10 +470,10 @@ class BbkiFileExecutor:
             with TempChdir(kernelDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -491,10 +491,10 @@ class BbkiFileExecutor:
             with TempChdir(self._trWorkDir):
                 cmd = ""
                 cmd += self._var_A()
-                cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
-                cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
-                cmd += "FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
+                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
+                cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
