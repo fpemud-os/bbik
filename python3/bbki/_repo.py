@@ -448,6 +448,8 @@ class BbkiFileExecutor:
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
+                cmd += "FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
                 cmd += "\n"
@@ -491,6 +493,8 @@ class BbkiFileExecutor:
                 cmd += self._var_A()
                 cmd += "FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
+                cmd += "FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
