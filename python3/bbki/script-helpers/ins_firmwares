@@ -10,11 +10,11 @@ if [[ $# -lt 1 ]] ; then
 	exit 1
 fi
 
-for fn in `find /lib/modules/${KVER} -name '*.ko'`; do
+for fn in `find "${KERNEL_MODULES_DIR}" -name '*.ko'`; do
 	modinfo ${fn} | while read -r line; do
 		fw=`echo ${line} | sed -n 's/firmware: +(\\S.*)/\1/p'`
 		if [ -e "${1}/${fw}" ] ; then
-			install -D -m0644 -o 0 -g 0 "${1}/${fw}" "/lib/firmware/${fw}"
+			install -D -m0644 -o 0 -g 0 "${1}/${fw}" "${FIRMWARE_DIR}/${fw}"
 		fi
 	done
 done
