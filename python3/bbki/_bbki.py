@@ -173,6 +173,7 @@ class Bbki:
         obj.create_tmpdirs()
         try:
             with self._bootDirWriter:
+                obj.exec_src_unpack()
                 obj.exec_initramfs_install(host_storage, self.get_pending_boot_entry())
         finally:
             obj.remove_tmpdirs()
