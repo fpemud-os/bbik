@@ -94,7 +94,7 @@ class KernelInstaller:
         assert self._progress == KernelInstallProgress.STEP_PATCHED
 
         rulesDict = dict()
-        workDir = self._executorDict[self._kernelAtom].get_workdir()
+        workDir = self._executorDict[self._kernelAtom].get_work_dir()
         self._kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
         self._dotCfgFile = os.path.join(workDir, ".config")
 
