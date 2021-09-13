@@ -200,24 +200,24 @@ class KernelInstaller:
     def build(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
-        # self._executorDict[self._kernelAtom].exec_kernel_build()
-        # for item in self._addonAtomList:
-        #     self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
+        self._executorDict[self._kernelAtom].exec_kernel_build()
+        for item in self._addonAtomList:
+            self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
         self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
 
     def install(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_BUILT
 
-        # with self._bbki._bootDirWriter:
-        #     self._executorDict[self._kernelAtom].exec_kernel_install()
-        #     for item in self._addonAtomList:
-        #         self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
+        with self._bbki._bootDirWriter:
+            self._executorDict[self._kernelAtom].exec_kernel_install()
+            for item in self._addonAtomList:
+                self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 
-        #     robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
-        #     for be in BootEntryUtils(self._bbki).getBootEntryList():
-        #         if be != self._targetBootEntry:
-        #             for fullfn in BootEntryWrapper(be).get_filepaths(exists_only=True):
-        #                 robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+            robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
+            for be in BootEntryUtils(self._bbki).getBootEntryList():
+                if be != self._targetBootEntry:
+                    for fullfn in BootEntryWrapper(be).get_filepaths(exists_only=True):
+                        robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 
