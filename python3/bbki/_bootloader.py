@@ -283,7 +283,7 @@ class BootLoader:
             else:
                 assert False
 
-            m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n}', buf)
+            m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n', buf, re.S)
             if m is None:
                 raise _InternalParseError()
             self._mainBootPostfix = m.group(1)
