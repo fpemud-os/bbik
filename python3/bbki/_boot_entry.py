@@ -159,7 +159,7 @@ class BootEntryWrapper:
         self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
 
     @property
-    def modules_dir(self):
+    def kernel_modules_dir(self):
         return self._modulesDir
 
     @property

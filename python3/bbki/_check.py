@@ -66,8 +66,8 @@ class Checker:
         # check missing directories in /lib/modules
         for be in beList:
             bew = BootEntryWrapper(be)
-            if not os.path.exists(bew.modules_dir):
-                self._errCb("Kernel module directory \"%s\" does not exist." % (bew.modules_dir))
+            if not os.path.exists(bew.kernel_modules_dir):
+                self._errCb("Kernel module directory \"%s\" does not exist." % (bew.kernel_modules_dir))
 
         # check redundant directories in /lib/modules
         kmodFileList = obj.getRedundantKernelModulesDirs(beList)
