@@ -246,67 +246,60 @@ class BootLoader:
             self._status = self.STATUS_NOT_INSTALLED
             return
 
-        if not os.path.exists(self._grubCfgFile):
-            self._status = self.STATUS_INVALID
-            return
-        if not Util.cmdCallTestSuccess("grub-script-check", self._grubCfgFile):
-            self._status = self.STATUS_INVALID
-            return
-        buf = pathlib.Path(self._grubCfgFile).read_text()
+        try:
+            self._status = self.STATUS_NORMAL
 
-        m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
-        if m is None:
-            self._status = self.STATUS_INVALID
-            return
-        rootfsDevUuid = m.group(1)
-        rootfsDev = Util.getBlkDevByUuid(rootfsDevUuid)
+            if not os.path.exists(self._grubCfgFile):
+                raise _InternalParseError()
+            if not Util.cmdCallTestSuccess("grub-script-check", self._grubCfgFile):
+                raise _InternalParseError()
+            buf = pathlib.Path(self._grubCfgFile).read_text()
 
-        espDevUuid = None
-        espDev = None
-        bootDiskId = None
-        bootDisk = None
-        if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
-            if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
-                self._status = self.STATUS_INVALID
-                return
-
-            bootMode = BootMode.EFI
-
-            m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
+            m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
             if m is None:
-                self._status = self.STATUS_INVALID
-                return
-            espDevUuid = m.group(1)
-            espDev = Util.getBlkDevByUuid(espDevUuid)
-        elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
-            bootMode = BootMode.BIOS
+                raise _InternalParseError()
+            self._rootfsDevUuid = m.group(1)
+            self._rootfsDev = Util.getBlkDevByUuid(self._rootfsDevUuid)
 
-            m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
+            if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
+                if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
+                    raise _InternalParseError()
+
+                self._bootMode = BootMode.EFI
+
+                m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
+                if m is None:
+                    raise _InternalParseError()
+                self._espDevUuid = m.group(1)
+                self._espDev = Util.getBlkDevByUuid(self._espDevUuid)
+            elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
+                self._bootMode = BootMode.BIOS
+
+                m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
+                if m is None:
+                    raise _InternalParseError()
+                self._bootDiskId = m.group(1)
+                self._bootDisk = Util.getDiskById(self._bootDiskId)
+            else:
+                assert False
+
+            m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n}', buf)
             if m is None:
-                self._status = self.STATUS_INVALID
-                return
-            bootDiskId = m.group(1)
-            bootDisk = Util.getDiskById(bootDiskId)
-        else:
-            assert False
-
-        m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n}', buf)
-        if m is None:
+                raise _InternalParseError()
+            self._mainBootPostfix = m.group(1)
+            self._kernelCmdLine = m.group(2)
+        except _InternalParseError:
+            raise
             self._status = self.STATUS_INVALID
-            return
-        mainBootPostfix = m.group(1)
-        kernelCmdLine = m.group(2)
-
-        self._status = self.STATUS_NORMAL
-        self._bootMode = bootMode
-        self._rootfsDev = rootfsDev
-        self._rootfsDevUuid = rootfsDevUuid
-        self._espDev = espDev
-        self._espDevUuid = espDevUuid
-        self._bootDisk = bootDisk
-        self._bootDiskId = bootDiskId
-        self._mainBootPostfix = mainBootPostfix
-        self._kernelCmdLine = kernelCmdLine
+            self._bootMode = None
+            self._rootfsDev = None
+            self._rootfsDevUuid = None
+            self._espDev = None
+            self._espDevUuid = None
+            self._bootDisk = None
+            self._bootDiskId = None
+            self._mainBootPostfix = None
+            self._kernelCmdLine = None
 
     def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, auxOsList, kernelCmdLine):
         buf = ''
@@ -436,7 +429,7 @@ class BootLoader:
                     buf += '\n'
                 else:
                     buf += 'menuentry "History: Linux-%s (Broken)" {\n' % (bootEntry.postfix)
-                    buf += '  no-op\n'      # shut up grub-script-check 
+                    buf += '  no-op\n'      # shut up grub-script-check
                     buf += '}\n'
                     buf += '\n'
 
@@ -486,6 +479,10 @@ def _grubRootDevCmd(devUuid):
         return "set root=(%s)" % (devUuid)
     else:
         return "search --fs-uuid --no-floppy --set %s" % (devUuid)
+
+
+class _InternalParseError(Exception):
+    pass
 
 
 # def _getBackgroundFileInfo(self):
