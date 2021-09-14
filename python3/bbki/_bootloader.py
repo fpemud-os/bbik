@@ -436,6 +436,7 @@ class BootLoader:
                     buf += '\n'
                 else:
                     buf += 'menuentry "History: Linux-%s (Broken)" {\n' % (bootEntry.postfix)
+                    buf += '  no-op\n'      # shut up grub-script-check 
                     buf += '}\n'
                     buf += '\n'
 
