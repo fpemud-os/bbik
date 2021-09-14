@@ -351,6 +351,7 @@ class BbkiFileExecutor:
                 cmd += self._var_A()
                 cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += 'export PATH="%s:$PATH"\n' % (self._get_script_helpers_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -450,6 +451,7 @@ class BbkiFileExecutor:
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
                 cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
+                cmd += 'export PATH="%s:$PATH"\n' % (self._get_script_helpers_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
                 cmd += "\n"
@@ -517,6 +519,9 @@ class BbkiFileExecutor:
         fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
         fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
         return "A='%s'\n" % ("' '".join(fnlist))
+
+    def _get_script_helpers_dir(self):
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "script-helpers")
 
 
 def _format_catdir(kernel_type, atom_type):
