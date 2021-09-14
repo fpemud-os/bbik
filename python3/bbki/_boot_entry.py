@@ -289,7 +289,7 @@ class BootEntryUtils:
         if not os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
             return []
 
-        tset = set(glob.glob(os.path.join(self._bbki._fsLayout.get_firmware_dir(), "**"), recursive=True))   # mark /lib/firmware/* (recursive) as to-be-deleted
+        tset = set(Util.globDirRecursively(self._bbki._fsLayout.get_firmware_dir()))   # mark /lib/firmware/* (recursive) as to-be-deleted
         for be in bootEntryList:
-            tset -= set(BootEntryWrapper(be).get_firmware_filepaths())                                       # don't delete files belongs to a boot-entry
+            tset -= set(BootEntryWrapper(be).get_firmware_filepaths())                 # don't delete files belongs to a boot-entry
         return sorted(list(tset))

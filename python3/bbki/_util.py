@@ -23,6 +23,7 @@
 
 import os
 import re
+import glob
 import time
 import pathlib
 import subprocess
@@ -30,6 +31,15 @@ import robust_layer.simple_fops
 
 
 class Util:
+
+    @staticmethod
+    def globDirRecursively(dirpath):
+        # glob.glob("/a/**", recursive=True) returns ["/a/", "/a/a", "/a/a/a", ...]
+        # the first element sucks, normalize it
+        ret = glob.glob(os.path.join(dirpath, "**"), recursive=True)
+        assert ret[0] == dirpath + "/"
+        ret[0] = dirpath
+        return ret
 
     @staticmethod
     def removeDirContent(dirPath, excludeList):
