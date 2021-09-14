@@ -70,9 +70,11 @@ class BootLoader:
 
         myBootMode = self.getBootMode()
         ret = []
-        ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "*"), recursive=True)
+        ret.append(self._bbki._fsLayout.get_boot_grub_dir())
+        ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "**"), recursive=True)
         if myBootMode == BootMode.EFI:
-            ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_efi_dir(), "*"), recursive=True)
+            ret.append(self._bbki._fsLayout.get_boot_grub_efi_dir())
+            ret += glob.glob(os.path.join(self._bbki._fsLayout.get_boot_grub_efi_dir(), "**"), recursive=True)
         elif myBootMode == BootMode.BIOS:
             pass
         else:
