@@ -36,6 +36,7 @@ from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
 from ._boot_entry import BootEntry
+from ._boot_entry import BootEntryWrapper
 from ._exception import RepoError
 from ._initramfs import InitramfsInstaller
 
@@ -496,8 +497,8 @@ class BbkiFileExecutor:
                 cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (boot_entry.kernel_config_filepath)
-                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (boot_entry.modules_dir)
-                cmd += "export FIRMWARE_DIR='%s'\n" % (boot_entry.firmware_dir)
+                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (BootEntryWrapper(boot_entry).kernel_modules_dir)
+                cmd += "export FIRMWARE_DIR='%s'\n" % (BootEntryWrapper(boot_entry).firmware_dir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
