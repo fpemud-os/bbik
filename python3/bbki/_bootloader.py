@@ -289,7 +289,6 @@ class BootLoader:
             self._mainBootPostfix = m.group(1)
             self._kernelCmdLine = m.group(2)
         except _InternalParseError:
-            raise
             self._status = self.STATUS_INVALID
             self._bootMode = None
             self._rootfsDev = None
