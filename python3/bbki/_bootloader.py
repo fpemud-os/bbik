@@ -262,10 +262,10 @@ class BootLoader:
             self._rootfsDev = Util.getBlkDevByUuid(self._rootfsDevUuid)
 
             if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
+                self._bootMode = BootMode.EFI
+
                 if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
                     raise _InternalParseError()
-
-                self._bootMode = BootMode.EFI
 
                 m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
                 if m is None:
