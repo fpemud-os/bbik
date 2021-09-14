@@ -495,8 +495,9 @@ class BbkiFileExecutor:
                 cmd += self._var_A()
                 cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
-                cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
+                cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (boot_entry.kernel_config_filepath)
+                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (boot_entry.modules_dir)
+                cmd += "export FIRMWARE_DIR='%s'\n" % (boot_entry.firmware_dir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
