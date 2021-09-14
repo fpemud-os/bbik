@@ -46,6 +46,6 @@ setup(
         'bbki': 'python3/bbki',
     },
     package_data={
-        'bbki': ['kernel-config-rules/*', 'script-helpers/*'],
+        'bbki': ['kernel-config-rules/*', 'script-helpers/*', 'script-helpers/*/*'],
     },
 )
