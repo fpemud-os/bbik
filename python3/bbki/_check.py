@@ -48,6 +48,10 @@ class Checker:
         else:
             assert False
 
+        # check boot entries
+        if len(self._bbki.get_boot_entries()) > 1:
+            self._errCb("Multiple boot entries exist.")     # FIXME: generally it is caused by boot entry roll-back, enrich the error message
+
         # check pending boot entry
         pendingBe = self._bbki.get_pending_boot_entry()
         if pendingBe is None:
