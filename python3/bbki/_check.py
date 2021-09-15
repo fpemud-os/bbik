@@ -109,7 +109,7 @@ class Checker:
 
         # check missing directories in /lib/modules
         for be in beList:
-            if not os.path.exists(be.kernel_modules_dir):
+            if not os.path.exists(be.kernel_modules_dirpath):
                 self._errCb("Missing kernel module directory \"%s\"." % (be.kernel_modules_dirpath))
 
         # check redundant directories in /lib/modules

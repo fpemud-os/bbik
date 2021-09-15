@@ -209,7 +209,7 @@ class BootEntryWrapper:
             ret |= set(self.get_firmware_filenames_by_kmod(fullKoFn))
 
         if True:
-            fwExtFileRecordFn = os.path.join(self.bootEntry.kernel_modules_dir, "firmware.extra-files")
+            fwExtFileRecordFn = os.path.join(self.bootEntry.kernel_modules_dirpath, "firmware.extra-files")
             ret |= set(Util.readListFile(fwExtFileRecordFn))
 
         return sorted(list(ret))
