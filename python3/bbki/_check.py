@@ -90,8 +90,8 @@ class Checker:
                     for t in tlist:
                         tset -= set(BootEntryWrapper(t).get_filepaths())
                     tset.discard(self._bbki._fsLayout.get_boot_history_dir())
-            if os.path.exists(self._fsLayout.get_boot_rescue_os_dir()):
-                tset -= set(Util.globDirRecursively(self._fsLayout.get_boot_rescue_os_dir()))
+            if os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_dir()):
+                tset -= set(Util.globDirRecursively(self._bbki._fsLayout.get_boot_rescue_os_dir()))
             if len(tset) > 0:
                 if self._bAutoFix:
                     for fullfn in tset:
