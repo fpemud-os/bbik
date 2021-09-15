@@ -523,44 +523,6 @@ class BbkiAtomExecutor:
         return "A='%s'\n" % ("' '".join(fnlist))
 
 
-class BbkiAtomDb:
-
-    def __init__(self, atom):
-        self._bbki = atom._bbki
-        self._atom = atom
-
-        self._dbDir = os.path.join(self._bbki.config.db_dir, self._atom.fullname)
-        self._firmwareExtFilePath = os.path.join(self._dbDir, "FIRMWARE_EXTFILE")
-
-    @property
-    def db_dir(self):
-        return self._dbDir
-
-    def create(self):
-        robust_layer.simple_fops.mk_empty_dir(self._dbDir)
-
-        if self._atom.atom_type == Repo.ATOM_TYPE_KERNEL:
-            pass
-        elif self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
-            with open(self._firmwareExtFilePath, "w") as f:
-                f.write("")
-        elif self._atom.atom_type == Repo.ATOM_TYPE_INITRAMFS:
-            pass
-        else:
-            assert False
-
-    def remove(self):
-        robust_layer.simple_fops.rm(self._dbDir)
-
-    def add_firmware_extfile(self, filename):
-        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
-        Util.addItemToListFile(filename, self._firmwareExtFilePath)
-
-    def get_firmware_extfiles(self):
-        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
-        return Util.readListFile(self._firmwareExtFilePath)
-
-
 def _get_script_helpers_dir():
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), "script-helpers")
 

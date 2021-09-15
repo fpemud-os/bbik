@@ -169,10 +169,6 @@ class BootEntryWrapper:
         self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
 
     @property
-    def firmware_dir(self):
-        return self._bbki._fsLayout.get_firmware_dir()
-
-    @property
     def src_arch(self):
         # FIXME: what's the difference with arch?
 
@@ -221,13 +217,14 @@ class BootEntryWrapper:
 
     def get_firmware_filenames(self):
         ret = set()
+
         for fullKoFn in glob.glob(os.path.join(self._modulesDir, "**", "*.ko"), recursive=True):
             ret |= set(self.get_firmware_filenames_by_kmod(fullKoFn))
-        ret |= set([
-            ".ctime",
-            "regulatory.db",
-            "regulatory.db.p7s",
-        ])
+
+        if True:
+            fwExtFileRecordFn = os.path.join(self.bootEntry.kernel_modules_dir, "firmware.extra-files")
+            ret |= set(Util.readListFile(fwExtFileRecordFn))
+
         return sorted(list(ret))
 
     def get_firmware_filepaths(self):
