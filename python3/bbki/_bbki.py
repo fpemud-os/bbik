@@ -114,7 +114,7 @@ class Bbki:
         ret = []
         for kernelFile in sorted(os.listdir(self._fsLayout.get_boot_dir()), reverse=True):
             if kernelFile.startswith("kernel-"):
-                ret.append(self.new_from_postfix(kernelFile[len("kernel-"):]))
+                ret.append(BootEntryUtils(self).new_from_postfix(kernelFile[len("kernel-"):]))
         return ret
 
     def get_history_boot_entries(self):
@@ -124,7 +124,7 @@ class Bbki:
         ret = []
         for kernelFile in sorted(os.listdir(self._fsLayout.get_boot_history_dir()), reverse=True):
             if kernelFile.startswith("kernel-"):
-                be = self.new_from_postfix(kernelFile[len("kernel-"):], history_entry=True)
+                be = BootEntryUtils(self).new_from_postfix(kernelFile[len("kernel-"):], history_entry=True)
                 if be.has_kernel_files() and be.has_initrd_files():
                     ret.append(be)
         return ret
