@@ -53,7 +53,7 @@ class Checker:
             self._errCb("No pending boot entry.")
         else:
             assert pendingBe.has_kernel_files()
-            if pendingBe.has_initrd_files():
+            if not pendingBe.has_initrd_files():
                 self._errCb("Pending boot entry has no initramfs files.")
 
         if self._bbki.get_current_boot_entry() != pendingBe:
@@ -65,7 +65,7 @@ class Checker:
 
         # check missing directories in /lib/modules
         for be in beList:
-            if not os.path.exists(be.kernel_modules_dirpath):
+            if not be.has_kernel_modules_dir():
                 self._errCb("Kernel module directory \"%s\" does not exist." % (be.kernel_modules_dirpath))
 
         # check redundant directories in /lib/modules
