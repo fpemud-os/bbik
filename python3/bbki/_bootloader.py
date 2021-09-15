@@ -98,8 +98,7 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, rootfs_dev, rootfs_dev_uuid, esp_dev, esp_dev_uuid, boot_disk, boot_disk_id, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert self._status != self.STATUS_INVALID
+    def install(self, boot_mode, rootfs_dev, rootfs_dev_uuid, esp_dev, esp_dev_uuid, boot_disk, boot_disk_id, main_boot_entry, aux_os_list, aux_kernel_init_cmdline, bForce=False):
         if boot_mode == BootMode.EFI:
             assert rootfs_dev is not None and rootfs_dev_uuid is not None
             assert esp_dev is not None and esp_dev_uuid is not None
@@ -111,6 +110,7 @@ class BootLoader:
         else:
             assert False
 
+        bDifferent = False
         if boot_mode == BootMode.EFI:
             if rootfs_dev != SystemMounts().find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
@@ -118,11 +118,20 @@ class BootLoader:
                 raise ValueError("invalid ESP partition mount point")
             if self._status == self.STATUS_NORMAL:
                 if boot_mode != self._bootMode:
-                    raise ValueError("boot mode and bootloader is different")
+                    if not bForce:
+                        raise ValueError("boot mode and bootloader is different")
+                    else:
+                        bDifferent = True
                 if rootfs_dev != self._rootfsDev:
-                    raise ValueError("rootfs device and bootloader is different")
+                    if not bForce:
+                        raise ValueError("rootfs device and bootloader is different")
+                    else:
+                        bDifferent = True
                 if esp_dev != self._espDev:
-                    raise ValueError("ESP partition and bootloader is different")
+                    if not bForce:
+                        raise ValueError("ESP partition and bootloader is different")
+                    else:
+                        bDifferent = True
         elif boot_mode == BootMode.BIOS:
             if rootfs_dev != SystemMounts().find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
@@ -130,11 +139,20 @@ class BootLoader:
                 raise ValueError("invalid boot disk")
             if self._status == self.STATUS_NORMAL:
                 if boot_mode != self._bootMode:
-                    raise ValueError("boot mode and bootloader is different")
+                    if not bForce:
+                        raise ValueError("boot mode and bootloader is different")
+                    else:
+                        bDifferent = True
                 if rootfs_dev != self._rootfsDev:
-                    raise ValueError("rootfs device and bootloader is different")
+                    if not bForce:
+                        raise ValueError("rootfs device and bootloader is different")
+                    else:
+                        bDifferent = True
                 if boot_disk != self._bootDisk:
-                    raise ValueError("boot disk and bootloader is different")
+                    if not bForce:
+                        raise ValueError("boot disk and bootloader is different")
+                    else:
+                        bDifferent = True
         else:
             assert False
 
@@ -143,16 +161,32 @@ class BootLoader:
         kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
         buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, main_boot_entry, aux_os_list, kernelCmdLine)
 
-        # install grub binaries
-        if boot_mode == BootMode.EFI:
-            # install /boot/grub and /boot/EFI directory
-            # install grub into ESP
-            # *NO* UEFI firmware variable is touched, so that we are portable
-            Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
-        elif boot_mode == BootMode.BIOS:
-            # install /boot/grub directory
-            # install grub into disk MBR
-            Util.cmdCall("grub-install", "--target=i386-pc", boot_disk)
+        # remove if needed
+        if self._status == self.STATUS_NORMAL:
+            if bDifferent:
+                self.remove(bForce=True)
+        elif self._status == self.STATUS_NOT_INSTALLED:
+            pass
+        elif self._status == self.STATUS_INVALID:
+            self.remove(bForce=True)
+        else:
+            assert False
+
+        # install grub binaries if needed
+        if self._status == self.STATUS_NORMAL:
+            pass
+        elif self._status == self.STATUS_NOT_INSTALLED:
+            if boot_mode == BootMode.EFI:
+                # install /boot/grub and /boot/EFI directory
+                # install grub into ESP
+                # *NO* UEFI firmware variable is touched, so that we are portable
+                Util.cmdCall("grub-install", "--removable", "--target=x86_64-efi", "--efi-directory=%s" % (self._bbki._fsLayout.get_boot_dir()), "--no-nvram")
+            elif boot_mode == BootMode.BIOS:
+                # install /boot/grub directory
+                # install grub into disk MBR
+                Util.cmdCall("grub-install", "--target=i386-pc", boot_disk)
+            else:
+                assert False
         else:
             assert False
 
@@ -205,24 +239,37 @@ class BootLoader:
         self._mainBootPostfix = mainBootEntry.postfix
         self._kernelCmdLine = kernelCmdLine
 
-    def remove(self):
+    def remove(self, bForce=False):
+        bDifferent = False
         if self._status == self.STATUS_NORMAL:
             if self._bootMode == BootMode.EFI:
                 if self._rootfsDev != SystemMounts().find_root_entry().dev:
-                    raise ValueError("invalid rootfs mount point")
+                    if not bForce:
+                        raise ValueError("invalid rootfs mount point")
+                    else:
+                        bDifferent = True
                 if self._espDev != SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
-                    raise ValueError("invalid ESP partition mount point")
+                    if not bForce:
+                        raise ValueError("invalid ESP partition mount point")
+                    else:
+                        bDifferent = True
             elif self._bootMode == BootMode.BIOS:
                 if self._rootfsDev != SystemMounts().find_root_entry().dev:
-                    raise ValueError("invalid rootfs mount point")
+                    if not bForce:
+                        raise ValueError("invalid rootfs mount point")
+                    else:
+                        bDifferent = True
                 if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
-                    raise ValueError("invalid boot disk")
+                    if not bForce:
+                        raise ValueError("invalid boot disk")
+                    else:
+                        bDifferent = True
             else:
                 assert False
 
         # remove MBR
         # MBR may not be correctly removed when status==STATUS_INVALID
-        if self._status == self.STATUS_NORMAL:
+        if self._status == self.STATUS_NORMAL and not bDifferent:
             if self._bootMode == BootMode.BIOS:
                 with open(self._bootDisk, "wb+") as f:
                     f.write(b'\x00' * 440)
