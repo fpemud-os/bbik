@@ -48,10 +48,6 @@ class Checker:
         else:
             assert False
 
-        # check boot entries
-        if len(self._bbki.get_boot_entries()) > 1:
-            self._errCb("Multiple boot entries exist.")     # FIXME: generally it is caused by boot entry roll-back, enrich the error message
-
         # check pending boot entry
         pendingBe = self._bbki.get_pending_boot_entry()
         if pendingBe is None:
@@ -67,6 +63,18 @@ class Checker:
             if self._bbki.get_current_boot_entry() != pendingBe:
                 self._errCb("Current boot entry and pending boot entry are different, reboot needed.")
 
+        # check boot entries
+        beList = self._bbki.get_boot_entries()
+        if len(beList) > 1:
+            if self._bAutoFix and pendingBe is not None:
+                for be in beList:
+                    if be != pendingBe:
+                        be.move_to_history()
+                self._bbki.update_bootloader()
+                beList = [pendingBe]
+            else:
+                self._errCb("Multiple boot entries exist.")     # FIXME: generally it is caused by boot entry roll-back, enrich the error message
+
         # check redundant files in /boot
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             bootloaderFileList = self._bbki._bootloader.get_filepaths()
@@ -77,8 +85,8 @@ class Checker:
         if bootloaderFileList is not None:
             tset = set(Util.globDirRecursively(self._fsLayout.get_boot_dir()))
             tset -= set(bootloaderFileList)
-            if pendingBe is not None:
-                tset -= set(pendingBe.get_file_paths())
+            for be in beList:
+                tset -= set(be.get_file_paths())
             if True:
                 tlist = BootEntryUtils.getBootEntryList(history_entry=True)
                 if len(tlist) > 0:

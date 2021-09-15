@@ -226,14 +226,14 @@ class Bbki:
         return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
 
     def clean_boot_entry_files(self, pretend=False):
-        currentBe = self.get_current_boot_entry() if self._bSelfBoot else None
-        pendingBe = self.get_pending_boot_entry()
-
-        beList = []
-        if currentBe is not None:
-            beList.append(currentBe)
-        if pendingBe is not None:
-            beList.append(pendingBe)
+        if self._bSelfBoot:
+            currentBe = self.get_current_boot_entry()
+            beList = self.get_boot_entries()
+            fullBeList = beList if not currentBe.is_historical() else beList + [currentBe]
+        else:
+            currentBe = None
+            beList = self.get_boot_entries()
+            fullBeList = beList
 
         # get to-be-deleted files in /boot
         bootFileList = None
@@ -247,20 +247,18 @@ class Bbki:
                     tset.discard(self._fsLayout.get_boot_history_dir())                                 # don't delete /boot/history since some files in it are referenced
                     tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))    # mark /boot/history/* (no recursion) as to-be-deleted
                     tset -= set(BootEntryWrapper(currentBe).get_filepaths())                            # don't delete files of current-boot-entry
-                else:
-                    assert currentBe == pendingBe
-            if pendingBe is not None:
-                tset -= set(BootEntryWrapper(pendingBe).get_filepaths())                                # don't delete files of pending-boot-entry
+            for be in beList:
+                tset -= set(BootEntryWrapper(be).get_filepaths())                                       # don't delete files of pending-boot-entry
             bootFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/modules
-        modulesFileList = BootEntryUtils(self).getRedundantKernelModulesDirs(beList)
+        modulesFileList = BootEntryUtils(self).getRedundantKernelModulesDirs(fullBeList)
         if modulesFileList == os.listdir(self._fsLayout.get_kernel_modules_dir()):
             modulesFileList.append(self._fsLayout.get_kernel_modules_dir())
 
         # get to-be-deleted files in /lib/firmware
         # FIXME: need to delete empty directories
-        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(beList)
+        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(fullBeList)
 
         # delete files
         if not pretend:
@@ -301,13 +299,6 @@ class Bbki:
         #                 ret.append(fn2)
         #             continue
         #     return ret
-
-    def remove_bootloader_and_initramfs(self):
-        be = self.get_pending_boot_entry()
-        with self._bootDirWriter:
-            self._bootloader.remove()
-            robust_layer.simple_fops.rm(be.initrd_filepath)
-            robust_layer.simple_fops.rm(be.initrd_tar_filepath)
 
     def remove_all(self):
         with self._bootDirWriter:
