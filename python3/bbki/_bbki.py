@@ -166,8 +166,7 @@ class Bbki:
     def install_initramfs(self, initramfs_atom, host_storage, boot_entry):
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
-        assert boot_entry.has_kernel_files()
-        assert not boot_entry.is_historical()
+        assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
