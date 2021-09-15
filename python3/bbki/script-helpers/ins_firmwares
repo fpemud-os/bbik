@@ -11,7 +11,7 @@ if [[ $# -lt 1 ]] ; then
 fi
 
 for fn in `find "${KERNEL_MODULES_DIR}" -name '*.ko'`; do
-	modinfo ${fn} | while read -r line; do
+	modinfo ${fn} | while read -r line ; do
 		fw=`echo ${line} | sed -nr 's/firmware: +(\\S.*)/\1/p'`   # $fw is a wildcard string
 		if [[ "${fw}" != "" ]] ; then
 			for fn in ${1}/${fw} ; do
