@@ -30,7 +30,6 @@ from ._util import SystemMounts
 from ._po import BootMode
 from ._po import HostAuxOs
 from ._kernel import BootEntryUtils
-from ._exception import BootloaderInstallError
 
 
 class BootLoader:

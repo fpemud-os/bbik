@@ -80,7 +80,7 @@ class Checker:
         else:
             bootloaderFileList = None
         if bootloaderFileList is not None:
-            tset = set(Util.globDirRecursively(self._bbki._fsLayout.get_boot_dir()))
+            tset = set(Util.globDirRecursively(self._bbki._fsLayout.get_boot_dir(), excludeSelf=True))
             tset -= set(bootloaderFileList)
             for be in beList:
                 tset -= set(BootEntryWrapper(be).get_filepaths())
@@ -90,7 +90,8 @@ class Checker:
                     for t in tlist:
                         tset -= set(BootEntryWrapper(t).get_filepaths())
                     tset.discard(self._bbki._fsLayout.get_boot_history_dir())
-            tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())
+            if os.path.exists(self._fsLayout.get_boot_rescue_os_dir()):
+                tset -= set(Util.globDirRecursively(self._fsLayout.get_boot_rescue_os_dir()))
             if len(tset) > 0:
                 if self._bAutoFix:
                     for fullfn in tset:

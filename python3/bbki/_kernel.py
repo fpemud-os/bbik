@@ -25,11 +25,9 @@ import os
 import re
 import pylkcutil
 import pkg_resources
-import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._boot_entry import BootEntry
-from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
 from ._repo import BbkiAtomExecutor
 

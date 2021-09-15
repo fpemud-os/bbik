@@ -527,6 +527,7 @@ class BbkiAtomExecutor:
 def _get_script_helpers_dir():
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), "script-helpers")
 
+
 def _format_catdir(kernel_type, atom_type):
     if atom_type == Repo.ATOM_TYPE_KERNEL:
         return kernel_type
