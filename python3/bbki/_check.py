@@ -65,9 +65,8 @@ class Checker:
 
         # check missing directories in /lib/modules
         for be in beList:
-            bew = BootEntryWrapper(be)
-            if not os.path.exists(bew.kernel_modules_dir):
-                self._errCb("Kernel module directory \"%s\" does not exist." % (bew.kernel_modules_dir))
+            if not os.path.exists(be.kernel_modules_dirpath):
+                self._errCb("Kernel module directory \"%s\" does not exist." % (be.kernel_modules_dirpath))
 
         # check redundant directories in /lib/modules
         kmodFileList = obj.getRedundantKernelModulesDirs(beList)
@@ -96,7 +95,7 @@ class Checker:
                 processedList.add(fullfn)
 
         # check redundant files in /lib/firmware
-        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(beList)
+        firmwareFileList = BootEntryUtils(self._bbki).getRedundantFirmwareFiles(beList)
         if len(firmwareFileList) > 0:
             if self._bAutoFix:
                 for fullfn in firmwareFileList:

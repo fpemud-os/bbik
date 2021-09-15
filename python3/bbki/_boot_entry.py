@@ -98,6 +98,11 @@ class BootEntry:
         return self._bbki._fsLayout.get_kernel_modules_dir(self._verstr)
 
     @property
+    def firmware_dirpath(self):
+        # string, eg: "/lib/firmware"
+        return self._bbki._fsLayout.get_firmware_dir()
+
+    @property
     def initrd_filename(self):
         # string, eg: "initramfs-x86_64-3.9.11-gentoo-r1"
         return "initramfs-" + self.postfix
@@ -127,7 +132,7 @@ class BootEntry:
             return False
         if not os.path.exists(self.kernel_config_rules_filepath):
             return False
-        if not os.path.exists(self._bbki._fsLayout.get_kernel_modules_dir(self._verstr)):
+        if not os.path.exists(self.kernel_modules_dirpath):
             return False
         if not os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
             return False
@@ -145,6 +150,11 @@ class BootEntry:
             return False
         return True
 
+    def has_firmware_dir(self):
+        if not os.path.exists(self.firmware_dirpath):
+            return False
+        return True
+
     def __eq__(self, other):
         return type(self) == type(other) and self._bbki == other._bbki and \
                self._arch == other._arch and self._verstr == other._verstr and \
@@ -157,10 +167,6 @@ class BootEntryWrapper:
         self._bbki = boot_entry._bbki
         self._bootEntry = boot_entry
         self._modulesDir = self._bbki._fsLayout.get_kernel_modules_dir(self._bootEntry.verstr)
-
-    @property
-    def kernel_modules_dir(self):
-        return self._modulesDir
 
     @property
     def firmware_dir(self):

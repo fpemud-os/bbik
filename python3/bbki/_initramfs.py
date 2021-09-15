@@ -59,8 +59,8 @@ class InitramfsInstaller:
 
     def install(self):
         self._checkDotCfgFile()
-        if not os.path.exists(self._beWrapper.kernel_modules_dir):
-            raise InitramfsInstallError("\"%s\" does not exist" % (self._beWrapper.kernel_modules_dir))
+        if not os.path.exists(self._be.kernel_modules_dirpath):
+            raise InitramfsInstallError("\"%s\" does not exist" % (self._be.kernel_modules_dirpath))
         if not os.path.exists(self._beWrapper.firmware_dir):
             raise InitramfsInstallError("\"%s\" does not exist" % (self._beWrapper.firmware_dir))
 
@@ -167,7 +167,7 @@ class InitramfsInstaller:
         self._installDir("/usr/lib", self._initramfsTmpDir)
         self._installDir("/usr/lib64", self._initramfsTmpDir)
         self._installDir("/var", self._initramfsTmpDir)
-        self._installDir(self._beWrapper.kernel_modules_dir, self._initramfsTmpDir)
+        self._installDir(self._be.kernel_modules_dirpath, self._initramfsTmpDir)
         self._installDir(self._beWrapper.firmware_dir, self._initramfsTmpDir)
         os.makedirs(os.path.join(self._initramfsTmpDir, "sysroot"))
         self._generatePasswd(os.path.join(self._initramfsTmpDir, "etc", "passwd"))
@@ -211,10 +211,10 @@ class InitramfsInstaller:
 
         # install kernel modules, firmwares and executables for debugging, use bash as init
         if self.trickDebug:
-            dstdir = os.path.join(self._initramfsTmpDir, self._beWrapper.kernel_modules_dir[1:])
+            dstdir = os.path.join(self._initramfsTmpDir, self._be.kernel_modules_dirpath[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self._beWrapper.kernel_modules_dir, dstdir, symlinks=True)
+            shutil.copytree(self._be.kernel_modules_dirpath, dstdir, symlinks=True)
 
             dstdir = os.path.join(self._initramfsTmpDir, self._beWrapper.firmware_dir[1:])
             if os.path.exists(dstdir):
@@ -265,17 +265,17 @@ class InitramfsInstaller:
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the usb drivers\"\n")
-                dstdir = os.path.join(self._beWrapper.kernel_modules_dir, "kernel", "drivers", "usb")
+                dstdir = os.path.join(self._be.kernel_modules_dirpath, "kernel", "drivers", "usb")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the hid drivers\"\n")
-                dstdir = os.path.join(self._beWrapper.kernel_modules_dir, "kernel", "drivers", "hid")
+                dstdir = os.path.join(self._be.kernel_modules_dirpath, "kernel", "drivers", "hid")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
                 f.write("echo \"<initramfs-debug> Loading all the input drivers\"\n")
-                dstdir = os.path.join(self._beWrapper.kernel_modules_dir, "kernel", "drivers", "input")
+                dstdir = os.path.join(self._be.kernel_modules_dirpath, "kernel", "drivers", "input")
                 f.write("find \"%s\" -name \"*.ko\" | xargs basename -a -s \".ko\" | xargs /sbin/modprobe -a" % (dstdir))
                 f.write("\n")
 
