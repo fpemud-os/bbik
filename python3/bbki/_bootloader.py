@@ -100,7 +100,7 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, main_boot_entry, rootfs_dev=None, rootfs_dev_uuid=None, esp_dev=None, esp_dev_uuid=None, boot_disk=None, boot_disk_id=None, aux_os_list=[], aux_kernel_init_cmdline=""):
+    def install(self, boot_mode, rootfs_dev, rootfs_dev_uuid, esp_dev, esp_dev_uuid, boot_disk, boot_disk_id, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
         assert self._status != self.STATUS_INVALID
         if boot_mode == BootMode.EFI:
             assert rootfs_dev is not None and rootfs_dev_uuid is not None

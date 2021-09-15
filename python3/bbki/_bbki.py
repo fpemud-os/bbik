@@ -196,12 +196,12 @@ class Bbki:
                 espMp = host_storage.get_esp_mount_point()
                 self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
                                          None, None,
-                                         aux_os_list, aux_kernel_init_cmdline)
+                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
             elif boot_mode == BootMode.BIOS:
                 rootfsMp = host_storage.get_root_mount_point()
                 self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
                                          host_storage.boot_disk_path, host_storage.boot_disk_id,
-                                         aux_os_list, aux_kernel_init_cmdline)
+                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
             else:
                 assert False
 
