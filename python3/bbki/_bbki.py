@@ -112,17 +112,17 @@ class Bbki:
 
     def get_boot_entries(self):
         ret = []
-        for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_dir()), reverse=True):
+        for kernelFile in sorted(os.listdir(self._fsLayout.get_boot_dir()), reverse=True):
             if kernelFile.startswith("kernel-"):
                 ret.append(self.new_from_postfix(kernelFile[len("kernel-"):]))
         return ret
 
     def get_history_boot_entries(self):
-        if not os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
+        if not os.path.exists(self._fsLayout.get_boot_history_dir()):
             return []
 
         ret = []
-        for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_history_dir()), reverse=True):
+        for kernelFile in sorted(os.listdir(self._fsLayout.get_boot_history_dir()), reverse=True):
             if kernelFile.startswith("kernel-"):
                 be = self.new_from_postfix(kernelFile[len("kernel-"):], history_entry=True)
                 if be.has_kernel_files() and be.has_initrd_files():
