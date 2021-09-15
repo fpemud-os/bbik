@@ -415,22 +415,15 @@ class BootLoader:
             buf += '\n'
 
         # write menu entry for history kernels
-        if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
-            for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(history_entry=True):
-                if bootEntry.has_kernel_files() and bootEntry.has_initrd_files():
-                    buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
-                    buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
-                    buf += '  echo "Loading Linux kernel ..."\n'
-                    buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
-                    buf += '  echo "Loading initial ramdisk ..."\n'
-                    buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
-                    buf += '}\n'
-                    buf += '\n'
-                else:
-                    buf += 'menuentry "History: Linux-%s (Broken)" {\n' % (bootEntry.postfix)
-                    buf += '  no-op\n'      # shut up grub-script-check
-                    buf += '}\n'
-                    buf += '\n'
+        for bootEntry in self._bbki.get_history_boot_entries():
+            buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
+            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
+            buf += '  echo "Loading Linux kernel ..."\n'
+            buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
+            buf += '  echo "Loading initial ramdisk ..."\n'
+            buf += '  initrd %s\n' % (_prefixedPath(bootEntry.initrd_filepath))
+            buf += '}\n'
+            buf += '\n'
 
         # write menu entry for restart
         buf += 'menuentry "Restart" {\n'

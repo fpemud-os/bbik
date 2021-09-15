@@ -213,7 +213,7 @@ class KernelInstaller:
             for item in self._addonAtomList:
                 self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 
-            for be in BootEntryUtils(self._bbki).getBootEntryList():
+            for be in self._bbki.get_boot_entries():
                 if be != self._targetBootEntry:
                     BootEntryWrapper(be).move_to_history()
 

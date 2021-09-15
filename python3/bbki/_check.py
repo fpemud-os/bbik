@@ -31,8 +31,6 @@ from ._bootloader import BootLoader
 class Checker:
 
     def __init__(self, bbki, auto_fix=False, error_callback=None):
-        assert bbki._bSelfBoot
-
         self._bbki = bbki
         self._bAutoFix = auto_fix
         self._errCb = error_callback if error_callback is not None else self._doNothing
@@ -60,6 +58,8 @@ class Checker:
                 self._errCb("Pending boot entry has no firmware directory.")
             if not pendingBe.has_initrd_files():
                 self._errCb("Pending boot entry has no initramfs files.")
+
+        if self._bbki._bSelfBoot:
             if self._bbki.get_current_boot_entry() != pendingBe:
                 self._errCb("Current boot entry and pending boot entry are different, reboot needed.")
 
@@ -88,7 +88,7 @@ class Checker:
             for be in beList:
                 tset -= set(be.get_file_paths())
             if True:
-                tlist = BootEntryUtils.getBootEntryList(history_entry=True)
+                tlist = self._bbki.get_history_boot_entries()
                 if len(tlist) > 0:
                     for t in tlist:
                         tset -= set(t.get_file_paths())
@@ -102,12 +102,14 @@ class Checker:
                     for fullfn in sorted(list(tset)):
                         self._errCb("Redundant file \"%s\"." % (fullfn))
 
+        # check /boot/grub/grub.cfg
+        pass
+
         # check free space
         pass
 
     def checkKernelModulesDir(self):
-        obj = BootEntryUtils(self._bbki)
-        beList = obj.getBootEntryList() + obj.getBootEntryList(history_entry=True)
+        beList = self._bbki.get_boot_entries() + self._bbki.get_history_boot_entries()
 
         # check missing directories in /lib/modules
         for be in beList:
@@ -115,7 +117,7 @@ class Checker:
                 self._errCb("Missing kernel module directory \"%s\"." % (be.kernel_modules_dirpath))
 
         # check redundant directories in /lib/modules
-        kmodFileList = obj.getRedundantKernelModulesDirs(beList)
+        kmodFileList = BootEntryUtils(self._bbki).getRedundantKernelModulesDirs(beList)
         if len(kmodFileList) > 0:
             if self._bAutoFix:
                 for fullfn in kmodFileList:
@@ -127,8 +129,7 @@ class Checker:
                     self._errCb("Redundant kernel module directory \"%s\"." % (fullfn))
 
     def checkFirmwareDir(self):
-        obj = BootEntryUtils(self._bbki)
-        beList = obj.getBootEntryList() + obj.getBootEntryList(history_entry=True)
+        beList = self._bbki.get_boot_entries() + self._bbki.get_history_boot_entries()
 
         # check missing files in /lib/firmware
         processedList = set()
