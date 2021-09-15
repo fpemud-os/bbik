@@ -216,45 +216,6 @@ class RepoAtom:
             raise RepoError("fetch() and SRC_URI are mutally exclusive")
 
 
-class BbkiFileDb:
-
-    def __init__(self, atom):
-        self._bbki = atom._bbki
-        self._atom = atom
-
-        self._dbDir = os.path.join(self._bbki.config.db_dir, self._atom.fullname)
-        self._firmwareExtFilePath = os.path.join(self._dbDir, "FIRMWARE_EXTFILE")
-
-    @property
-    def db_dir(self):
-        return self._dbDir
-
-    def create(self):
-        os.makedirs(self._dbDir, exist_ok=True)
-        Util.removeDirContent(self._dbDir)
-
-        if self._atom.atom_type == Repo.ATOM_TYPE_KERNEL:
-            pass
-        elif self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
-            with open(self._firmwareExtFilePath, "w") as f:
-                f.write("")
-        elif self._atom.atom_type == Repo.ATOM_TYPE_INITRAMFS:
-            pass
-        else:
-            assert False
-
-    def remove(self):
-        robust_layer.simple_fops.rm(self._dbDir)
-
-    def add_firmware_extfile(self, filename):
-        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
-        Util.addItemToListFile(filename, self._firmwareExtFilePath)
-
-    def get_firmware_extfiles(self):
-        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
-        return Util.readListFile(self._firmwareExtFilePath)
-
-
 class BbkiFileExecutor:
 
     @staticmethod
@@ -390,7 +351,7 @@ class BbkiFileExecutor:
                 cmd += self._var_A()
                 cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
-                cmd += 'export PATH="%s:$PATH"\n' % (self._get_script_helpers_dir())
+                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -490,7 +451,7 @@ class BbkiFileExecutor:
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
                 cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
                 cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
-                cmd += 'export PATH="%s:$PATH"\n' % (self._get_script_helpers_dir())
+                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
                 cmd += "\n"
                 cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
                 cmd += "\n"
@@ -560,9 +521,48 @@ class BbkiFileExecutor:
         fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
         return "A='%s'\n" % ("' '".join(fnlist))
 
-    def _get_script_helpers_dir(self):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "script-helpers")
 
+class BbkiFileDb:
+
+    def __init__(self, atom):
+        self._bbki = atom._bbki
+        self._atom = atom
+
+        self._dbDir = os.path.join(self._bbki.config.db_dir, self._atom.fullname)
+        self._firmwareExtFilePath = os.path.join(self._dbDir, "FIRMWARE_EXTFILE")
+
+    @property
+    def db_dir(self):
+        return self._dbDir
+
+    def create(self):
+        os.makedirs(self._dbDir, exist_ok=True)
+        Util.removeDirContent(self._dbDir)
+
+        if self._atom.atom_type == Repo.ATOM_TYPE_KERNEL:
+            pass
+        elif self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON:
+            with open(self._firmwareExtFilePath, "w") as f:
+                f.write("")
+        elif self._atom.atom_type == Repo.ATOM_TYPE_INITRAMFS:
+            pass
+        else:
+            assert False
+
+    def remove(self):
+        robust_layer.simple_fops.rm(self._dbDir)
+
+    def add_firmware_extfile(self, filename):
+        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
+        Util.addItemToListFile(filename, self._firmwareExtFilePath)
+
+    def get_firmware_extfiles(self):
+        assert self._atom.atom_type == Repo.ATOM_TYPE_KERNEL_ADDON
+        return Util.readListFile(self._firmwareExtFilePath)
+
+
+def _get_script_helpers_dir():
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), "script-helpers")
 
 def _format_catdir(kernel_type, atom_type):
     if atom_type == Repo.ATOM_TYPE_KERNEL:
