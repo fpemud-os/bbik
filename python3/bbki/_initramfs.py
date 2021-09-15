@@ -61,8 +61,8 @@ class InitramfsInstaller:
         self._checkDotCfgFile()
         if not os.path.exists(self._be.kernel_modules_dirpath):
             raise InitramfsInstallError("\"%s\" does not exist" % (self._be.kernel_modules_dirpath))
-        if not os.path.exists(self._beWrapper.firmware_dir):
-            raise InitramfsInstallError("\"%s\" does not exist" % (self._beWrapper.firmware_dir))
+        if not os.path.exists(self._be.firmware_dirpath):
+            raise InitramfsInstallError("\"%s\" does not exist" % (self._be.firmware_dirpath))
 
         # prepare tmpdir
         robust_layer.simple_fops.rm(self._initramfsTmpDir)
@@ -168,7 +168,7 @@ class InitramfsInstaller:
         self._installDir("/usr/lib64", self._initramfsTmpDir)
         self._installDir("/var", self._initramfsTmpDir)
         self._installDir(self._be.kernel_modules_dirpath, self._initramfsTmpDir)
-        self._installDir(self._beWrapper.firmware_dir, self._initramfsTmpDir)
+        self._installDir(self._be.firmware_dirpath, self._initramfsTmpDir)
         os.makedirs(os.path.join(self._initramfsTmpDir, "sysroot"))
         self._generatePasswd(os.path.join(self._initramfsTmpDir, "etc", "passwd"))
         self._generateGroup(os.path.join(self._initramfsTmpDir, "etc", "group"))
@@ -216,10 +216,10 @@ class InitramfsInstaller:
                 shutil.rmtree(dstdir)
             shutil.copytree(self._be.kernel_modules_dirpath, dstdir, symlinks=True)
 
-            dstdir = os.path.join(self._initramfsTmpDir, self._beWrapper.firmware_dir[1:])
+            dstdir = os.path.join(self._initramfsTmpDir, self._be.firmware_dirpath[1:])
             if os.path.exists(dstdir):
                 shutil.rmtree(dstdir)
-            shutil.copytree(self._beWrapper.firmware_dir, dstdir, symlinks=True)
+            shutil.copytree(self._be.firmware_dirpath, dstdir, symlinks=True)
 
             self._installBin("/bin/bash", self._initramfsTmpDir)
             self._installBin("/bin/cat", self._initramfsTmpDir)
