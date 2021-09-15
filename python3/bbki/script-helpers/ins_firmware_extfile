@@ -10,4 +10,5 @@ if [[ $# -lt 1 ]] ; then
 	exit 1
 fi
 
-install -D -m0644 -o 0 -g 0 -t "${FIRMWARE_DIR}" "${1}"
+install -D -m0644 -o 0 -g 0 "${1}" "${FIRMWARE_DIR}/${1}"
+echo "${1}" >> "${KERNEL_MODULES_DIR}/firmware.extra-files"

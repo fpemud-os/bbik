@@ -181,17 +181,14 @@ class BootEntryWrapper:
         else:
             return self._bootEntry.arch
 
-    def get_filepaths(self, exists_only=False):
-        ret = [
+    def get_filepaths(self):
+        return [
             self._bootEntry.kernel_filepath,
             self._bootEntry.kernel_config_filepath,
             self._bootEntry.kernel_config_rules_filepath,
             self._bootEntry.initrd_filepath,
             self._bootEntry.initrd_tar_filepath,
         ]
-        if exists_only:
-            ret = [x for x in ret if os.path.exists(x)]
-        return ret
 
     def get_kmod_filenames_by_alias(self, kmod_alias, with_deps=False):
         return [x[len(self._modulesDir):] for x in self.get_kmod_filepaths_by_alias(kmod_alias, with_deps)]
@@ -229,6 +226,12 @@ class BootEntryWrapper:
 
     def get_firmware_filepaths(self):
         return [os.path.join(self._bbki._fsLayout.get_firmware_dir(), x) for x in self.get_firmware_filenames()]
+
+    def move_to_history(self):
+        robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
+        for fullfn in self.get_filepaths():
+            if os.path.exists(fullfn):
+                robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
 
     def _getKmodAndDeps(self, ctx, kmodAlias, withDeps, result):
         kmodObjList = list(ctx.lookup(kmodAlias))

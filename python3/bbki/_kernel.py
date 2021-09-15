@@ -213,11 +213,9 @@ class KernelInstaller:
             for item in self._addonAtomList:
                 self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 
-            robust_layer.simple_fops.mkdir(self._bbki._fsLayout.get_boot_history_dir())
             for be in BootEntryUtils(self._bbki).getBootEntryList():
                 if be != self._targetBootEntry:
-                    for fullfn in BootEntryWrapper(be).get_filepaths(exists_only=True):
-                        robust_layer.simple_fops.mv_to_dir(fullfn, self._bbki._fsLayout.get_boot_history_dir())
+                    BootEntryWrapper(be).move_to_history()
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 

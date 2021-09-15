@@ -106,6 +106,14 @@ class BootLoader:
             assert rootfs_dev is not None and rootfs_dev_uuid is not None
             assert esp_dev is not None and esp_dev_uuid is not None
             assert boot_disk is None and boot_disk_id is None
+        elif boot_mode == BootMode.BIOS:
+            assert rootfs_dev is not None and rootfs_dev_uuid is not None
+            assert esp_dev is None and esp_dev_uuid is None
+            assert boot_disk is not None and boot_disk_id is not None
+        else:
+            assert False
+
+        if boot_mode == BootMode.EFI:
             if rootfs_dev != SystemMounts().find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
             if esp_dev != SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
@@ -118,9 +126,6 @@ class BootLoader:
                 if esp_dev != self._espDev:
                     raise ValueError("ESP partition and bootloader is different")
         elif boot_mode == BootMode.BIOS:
-            assert rootfs_dev is not None and rootfs_dev_uuid is not None
-            assert esp_dev is None and esp_dev_uuid is None
-            assert boot_disk is not None and boot_disk_id is not None
             if rootfs_dev != SystemMounts().find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
             if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):

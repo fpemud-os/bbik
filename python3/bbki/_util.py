@@ -42,12 +42,6 @@ class Util:
         return ret
 
     @staticmethod
-    def removeDirContent(dirPath, excludeList):
-        for fn in os.listdir(dirPath):
-            if fn not in excludeList:
-                robust_layer.simple_fops.rm(os.path.join(dirPath, fn))
-
-    @staticmethod
     def getBlkDevUuid(devPath):
         """UUID is also called FS-UUID, PARTUUID is another thing"""
 

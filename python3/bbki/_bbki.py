@@ -294,13 +294,12 @@ class Bbki:
     def remove_all(self):
         with self._bootDirWriter:
             self._bootloader.remove()                                                 # remove MBR if necessary
-            Util.removeDirContent(self._fsLayout.get_boot_dir())                      # remove /boot/*
+            robust_layer.simple_fops.truncate_dir(self._fsLayout.get_boot_dir())      # remove /boot/*
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())                # remove /lib/firmware
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())          # remove /lib/modules
 
     def check(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
-        obj.checkFreeSpace()
         obj.checkBootDir()
         obj.checkKernelModulesDir()
         obj.checkFirmwareDir()
