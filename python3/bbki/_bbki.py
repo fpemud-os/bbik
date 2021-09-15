@@ -182,26 +182,19 @@ class Bbki:
         assert not main_boot_entry.is_historical()
 
         with self._bootDirWriter:
-            if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-                pass
-            elif self._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
-                pass
-            elif self._bootloader.getStatus() == BootLoader.STATUS_INVALID:
-                self._bootloader.remove()
-            else:
-                assert False
-
             if boot_mode == BootMode.EFI:
                 rootfsMp = host_storage.get_root_mount_point()
                 espMp = host_storage.get_esp_mount_point()
                 self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
                                          None, None,
-                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
+                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
+                                         bForce=True)
             elif boot_mode == BootMode.BIOS:
                 rootfsMp = host_storage.get_root_mount_point()
                 self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
                                          host_storage.boot_disk_path, host_storage.boot_disk_id,
-                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
+                                         main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
+                                         bForce=True)
             else:
                 assert False
 
@@ -301,7 +294,7 @@ class Bbki:
 
     def remove_all(self):
         with self._bootDirWriter:
-            self._bootloader.remove()                                                 # remove MBR if necessary
+            self._bootloader.remove(bForce=True)                                      # remove MBR if necessary
             robust_layer.simple_fops.truncate_dir(self._fsLayout.get_boot_dir())      # remove /boot/*
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())                # remove /lib/firmware
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())          # remove /lib/modules
