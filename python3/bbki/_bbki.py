@@ -308,6 +308,10 @@ class Bbki:
 
     def check(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
-        obj.checkBootDir()
+        if autofix:
+            with self._bootDirWriter:
+                obj.checkBootDir()
+        else:
+            obj.checkBootDir()
         obj.checkKernelModulesDir()
         obj.checkFirmwareDir()
