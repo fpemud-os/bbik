@@ -29,7 +29,7 @@ from ._util import Util
 from ._util import SystemMounts
 from ._po import BootMode
 from ._po import HostAuxOs
-from ._kernel import BootEntryUtils
+from ._boot_entry import BootEntryUtils
 
 
 class BootLoader:
