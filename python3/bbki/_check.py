@@ -83,12 +83,12 @@ class Checker:
             tset = set(Util.globDirRecursively(self._bbki._fsLayout.get_boot_dir()))
             tset -= set(bootloaderFileList)
             for be in beList:
-                tset -= set(be.get_file_paths())
+                tset -= set(BootEntryWrapper(be).get_filepaths())
             if True:
                 tlist = self._bbki.get_history_boot_entries()
                 if len(tlist) > 0:
                     for t in tlist:
-                        tset -= set(t.get_file_paths())
+                        tset -= set(BootEntryWrapper(t).get_filepaths())
                     tset.discard(self._bbki._fsLayout.get_boot_history_dir())
             tset.discard(self._bbki._fsLayout.get_boot_rescue_os_dir())
             if len(tset) > 0:
