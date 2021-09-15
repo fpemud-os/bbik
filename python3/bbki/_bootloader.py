@@ -143,7 +143,7 @@ class BootLoader:
         # generate grub.cfg
         # may raise exception
         kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
-        buf, mainBootPostfix = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, main_boot_entry, aux_os_list, kernelCmdLine)
+        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, main_boot_entry, aux_os_list, kernelCmdLine)
 
         # install grub binaries
         if boot_mode == BootMode.EFI:
@@ -171,7 +171,7 @@ class BootLoader:
         self._espDevUuid = esp_dev_uuid
         self._bootDisk = boot_disk
         self._bootDiskId = boot_disk_id
-        self._mainBootPostfix = mainBootPostfix
+        self._mainBootPostfix = main_boot_entry.postfix
         self._kernelCmdLine = kernelCmdLine
 
     def update(self, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
@@ -179,25 +179,32 @@ class BootLoader:
 
         # parameters
         buf = pathlib.Path(self._grubCfgFile).read_text()
-        if aux_os_list is not None:
-            auxOsList = aux_os_list
+        if main_boot_entry is None:
+            # use original value
+            mainBootEntry = BootEntryUtils(self._bbki).new_from_postfix(self._mainBootPostfix)
         else:
+            mainBootEntry = main_boot_entry
+        if aux_os_list is None:
+            # use original value
             auxOsList = self._parseGrubCfgAuxOsList(buf)
-        if aux_kernel_init_cmdline is not None:
-            kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
         else:
+            auxOsList = aux_os_list
+        if aux_kernel_init_cmdline is None:
+            # use original value
             kernelCmdLine = self._kernelCmdLine
+        else:
+            kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
 
         # generate grub.cfg
         # may raise exception
-        buf, mainBootPostfix = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, main_boot_entry, auxOsList, kernelCmdLine)
-        assert self._mainBootPostfix == mainBootPostfix
+        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, mainBootEntry, auxOsList, kernelCmdLine)
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
             f.write(buf)
 
         # update record variables
+        self._mainBootPostfix = mainBootEntry.postfix
         self._kernelCmdLine = kernelCmdLine
 
     def remove(self):
@@ -448,7 +455,7 @@ class BootLoader:
         buf += '}\n'
         buf += '\n'
 
-        return (buf, mainBootEntry.postfix)
+        return buf
 
     def _parseGrubCfgAuxOsList(self, buf):
         ret = []
