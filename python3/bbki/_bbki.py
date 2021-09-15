@@ -257,7 +257,6 @@ class Bbki:
             modulesFileList.append(self._fsLayout.get_kernel_modules_dir())
 
         # get to-be-deleted files in /lib/firmware
-        # FIXME: need to delete empty directories
         firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(fullBeList)
 
         # delete files
