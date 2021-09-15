@@ -84,6 +84,8 @@ class EtcDirConfig(Config):
 
     DEFAULT_CACHE_DIR = "/var/cache/bbki"
 
+    DEFAULT_DB_DIR = "/var/db/bbki"
+
     DEFAULT_TMP_DIR = "/var/tmp/bbki"
 
     def __init__(self, cfgdir=DEFAULT_CONFIG_DIR):
@@ -107,6 +109,8 @@ class EtcDirConfig(Config):
         self._cacheDistfilesDir = os.path.join(self._cacheDir, "distfiles")
         self._cacheDistfilesRoDirList = []
 
+        self._dbDir = self.DEFAULT_DB_DIR
+
         self._tmpDir = self.DEFAULT_TMP_DIR
 
         self._tKernelTypeName = None
@@ -125,6 +129,10 @@ class EtcDirConfig(Config):
     @property
     def cache_distfiles_ro_dir_list(self):
         return self._cacheDistfilesRoDirList
+
+    @property
+    def db_dir(self):
+        return self._dbDir
 
     @property
     def tmp_dir(self):
