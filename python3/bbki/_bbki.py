@@ -94,16 +94,6 @@ class Bbki:
         if not Util.cmdCallTestSuccess("grub-install", "-V"):
             raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
-    def is_stable(self):
-        return self._bootloader.getStatus() == BootLoader.STATUS_NORMAL and self._bootloader.getStableFlag()
-
-    def set_stable(self, value):
-        # we use grub environment variable to store stable status
-        if self._bootloader.getStatus() != BootLoader.STATUS_NORMAL:
-            raise RunningEnvironmentError("bootloader is not properly installed")
-        with self._bootDirWriter:
-            self._bootloader.setStableFlag(value)
-
     def get_current_boot_entry(self):
         assert self._bSelfBoot
 
@@ -115,21 +105,29 @@ class Bbki:
 
     def get_pending_boot_entry(self):
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-            ret = self._bootloader.getMainBootEntry()
-            if not ret.has_kernel_files() or not ret.has_initrd_files():
-                raise RunningEnvironmentError("invalid pending boot entry")
-            return ret
-        else:
-            tlist = BootEntryUtils(self).getBootEntryList()
-            if len(tlist) > 0:
-                if len(tlist) > 1:
-                    raise RunningEnvironmentError("multiple pending boot entries")
-                return tlist[-1]
-            else:
-                return None
+            mbe = self._bootloader.getMainBootEntry()
+            if mbe.has_kernel_files() and mbe.has_initrd_files():
+                return mbe
+        return None
 
-    def has_rescue_os(self):
-        return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
+    def get_boot_entries(self):
+        ret = []
+        for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_dir()), reverse=True):
+            if kernelFile.startswith("kernel-"):
+                ret.append(self.new_from_postfix(kernelFile[len("kernel-"):]))
+        return ret
+
+    def get_history_boot_entries(self):
+        if not os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
+            return []
+
+        ret = []
+        for kernelFile in sorted(os.listdir(self._bbki._fsLayout.get_boot_history_dir()), reverse=True):
+            if kernelFile.startswith("kernel-"):
+                be = self.new_from_postfix(kernelFile[len("kernel-"):], history_entry=True)
+                if be.has_kernel_files() and be.has_initrd_files():
+                    ret.append(be)
+        return ret
 
     def get_kernel_atom(self):
         items = self._repoList[0].get_atoms_by_type_name(self._cfg.get_kernel_type(), Repo.ATOM_TYPE_KERNEL, self._cfg.get_kernel_name())
@@ -165,9 +163,10 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
-    def install_initramfs(self, initramfs_atom, host_storage):
+    def install_initramfs(self, initramfs_atom, host_storage, boot_entry):
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
+        assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
@@ -178,7 +177,9 @@ class Bbki:
         finally:
             obj.remove_tmpdirs()
 
-    def install_bootloader(self, boot_mode, host_storage, aux_os_list, aux_kernel_init_cmdline):
+    def install_bootloader(self, boot_mode, host_storage, boot_entry, aux_os_list, aux_kernel_init_cmdline):
+        assert boot_entry.has_kernel_files() and boot_entry.has_initrd_files() and not boot_entry.is_historical()
+
         with self._bootDirWriter:
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
                 pass
@@ -206,6 +207,19 @@ class Bbki:
     def update_bootloader(self, aux_os_list, aux_kernel_init_cmdline):
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
         self._bootloader.update(aux_os_list, aux_kernel_init_cmdline)
+
+    def get_stable_flag(self):
+        return self._bootloader.getStatus() == BootLoader.STATUS_NORMAL and self._bootloader.getStableFlag()
+
+    def set_stable_flag(self, value):
+        # we use grub environment variable to store stable status
+        if self._bootloader.getStatus() != BootLoader.STATUS_NORMAL:
+            raise RunningEnvironmentError("bootloader is not properly installed")
+        with self._bootDirWriter:
+            self._bootloader.setStableFlag(value)
+
+    def has_rescue_os(self):
+        return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
 
     def clean_boot_entry_files(self, pretend=False):
         currentBe = self.get_current_boot_entry() if self._bSelfBoot else None

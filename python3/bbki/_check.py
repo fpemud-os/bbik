@@ -31,6 +31,8 @@ from ._bootloader import BootLoader
 class Checker:
 
     def __init__(self, bbki, auto_fix=False, error_callback=None):
+        assert bbki._bSelfBoot
+
         self._bbki = bbki
         self._bAutoFix = auto_fix
         self._errCb = error_callback if error_callback is not None else self._doNothing
