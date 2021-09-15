@@ -59,6 +59,7 @@ class Checker:
             if not pendingBe.has_initrd_files():
                 self._errCb("Pending boot entry has no initramfs files.")
 
+        # check current boot entry
         if self._bbki._bSelfBoot:
             if self._bbki.get_current_boot_entry() != pendingBe:
                 self._errCb("Current boot entry and pending boot entry are different, reboot needed.")
