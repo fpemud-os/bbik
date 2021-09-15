@@ -422,7 +422,7 @@ class BootLoader:
         # write menu entry for history kernels
         if os.path.exists(self._bbki._fsLayout.get_boot_history_dir()):
             for bootEntry in BootEntryUtils(self._bbki).getBootEntryList(history_entry=True):
-                if bootEntry.has_kernel_files and bootEntry.has_initrd_files():
+                if bootEntry.has_kernel_files() and bootEntry.has_initrd_files():
                     buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
                     buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
                     buf += '  echo "Loading Linux kernel ..."\n'

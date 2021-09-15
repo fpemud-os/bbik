@@ -134,7 +134,7 @@ class BootEntry:
             return False
         if not os.path.exists(self.kernel_modules_dirpath):
             return False
-        if not os.path.exists(self._bbki._fsLayout.get_firmware_dir()):
+        if not os.path.exists(self.firmware_dirpath):
             return False
         return True
 
