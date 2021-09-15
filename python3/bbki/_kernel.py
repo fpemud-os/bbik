@@ -31,7 +31,7 @@ from ._util import TempChdir
 from ._boot_entry import BootEntry
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
-from ._repo import BbkiFileExecutor
+from ._repo import BbkiAtomExecutor
 
 
 class KernelInstaller:
@@ -44,11 +44,11 @@ class KernelInstaller:
         self._initramfsAtom = initramfs_atom
 
         self._executorDict = dict()
-        self._executorDict[kernel_atom] = BbkiFileExecutor(kernel_atom)
+        self._executorDict[kernel_atom] = BbkiAtomExecutor(kernel_atom)
         for item in kernel_atom_item_list:
-            self._executorDict[item] = BbkiFileExecutor(item)
+            self._executorDict[item] = BbkiAtomExecutor(item)
         if self._initramfsAtom is not None:
-            self._executorDict[self._initramfsAtom] = BbkiFileExecutor(self._initramfsAtom)
+            self._executorDict[self._initramfsAtom] = BbkiAtomExecutor(self._initramfsAtom)
 
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)

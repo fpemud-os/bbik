@@ -36,7 +36,7 @@ from ._exception import RunningEnvironmentError
 
 from ._util import Util
 from ._po import FsLayout
-from ._repo import BbkiFileExecutor
+from ._repo import BbkiAtomExecutor
 from ._boot_dir import BootDirWriter
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
@@ -157,7 +157,7 @@ class Bbki:
             return None
 
     def fetch(self, atom):
-        BbkiFileExecutor(atom).exec_fetch()
+        BbkiAtomExecutor(atom).exec_fetch()
 
     def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list, initramfs_atom=None):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
@@ -169,7 +169,7 @@ class Bbki:
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
 
-        obj = BbkiFileExecutor(initramfs_atom)
+        obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
         try:
             with self._bootDirWriter:

@@ -32,6 +32,7 @@ import zipfile
 import urllib.parse
 import pkg_resources
 import robust_layer.simple_git
+import robust_layer.simple_fops
 from ._util import Util
 from ._util import TempChdir
 from ._po import KernelType
@@ -209,18 +210,18 @@ class RepoAtom:
         for line in lineList:
             m = re.fullmatch(r'^(\S+)\(\) {', line)
             if m is not None:
-                if m.group(1) in BbkiFileExecutor.get_valid_bbki_functions():
+                if m.group(1) in BbkiAtomExecutor.get_valid_bbki_functions():
                     self._tFuncList.append(m.group(1))
 
         if "fetch" in self._tFuncList and "SRC_URI" in self._tVarDict:
             raise RepoError("fetch() and SRC_URI are mutally exclusive")
 
 
-class BbkiFileExecutor:
+class BbkiAtomExecutor:
 
     @staticmethod
     def get_valid_bbki_functions():
-        return [m[len("exec_"):] for m in dir(BbkiFileExecutor) if m.startswith("exec_")]
+        return [m[len("exec_"):] for m in dir(BbkiAtomExecutor) if m.startswith("exec_")]
 
     def __init__(self, atom):
         self._bbki = atom._bbki
@@ -522,7 +523,7 @@ class BbkiFileExecutor:
         return "A='%s'\n" % ("' '".join(fnlist))
 
 
-class BbkiFileDb:
+class BbkiAtomDb:
 
     def __init__(self, atom):
         self._bbki = atom._bbki
@@ -536,8 +537,7 @@ class BbkiFileDb:
         return self._dbDir
 
     def create(self):
-        os.makedirs(self._dbDir, exist_ok=True)
-        Util.removeDirContent(self._dbDir)
+        robust_layer.simple_fops.mk_empty_dir(self._dbDir)
 
         if self._atom.atom_type == Repo.ATOM_TYPE_KERNEL:
             pass
