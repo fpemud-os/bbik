@@ -107,6 +107,13 @@ class Util:
         return ret
 
     @staticmethod
+    def addItemToListFile(item, filename):
+        with open(filename, "a") as f:
+            f.write("\n")
+            f.write(item)
+            f.write("\n")
+
+    @staticmethod
     def compareVerstr(verstr1, verstr2):
         """eg: 3.9.11-gentoo-r1 or 3.10.7-gentoo"""
 
