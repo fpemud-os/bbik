@@ -268,9 +268,10 @@ class BootEntryUtils:
             dirpath = self._bbki._fsLayout.get_boot_history_dir()
 
         ret = []
-        for kernelFile in sorted(os.listdir(dirpath), reverse=True):
-            if kernelFile.startswith("kernel-"):
-                ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
+        if os.path.exists(dirpath):
+            for kernelFile in sorted(os.listdir(dirpath), reverse=True):
+                if kernelFile.startswith("kernel-"):
+                    ret.append(self.new_from_postfix(kernelFile[len("kernel-"):], history_entry))
         return ret
 
     def getRedundantKernelModulesDirs(self, bootEntryList):
