@@ -209,8 +209,8 @@ class BootEntryWrapper:
         for fullKoFn in glob.glob(os.path.join(self._modulesDir, "**", "*.ko"), recursive=True):
             ret |= set(self.get_firmware_filenames_by_kmod(fullKoFn))
 
-        if True:
-            fwExtFileRecordFn = os.path.join(self._bootEntry.kernel_modules_dirpath, "firmware.extra-files")
+        fwExtFileRecordFn = os.path.join(self._bootEntry.kernel_modules_dirpath, "firmware.extra-files")
+        if os.path.exists(fwExtFileRecordFn):
             ret |= set(Util.readListFile(fwExtFileRecordFn))
 
         return sorted(list(ret))
