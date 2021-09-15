@@ -49,15 +49,7 @@ class Checker:
         # check pending boot entry
         pendingBe = self._bbki.get_pending_boot_entry()
         if pendingBe is None:
-            self._errCb("No pending boot entry.")
-        else:
-            assert pendingBe.has_kernel_files()
-            if not pendingBe.has_kernel_modules_dir():
-                self._errCb("Pending boot entry has no kernel module directory.")
-            if not pendingBe.has_firmware_dir():
-                self._errCb("Pending boot entry has no firmware directory.")
-            if not pendingBe.has_initrd_files():
-                self._errCb("Pending boot entry has no initramfs files.")
+            self._errCb("No pending boot entry, system is not bootable.")
 
         # check current boot entry
         if self._bbki._bSelfBoot:
@@ -74,7 +66,10 @@ class Checker:
                 self._bbki.update_bootloader()
                 beList = [pendingBe]
             else:
-                self._errCb("Multiple boot entries exist.")     # FIXME: generally it is caused by boot entry roll-back, enrich the error message
+                self._errCb("Multiple boot entries found.")
+        for be in beList:
+            if not be.has_initrd_files():
+                self._errCb("Boot entry \"%s\" has no initramfs files." % (be.kernel_filename))
 
         # check redundant files in /boot
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
@@ -114,7 +109,7 @@ class Checker:
 
         # check missing directories in /lib/modules
         for be in beList:
-            if not be.has_kernel_modules_dir():
+            if not os.path.exists(be.kernel_modules_dir):
                 self._errCb("Missing kernel module directory \"%s\"." % (be.kernel_modules_dirpath))
 
         # check redundant directories in /lib/modules
