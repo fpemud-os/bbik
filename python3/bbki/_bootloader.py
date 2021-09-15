@@ -66,12 +66,11 @@ class BootLoader:
     def get_filepaths(self):
         assert self._status == self.STATUS_NORMAL
 
-        myBootMode = self.getBootMode()
         ret = []
         ret += Util.globDirRecursively(self._bbki._fsLayout.get_boot_grub_dir())
-        if myBootMode == BootMode.EFI:
+        if self._bootMode == BootMode.EFI:
             ret += Util.globDirRecursively(self._bbki._fsLayout.get_boot_grub_efi_dir())
-        elif myBootMode == BootMode.BIOS:
+        elif self._bootMode == BootMode.BIOS:
             pass
         else:
             assert False
