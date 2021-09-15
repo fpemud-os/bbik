@@ -29,7 +29,7 @@ class BootDirWriter:
 
     def __init__(self, bbki):
         self._bbki = bbki
-        self._refcount = 0              # support nest use
+        self._refcount = 0              # support nesting
         self._remounted = False
 
     def start(self):

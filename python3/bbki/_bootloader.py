@@ -217,6 +217,8 @@ class BootLoader:
                     raise ValueError("invalid rootfs mount point")
                 if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
                     raise ValueError("invalid boot disk")
+            else:
+                assert False
 
         # remove MBR
         # MBR may not be correctly removed when status==STATUS_INVALID
@@ -230,16 +232,16 @@ class BootLoader:
         robust_layer.simple_fops.rm(self._bbki._fsLayout.get_boot_grub_efi_dir())
 
         # clear variables
+        self._status = self.STATUS_NOT_INSTALLED
+        self._bootMode = None
+        self._rootfsDev = None
+        self._rootfsDevUuid = None
+        self._espDev = None
+        self._espDevUuid = None
+        self._bootDisk = None
+        self._bootDiskId = None
         self._kernelCmdLine = None
         self._mainBootPostfix = None
-        self._bootDiskId = None
-        self._bootDisk = None
-        self._espDevUuid = None
-        self._espDev = None
-        self._rootfsDevUuid = None
-        self._rootfsDev = None
-        self._bootMode = None
-        self._status = self.STATUS_NOT_INSTALLED
 
     def _getKernelCmdLine(self, aux_kernel_init_cmdline):
         kernelCmdLine = ""
