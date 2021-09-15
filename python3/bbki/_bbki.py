@@ -166,19 +166,21 @@ class Bbki:
     def install_initramfs(self, initramfs_atom, host_storage, boot_entry):
         assert host_storage is not None
         assert host_storage.get_root_mount_point() is not None
-        assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
+        assert boot_entry.has_kernel_files()
+        assert not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
         try:
             with self._bootDirWriter:
                 obj.exec_src_unpack()
-                obj.exec_initramfs_install(host_storage, self.get_pending_boot_entry())
+                obj.exec_initramfs_install(host_storage, boot_entry)
         finally:
             obj.remove_tmpdirs()
 
-    def install_bootloader(self, boot_mode, host_storage, boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert boot_entry.has_kernel_files() and boot_entry.has_initrd_files() and not boot_entry.is_historical()
+    def install_bootloader(self, boot_mode, host_storage, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
+        assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
+        assert not main_boot_entry.is_historical()
 
         with self._bootDirWriter:
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
@@ -204,8 +206,11 @@ class Bbki:
             else:
                 assert False
 
-    def update_bootloader(self, aux_os_list, aux_kernel_init_cmdline):
+    def update_bootloader(self, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
+        assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
+        assert not main_boot_entry.is_historical()
+
         self._bootloader.update(aux_os_list, aux_kernel_init_cmdline)
 
     def get_stable_flag(self):
