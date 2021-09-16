@@ -279,8 +279,7 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -303,8 +302,7 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
@@ -322,8 +320,7 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
                 cmd += "\n"
@@ -350,8 +347,7 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
                 cmd += "\n"
@@ -381,8 +377,7 @@ class BbkiAtomExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(kernelDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
@@ -403,8 +398,7 @@ class BbkiAtomExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
@@ -425,8 +419,7 @@ class BbkiAtomExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
@@ -448,8 +441,7 @@ class BbkiAtomExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
@@ -475,8 +467,7 @@ class BbkiAtomExecutor:
             dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
             with TempChdir(kernelDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
@@ -496,8 +487,7 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._var_A()
-                cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
+                cmd += self._common_vars()
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (boot_entry.kernel_config_filepath)
                 cmd += "export KERNEL_MODULES_DIR='%s'\n" % (boot_entry.kernel_modules_dirpath)
@@ -520,10 +510,15 @@ class BbkiAtomExecutor:
         assert parent_func_name.startswith("exec_")
         return self._atom.has_function(parent_func_name[len("exec_"):])
 
-    def _var_A(self):
-        fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
-        fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
-        return "A='%s'\n" % ("' '".join(fnlist))
+    def _common_vars(self):
+        buf = ""
+        if True:
+            fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
+            fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
+            buf += "export A='%s'\n" % ("' '".join(fnlist))
+        if True:
+            buf += "export FILESDIR='%s'\n" % (self.get_files_dir())
+        return buf
 
 
 def _get_script_helpers_dir():
