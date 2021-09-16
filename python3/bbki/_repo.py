@@ -335,8 +335,9 @@ class BbkiAtomExecutor:
                 cmd += self._common_vars()
                 cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
                 cmd += "export KVER='%s'\n" % (self._atom.verstr)
-                cmd += "export _KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
-                cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)
+                cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+                cmd += "\n"
+                cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)      # FIXME
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"

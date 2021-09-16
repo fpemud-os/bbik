@@ -183,17 +183,11 @@ class KernelInstaller:
             # killing CONFIG_VT is failed for now
             Util.shellCall("/bin/sed -i '/VT=n/d' %s" % self._kcfgRulesTmpFile)
 
-        with TempChdir(self._executorDict[self._kernelAtom].get_work_dir()):
-            # generate the real ".config"
-            # FIXME: moved here from a seperate process, leakage?
-            pylkcutil.generator.generate(".", "allnoconfig+module",
-                                        self._kcfgRulesTmpFile, output=self._dotCfgFile)
-
-            # link to target directory
-            os.symlink(self._dotCfgFile, ".config")
-
-            # "make olddefconfig" may change the .config file further
-            Util.shellCall("make olddefconfig")
+        # generate the real ".config"
+        # FIXME: moved here from a seperate process, leakage?
+        pylkcutil.generator.generate(self._executorDict[self._kernelAtom].get_work_dir(),
+                                     "allnoconfig+module",
+                                     self._kcfgRulesTmpFile, output=self._dotCfgFile)
 
         self._progress = KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
