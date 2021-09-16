@@ -307,7 +307,7 @@ class BbkiAtomExecutor:
             # no-op as the default action
             pass
 
-    def exec_kernel_build(self):
+    def exec_kernel_build(self, kernelConfigFile):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if self._item_has_me():
@@ -316,6 +316,7 @@ class BbkiAtomExecutor:
                 cmd = ""
                 cmd += self._common_vars()
                 cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+                cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -342,6 +343,26 @@ class BbkiAtomExecutor:
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
                 cmd += "kernel_install\n"
+                Util.cmdCall("/bin/bash", "-c", cmd)
+        else:
+            # no-op as the default action
+            pass
+
+    def exec_kernel_cleanup(self):
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
+
+        if self._item_has_me():
+            # custom action
+            with TempChdir(self._trWorkDir):
+                cmd = ""
+                cmd += self._common_vars()
+                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
+                cmd += "export KVER='%s'\n" % (self._atom.verstr)
+                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(self._atom.verstr))
+                cmd += "\n"
+                cmd += "source %s\n" % (self._atom.bbki_file)
+                cmd += "\n"
+                cmd += "kernel_cleanup\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # no-op as the default action
@@ -429,6 +450,16 @@ class BbkiAtomExecutor:
                 cmd += "\n"
                 cmd += "kernel_addon_install\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
+        else:
+            # no-op as the default action
+            pass
+
+    def exec_kernel_addon_cleanup(self):
+        self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
+
+        if self._item_has_me():
+            # custom action
+            pass
         else:
             # no-op as the default action
             pass

@@ -26,7 +26,6 @@ import re
 import pylkcutil
 import pkg_resources
 from ._util import Util
-from ._util import TempChdir
 from ._boot_entry import BootEntry
 from ._boot_entry import BootEntryWrapper
 from ._repo import BbkiAtomExecutor
@@ -51,7 +50,7 @@ class KernelInstaller:
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)
 
-        self._myTmpDir = os.path.join(atom._bbki.config.tmp_dir, "kernel")
+        self._myTmpDir = os.path.join(self._bbki.config.tmp_dir, "kernel")
         self._kcfgRulesTmpFile = os.path.join(self._myTmpDir, "config.rules")
         self._dotCfgFile = os.path.join(self._myTmpDir, "config")
 
@@ -194,7 +193,7 @@ class KernelInstaller:
     def build(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
-        self._executorDict[self._kernelAtom].exec_kernel_build()
+        self._executorDict[self._kernelAtom].exec_kernel_build(self._dotCfgFile)
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
         self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
