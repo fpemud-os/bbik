@@ -25,6 +25,7 @@ import os
 import re
 import pylkcutil
 import pkg_resources
+import robust_layer.simple_fops
 from ._util import Util
 from ._boot_entry import BootEntry
 from ._boot_entry import BootEntryWrapper
@@ -55,18 +56,12 @@ class KernelInstaller:
         self._dotCfgFile = os.path.join(self._myTmpDir, "config")
 
         # create tmpdirs
+        robust_layer.simple_fops.mk_empty_dir(self._myTmpDir)
         self._executorDict[self._kernelAtom].create_tmpdirs()
         for item in self._addonAtomList:
             self._executorDict[item].create_tmpdirs()
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].create_tmpdirs()
-
-    def dispose(self):
-        if self._initramfsAtom is not None:
-            self._executorDict[self._initramfsAtom].remove_tmpdirs()
-        for item in reversed(self._addonAtomList):
-            self._executorDict[item].remove_tmpdirs()
-        self._executorDict[self._kernelAtom].remove_tmpdirs()
 
     def get_progress(self):
         return KernelInstallProgress(self)
@@ -216,6 +211,14 @@ class KernelInstaller:
             self._executorDict[item].exec_kernel_addon_cleanup()
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
+
+    def dispose(self):
+        if self._initramfsAtom is not None:
+            self._executorDict[self._initramfsAtom].remove_tmpdirs()
+        for item in reversed(self._addonAtomList):
+            self._executorDict[item].remove_tmpdirs()
+        self._executorDict[self._kernelAtom].remove_tmpdirs()
+        robust_layer.simple_fops.rm(self._myTmpDir)
 
 
 class KernelInstallProgress:
