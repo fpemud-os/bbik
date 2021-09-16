@@ -295,194 +295,172 @@ class BbkiAtomExecutor:
                     Util.shellCall("cp %s %s" % (localFullFn, self._trWorkDir))
 
     def exec_src_prepare(self):
-        if self._item_has_me():
-            # custom action
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "src_prepare\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "src_prepare\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_build(self, kernelConfigFile):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
-        if self._item_has_me():
-            # custom action
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
-                cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_build\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+            cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_build\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_install(self, kernelConfigFile, kernelConfigRulesFile):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
-        if self._item_has_me():
-            # custom action
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
-                cmd += "export KVER='%s'\n" % (self._atom.verstr)
-                cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
-                cmd += "\n"
-                cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)      # FIXME
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_install\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
+            cmd += "export KVER='%s'\n" % (self._atom.verstr)
+            cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+            cmd += "\n"
+            cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)      # FIXME
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_install\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_cleanup(self):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
-        if self._item_has_me():
-            # custom action
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
-                cmd += "export KVER='%s'\n" % (self._atom.verstr)
-                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(self._atom.verstr))
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_cleanup\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
+            cmd += "export KVER='%s'\n" % (self._atom.verstr)
+            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(self._atom.verstr))
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_cleanup\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_addon_patch_kernel(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
-        if self._item_has_me():
-            # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(kernelDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_addon_patch_kernel\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+        with TempChdir(kernelDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_addon_patch_kernel\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_addon_contribute_config_rules(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
-        if self._item_has_me():
-            # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_addon_contribute_config_rules\n"
-                return Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
+        if not self._item_has_me():
             return ""
+
+        dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_addon_contribute_config_rules\n"
+            return Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_addon_build(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
-        if self._item_has_me():
-            # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_addon_build\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+            cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_addon_build\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_addon_install(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
-        if self._item_has_me():
-            # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(self._trWorkDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
-                cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
-                cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
-                cmd += "\n"
-                cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "kernel_addon_install\n"
-                Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
+
+        dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+        with TempChdir(self._trWorkDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
+            cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
+            cmd += "\n"
+            cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "kernel_addon_install\n"
+            Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_kernel_addon_cleanup(self):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
-        if self._item_has_me():
-            # custom action
-            pass
-        else:
-            # no-op as the default action
-            pass
+        if not self._item_has_me():
+            return
 
     def exec_initramfs_contribute_config_rules(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
-        if self._item_has_me():
-            # custom action
-            dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
-            with TempChdir(kernelDir):
-                cmd = ""
-                cmd += self._common_vars()
-                cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
-                cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-                cmd += "\n"
-                cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
-                cmd += "initramfs_contribute_config_rules\n"
-                return Util.cmdCall("/bin/bash", "-c", cmd)
-        else:
-            # no-op as the default action
+        if not self._item_has_me():
             return ""
+
+        dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
+        with TempChdir(kernelDir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+            cmd += "\n"
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            cmd += "\n"
+            cmd += "initramfs_contribute_config_rules\n"
+            return Util.cmdCall("/bin/bash", "-c", cmd)
 
     def exec_initramfs_install(self, host_storage, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
