@@ -36,6 +36,9 @@ class Checker:
         self._bAutoFix = auto_fix
         self._errCb = error_callback if error_callback is not None else self._doNothing
 
+    def checkRepositories(self):
+        pass
+
     def checkBootDir(self):
         # check bootloader
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
