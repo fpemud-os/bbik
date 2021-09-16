@@ -196,6 +196,7 @@ class KernelInstaller:
         self._executorDict[self._kernelAtom].exec_kernel_build(self._dotCfgFile)
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
+
         self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
 
     def install(self):
