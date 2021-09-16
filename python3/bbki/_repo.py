@@ -316,6 +316,7 @@ class BbkiAtomExecutor:
             cmd += self._common_vars()
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
             cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
             cmd += "\n"
@@ -334,6 +335,7 @@ class BbkiAtomExecutor:
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "export KVER='%s'\n" % (self._atom.verstr)
             cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
             cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)      # FIXME
             cmd += "\n"
@@ -409,6 +411,7 @@ class BbkiAtomExecutor:
             cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+            cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
             cmd += "\n"
