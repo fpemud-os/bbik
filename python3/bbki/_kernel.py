@@ -210,6 +210,10 @@ class KernelInstaller:
                 if be != self._targetBootEntry:
                     BootEntryWrapper(be).move_to_history()
 
+        self._executorDict[self._kernelAtom].exec_kernel_cleanup()
+        for item in self._addonAtomList:
+            self._executorDict[item].exec_kernel_addon_cleanup()
+
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 
 
