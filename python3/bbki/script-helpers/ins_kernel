@@ -9,15 +9,6 @@ if [[ $# -lt 1 ]] ; then
 	exit 1
 fi
 
-install -D -m0644 -o 0 -g 0 "${1}" "${KERNEL"
-echo "${1}" >> "${KERNEL_MODULES_DIR}/firmware.extra-files"
-
-
-for fn in `find "${KERNEL_MODULES_DIR}" -name '*.ko'` ; do
-	modinfo ${fn} | while read -r line ; do
-		fw=`echo ${line} | sed -nr 's/firmware: +(\\S.*)/\1/p'`       # $fw is a wildcard string
-		if [[ "${fw}" != "" && "${2}" == ${fw} ]] ; then
-			install -D -m0644 -o 0 -g 0 "${1}" "${FIRMWARE_DIR}/${2}"
-		fi
-	done
-done
+install -D -m0644 -o 0 -g 0 "${1}" "/boot/kernel-${ARCH}-${KVER}"
+install -D -m0644 -o 0 -g 0 "${_KENREL_CONFIG_FILE}" "/boot/config-${ARCH}-${KVER}"
+install -D -m0644 -o 0 -g 0 "${_KENREL_CONFIG_RULES_FILE}" "/boot/config-${ARCH}-${KVER}.rules"

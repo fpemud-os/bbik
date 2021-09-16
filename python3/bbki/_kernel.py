@@ -51,8 +51,9 @@ class KernelInstaller:
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)
 
-        self._kcfgRulesTmpFile = None
-        self._dotCfgFile = None
+        self._myTmpDir = os.path.join(atom._bbki.config.tmp_dir, "kernel")
+        self._kcfgRulesTmpFile = os.path.join(self._myTmpDir, "config.rules")
+        self._dotCfgFile = os.path.join(self._myTmpDir, "config")
 
         # create tmpdirs
         self._executorDict[self._kernelAtom].create_tmpdirs()
@@ -92,9 +93,6 @@ class KernelInstaller:
         assert self._progress == KernelInstallProgress.STEP_PATCHED
 
         rulesDict = dict()
-        workDir = self._executorDict[self._kernelAtom].get_work_dir()
-        self._kcfgRulesTmpFile = os.path.join(workDir, "config.rules")
-        self._dotCfgFile = os.path.join(workDir, ".config")
 
         # head rules
         if True:
@@ -185,12 +183,16 @@ class KernelInstaller:
             # killing CONFIG_VT is failed for now
             Util.shellCall("/bin/sed -i '/VT=n/d' %s" % self._kcfgRulesTmpFile)
 
-        # generate the real ".config"
-        # FIXME: moved here from a seperate process, leakage?
-        pylkcutil.generator.generate(workDir, "allnoconfig+module", self._kcfgRulesTmpFile, output=self._dotCfgFile)
+        with TempChdir(self._executorDict[self._kernelAtom].get_work_dir()):
+            # generate the real ".config"
+            # FIXME: moved here from a seperate process, leakage?
+            pylkcutil.generator.generate(".", "allnoconfig+module",
+                                        self._kcfgRulesTmpFile, output=self._dotCfgFile)
 
-        # "make olddefconfig" may change the .config file further
-        with TempChdir(workDir):
+            # link to target directory
+            os.symlink(self._dotCfgFile, ".config")
+
+            # "make olddefconfig" may change the .config file further
             Util.shellCall("make olddefconfig")
 
         self._progress = KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
@@ -207,7 +209,7 @@ class KernelInstaller:
         assert self._progress == KernelInstallProgress.STEP_KERNEL_BUILT
 
         with self._bbki._bootDirWriter:
-            self._executorDict[self._kernelAtom].exec_kernel_install()
+            self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile)
             for item in self._addonAtomList:
                 self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 

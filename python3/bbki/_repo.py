@@ -322,18 +322,10 @@ class BbkiAtomExecutor:
                 cmd += "kernel_build\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
-            # default action
-            with TempChdir(self._trWorkDir):
-                if self._atom.kernel_type == KernelType.LINUX:
-                    optList = []
-                    optList.append("CFLAGS=\"-Wno-error\"")
-                    optList.append(self._bbki.config.get_build_variable("MAKEOPTS"))
-                    Util.shellCall("make %s" % (" ".join(optList)))
-                    Util.shellCall("make %s modules" % (" ".join(optList)))
-                else:
-                    assert False
+            # no-op as the default action
+            pass
 
-    def exec_kernel_install(self):
+    def exec_kernel_install(self, kernelConfigFile, kernelConfigRulesFile):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if self._item_has_me():
@@ -342,24 +334,17 @@ class BbkiAtomExecutor:
                 cmd = ""
                 cmd += self._common_vars()
                 cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
+                cmd += "export KVER='%s'\n" % (self._atom.verstr)
+                cmd += "export _KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
+                cmd += "export _KENREL_CONFIG_RULES_FILE='%s'\n" % (kernelConfigRulesFile)
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
                 cmd += "kernel_install\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
-            # default action
-            with TempChdir(self._trWorkDir):
-                if self._atom.kernel_type == KernelType.LINUX:
-                    bootEntry = _new_boot_entry_from_kernel_srcdir(self._bbki, self._trWorkDir)
-                    shutil.copy("arch/%s/boot/bzImage" % (bootEntry.arch), bootEntry.kernel_filepath)
-                    shutil.copy(os.path.join(self._trWorkDir, ".config"), bootEntry.kernel_config_filepath)
-                    shutil.copy(os.path.join(self._trWorkDir, "config.rules"), bootEntry.kernel_config_rules_filepath)
-                    robust_layer.simple_fops.rm(bootEntry.kernel_modules_dirpath)
-                    Util.shellCall("make modules_install")
-                    # shutil.copy(os.path.join(self._trWorkDir, "System.map"), bootEntry.kernelMapFile)       # FIXME
-                else:
-                    assert False
+            # no-op as the default action
+            pass
 
     def exec_kernel_addon_patch_kernel(self, kernel_atom):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
