@@ -325,6 +325,7 @@ class BbkiAtomExecutor:
                 cmd += self._var_A()
                 cmd += "export FILESDIR='%s'\n" % (self.get_files_dir())
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
+                cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"
@@ -429,6 +430,7 @@ class BbkiAtomExecutor:
                 cmd += "export WORKDIR='%s'\n" % (self._trWorkDir)
                 cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
                 cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
+                cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
                 cmd += "\n"
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "\n"

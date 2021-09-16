@@ -2,7 +2,6 @@
 # Distributed under the terms of the GNU General Public License v2
 
 SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-
 source "${SCRIPTPATH}"/_util/isolated-functions.sh || exit 1
 
 if [[ $# -lt 1 ]] ; then
