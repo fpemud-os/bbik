@@ -185,17 +185,8 @@ class KernelInstaller:
 
         self._progress = KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
-    def build(self):
-        assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
-
-        self._executorDict[self._kernelAtom].exec_kernel_build(self._dotCfgFile)
-        for item in self._addonAtomList:
-            self._executorDict[item].exec_kernel_addon_build(self._kernelAtom)
-
-        self._progress = KernelInstallProgress.STEP_KERNEL_BUILT
-
     def install(self):
-        assert self._progress == KernelInstallProgress.STEP_KERNEL_BUILT
+        assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
         with self._bbki._bootDirWriter:
             self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile)
@@ -227,8 +218,7 @@ class KernelInstallProgress:
     STEP_UNPACKED = 2
     STEP_PATCHED = 3
     STEP_KERNEL_CONFIG_FILE_GENERATED = 4
-    STEP_KERNEL_BUILT = 5
-    STEP_KERNEL_INSTALLED = 6
+    STEP_KERNEL_INSTALLED = 5
 
     def __init__(self, parent):
         self._parent = parent
