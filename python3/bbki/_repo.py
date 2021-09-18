@@ -239,7 +239,7 @@ class BbkiAtomExecutor:
         out = None
         with TempChdir(self._bbki.config.tmp_dir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
             cmd += "source %s\n" % (self._atom.bbki_file)
             for var in varList:
                 cmd += "echo %s=\"${%s}\"\n" % (var, var)
@@ -271,8 +271,8 @@ class BbkiAtomExecutor:
             os.makedirs(targetDir, exist_ok=True)
             with TempChdir(targetDir):
                 cmd = ""
+                cmd += self._vars_common()
                 cmd += "source %s\n" % (self._atom.bbki_file)
-                cmd += "\n"
                 cmd += "fetch\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
@@ -294,7 +294,8 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._common_vars()
+                cmd += self._vars_common()
+                cmd += self._vars_after_fetch()
                 cmd += "source %s\n" % (self._atom.bbki_file)
                 cmd += "src_unpack\n"
                 Util.cmdCall("/bin/bash", "-c", cmd)
@@ -315,7 +316,8 @@ class BbkiAtomExecutor:
 
         with TempChdir(self._trWorkDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "source %s\n" % (self._atom.bbki_file)
             cmd += "src_prepare\n"
             Util.cmdCall("/bin/bash", "-c", cmd)
@@ -328,7 +330,8 @@ class BbkiAtomExecutor:
 
         with TempChdir(self._trWorkDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "export KVER='%s'\n" % (self._atom.verstr)
@@ -350,7 +353,8 @@ class BbkiAtomExecutor:
 
         with TempChdir(self._trWorkDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "export KVER='%s'\n" % (self._atom.verstr)
             cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(self._atom.verstr))
@@ -369,7 +373,8 @@ class BbkiAtomExecutor:
         dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
         with TempChdir(kernelDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
@@ -387,7 +392,8 @@ class BbkiAtomExecutor:
         dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
         with TempChdir(self._trWorkDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
@@ -405,7 +411,8 @@ class BbkiAtomExecutor:
         dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
         with TempChdir(self._trWorkDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
@@ -435,7 +442,8 @@ class BbkiAtomExecutor:
         dummy, dummy, kernelDir = _tmpdirs(kernel_atom)
         with TempChdir(kernelDir):
             cmd = ""
-            cmd += self._common_vars()
+            cmd += self._vars_common()
+            cmd += self._vars_after_fetch()
             cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
@@ -451,7 +459,8 @@ class BbkiAtomExecutor:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
-                cmd += self._common_vars()
+                cmd += self._vars_common()
+                cmd += self._vars_after_fetch()
                 cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (boot_entry.kernel_config_filepath)
                 cmd += "export KERNEL_MODULES_DIR='%s'\n" % (boot_entry.kernel_modules_dirpath)
                 cmd += "export FIRMWARE_DIR='%s'\n" % (boot_entry.firmware_dirpath)
@@ -473,7 +482,7 @@ class BbkiAtomExecutor:
         assert parent_func_name.startswith("exec_")
         return self._atom.has_function(parent_func_name[len("exec_"):])
 
-    def _common_vars(self):
+    def _vars_common(self):
         buf = ""
         if True:
             buf += "export P='%s-%s'\n" % (self._atom.name, self._atom.ver)
@@ -484,6 +493,10 @@ class BbkiAtomExecutor:
         if True:
             buf += "export FILESDIR='%s'\n" % (self.get_files_dir())
             buf += "export WORKDIR='%s'\n" % (self._trWorkDir)
+        return buf
+
+    def _vars_after_fetch(self):
+        buf = ""
         if True:
             fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
             fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
