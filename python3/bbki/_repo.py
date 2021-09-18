@@ -249,7 +249,7 @@ class BbkiAtomExecutor:
         for line in out.split("\n"):
             m = re.fullmatch(r'^(\S+)=(.*)', line)
             if m is not None:
-                self._tVarDict[m.group(1)] = m.group(2)
+                ret[m.group(1)] = m.group(2)
         return ret
 
     def create_tmpdirs(self):
