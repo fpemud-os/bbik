@@ -461,6 +461,10 @@ class BbkiAtomExecutor:
     def _common_vars(self):
         buf = ""
         if True:
+            buf += "export P='%s-%s'\n" % (self._atom.name, self._atom.ver)
+            buf += "export PN='%s'\n" % (self._atom.name)
+            buf += "export PV='%s'\n" % (self._atom.ver)
+        if True:
             buf += "export ARCH='%s'\n" % (os.uname().machine)
         if True:
             buf += "export FILESDIR='%s'\n" % (self.get_files_dir())
