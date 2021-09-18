@@ -529,11 +529,20 @@ def _distfiles_get(atom):
         if line == "":
             continue
         if line.startswith("git://"):
+            assert "->" not in line
             ret.append(("git", line, "git-src" + urllib.parse.urlparse(line).path))
         elif line.startswith("git+http://") or line.startswith("git+https://"):
+            assert "->" not in line
             ret.append(("git", line[len("git+"):], "git-src" + urllib.parse.urlparse(line).path))
         else:
-            ret.append(("wget", line, os.path.basename(line)))
+            tlist = line.split(" -> ")
+            if len(tlist) == 1:
+                tlist.append(os.path.basename(line))
+            elif len(tlist) == 2:
+                pass
+            else:
+                assert False
+            ret.append(("wget", tlist[0], tlist[1]))
     return ret
 
 
