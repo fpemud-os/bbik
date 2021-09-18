@@ -452,7 +452,8 @@ class BbkiAtomExecutor:
     def exec_initramfs_install(self, host_storage, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
-        if self._item_has_me():
+        # if self._item_has_me():
+        if False:
             # custom action
             with TempChdir(self._trWorkDir):
                 cmd = ""
