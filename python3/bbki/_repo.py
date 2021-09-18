@@ -224,6 +224,16 @@ class BbkiAtomExecutor:
     def __init__(self, atom):
         self._bbki = atom._bbki
         self._atom = atom
+        self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._atom)
+
+    def get_files_dir(self):
+        return os.path.join(self._atom.bbki_dir, "files")
+
+    def get_work_dir(self):
+        return self._trWorkDir
+
+    def get_tmp_dir(self):
+        return self._trTmpDir
 
     def run_for_variable_values(self, varList):
         out = None
@@ -246,7 +256,6 @@ class BbkiAtomExecutor:
         return ret
 
     def create_tmpdirs(self):
-        self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._atom)
         if os.path.exists(self._tmpRootDir):
             robust_layer.simple_fops.rm(self._tmpRootDir)
         os.makedirs(self._trTmpDir)
@@ -254,18 +263,6 @@ class BbkiAtomExecutor:
 
     def remove_tmpdirs(self):
         robust_layer.simple_fops.rm(self._tmpRootDir)
-        del self._trWorkDir
-        del self._trTmpDir
-        del self._tmpRootDir
-
-    def get_files_dir(self):
-        return os.path.join(self._atom.bbki_dir, "files")
-
-    def get_work_dir(self):
-        return self._trWorkDir
-
-    def get_tmp_dir(self):
-        return self._trTmpDir
 
     def exec_fetch(self):
         if self._item_has_me():
