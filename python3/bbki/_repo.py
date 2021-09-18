@@ -198,13 +198,11 @@ class RepoAtom:
 
         self._tVarDict = dict()
         for line in lineList:
-            m = re.fullmatch(r'^(\S+)=(.*)', line)
+            m = re.fullmatch(r'^(\S+)=.*', line)
             if m is not None:
                 k = m.group(1)
-                v = m.group(2)
-                if v.startswith("\"") and v.endswith("\""):
-                    v = v[1:-1]
-                self._tVarDict[k] = v
+                self._tVarDict[k] = None
+        self._tVarDict = BbkiAtomExecutor(self).run_for_variable_values(self._tVarDict.keys())
 
         self._tFuncList = []
         for line in lineList:
@@ -226,6 +224,26 @@ class BbkiAtomExecutor:
     def __init__(self, atom):
         self._bbki = atom._bbki
         self._atom = atom
+
+    def run_for_variable_values(self, varList):
+        out = None
+        with TempChdir(self._bbki.config.tmp_dir):
+            cmd = ""
+            cmd += self._common_vars()
+            cmd += "source %s\n" % (self._atom.bbki_file)
+            for var in varList:
+                cmd += "echo %s=\"${%s}\"\n" % (var, var)
+            out = Util.cmdCall("/bin/bash", "-c", cmd)
+
+        ret = dict()
+        for line in out.split("\n"):
+            m = re.fullmatch(r'^(\S+)=(.*)', line)
+            if m is not None:
+                k = m.group(1)
+                v = m.group(2)
+                assert v.startswith("\"") and v.endswith("\"")
+                self._tVarDict[k] = v[1:-1]
+        return ret
 
     def create_tmpdirs(self):
         self._tmpRootDir, self._trTmpDir, self._trWorkDir = _tmpdirs(self._atom)
