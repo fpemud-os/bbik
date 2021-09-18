@@ -198,7 +198,7 @@ class RepoAtom:
 
         self._tVarDict = dict()
         for line in lineList:
-            m = re.fullmatch(r'^(\S+)=.*', line)
+            m = re.fullmatch(r'^(\S+?)=.*', line)
             if m is not None:
                 k = m.group(1)
                 self._tVarDict[k] = None
@@ -247,7 +247,7 @@ class BbkiAtomExecutor:
 
         ret = dict()
         for line in out.split("\n"):
-            m = re.fullmatch(r'^(\S+)=(.*)', line)
+            m = re.fullmatch(r'^(\S+?)=(.*)', line)
             if m is not None:
                 ret[m.group(1)] = m.group(2)
         return ret
