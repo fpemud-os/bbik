@@ -215,9 +215,6 @@ class Bbki:
         with self._bootDirWriter:
             self._bootloader.setStableFlag(value)
 
-    def has_rescue_os(self):
-        return os.path.exists(self._fsLayout.get_boot_rescue_os_dir())
-
     def clean_boot_entry_files(self, pretend=False):
         if self._bSelfBoot:
             currentBe = self.get_current_boot_entry()

@@ -30,6 +30,7 @@ from ._util import SystemMounts
 from ._po import BootMode
 from ._po import HostAuxOs
 from ._boot_entry import BootEntryUtils
+from ._exception import BootloaderInstallError
 
 
 class BootLoader:
@@ -444,6 +445,11 @@ class BootLoader:
 
         # write menu entry for rescue os
         if os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_dir()):
+            if not os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()):
+                raise BootloaderInstallError("no rescue os kernel found")
+            if not os.path.exists(self._bbki._fsLayout.get_boot_rescue_os_initrd_filepath()):
+                raise BootloaderInstallError("no rescue os initrd found")
+
             buf += 'menuentry "Rescue OS" {\n'
             buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  linux %s dev_uuid=%s basedir=%s\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()),
