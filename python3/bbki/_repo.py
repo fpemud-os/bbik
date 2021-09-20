@@ -203,6 +203,7 @@ class RepoAtom:
                 k = m.group(1)
                 self._tVarDict[k] = None
         self._tVarDict = BbkiAtomExecutor(self).run_for_variable_values(self._tVarDict.keys())
+        print(self._tVarDict)
 
         self._tFuncList = []
         for line in lineList:
@@ -242,7 +243,7 @@ class BbkiAtomExecutor:
             cmd += self._vars_common()
             cmd += "source %s\n" % (self._atom.bbki_file)
             for var in varList:
-                cmd += "echo %s=\"${%s}\"\n" % (var, var)
+                cmd += "echo %s=${%s}\n" % (var, var)
             out = Util.cmdCall("/bin/bash", "-c", cmd)
 
         ret = dict()
