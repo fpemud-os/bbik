@@ -110,6 +110,8 @@ class BootLoader:
             assert boot_disk is not None and boot_disk_id is not None
         else:
             assert False
+        assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
+        assert not main_boot_entry.is_historical()
 
         bDifferent = False
         if boot_mode == BootMode.EFI:
@@ -216,6 +218,8 @@ class BootLoader:
             # use original value
             mainBootEntry = BootEntryUtils(self._bbki).new_from_postfix(self._mainBootPostfix)
         else:
+            assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
+            assert not main_boot_entry.is_historical()
             mainBootEntry = main_boot_entry
         if aux_os_list is None:
             # use original value

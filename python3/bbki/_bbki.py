@@ -178,9 +178,6 @@ class Bbki:
             obj.remove_tmpdirs()
 
     def install_bootloader(self, boot_mode, host_storage, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
-        assert not main_boot_entry.is_historical()
-
         with self._bootDirWriter:
             if boot_mode == BootMode.EFI:
                 rootfsMp = host_storage.get_root_mount_point()
@@ -200,9 +197,6 @@ class Bbki:
 
     def update_bootloader(self, main_boot_entry=None, aux_os_list=None, aux_kernel_init_cmdline=None):
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
-        if main_boot_entry is not None:
-            assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
-            assert not main_boot_entry.is_historical()
 
         self._bootloader.update(main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
 
