@@ -203,7 +203,6 @@ class RepoAtom:
                 k = m.group(1)
                 self._tVarDict[k] = None
         self._tVarDict = BbkiAtomExecutor(self).run_for_variable_values(self._tVarDict.keys())
-        print(self._tVarDict)
 
         self._tFuncList = []
         for line in lineList:
