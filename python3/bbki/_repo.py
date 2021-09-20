@@ -238,6 +238,7 @@ class BbkiAtomExecutor:
 
     def run_for_variable_values(self, varList):
         out = None
+        robust_layer.simple_fops.mkdir(self._bbki.config.tmp_dir)
         with TempChdir(self._bbki.config.tmp_dir):
             cmd = ""
             cmd += self._vars_common()

@@ -65,8 +65,7 @@ class InitramfsInstaller:
             raise InitramfsInstallError("\"%s\" does not exist" % (self._be.firmware_dirpath))
 
         # prepare tmpdir
-        robust_layer.simple_fops.rm(self._initramfsTmpDir)
-        os.makedirs(self._initramfsTmpDir)
+        robust_layer.simple_fops.mk_empty_dir(self._initramfsTmpDir)
 
         # deduplicated disk list
         diskList = OrderedSet()
