@@ -418,8 +418,6 @@ class BbkiAtomExecutor:
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
-            cmd += "source %s\n" % (pkg_resources.resource_filename(__name__, os.path.join("script-helpers", "do_fw")))
-            cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
             cmd += "\n"
             cmd += "kernel_addon_install\n"
