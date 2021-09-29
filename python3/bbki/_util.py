@@ -49,10 +49,7 @@ class Util:
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
         m = re.search("UUID=\"(\\S*)\"", ret, re.M)
-        if m is not None:
-            return m.group(1)
-        else:
-            return ""
+        return m.group(1)
 
     @staticmethod
     def getBlkDevByUuid(uuid):
@@ -67,7 +64,7 @@ class Util:
             fullfn = os.path.join("/dev/disk/by-id", fn)
             if os.path.realpath(fullfn) == devPath:
                 return fn
-        return ""
+        assert False
 
     @staticmethod
     def getDiskById(diskId):
