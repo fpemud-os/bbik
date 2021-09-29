@@ -324,6 +324,8 @@ class BootLoader:
                 raise _InternalParseError()
             self._rootfsDevUuid = m.group(1)
             self._rootfsDev = Util.getBlkDevByUuid(self._rootfsDevUuid)
+            if self._rootfsDev is None:
+                raise _InternalParseError()
 
             if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
                 self._bootMode = BootMode.EFI
@@ -336,6 +338,8 @@ class BootLoader:
                     raise _InternalParseError()
                 self._espDevUuid = m.group(1)
                 self._espDev = Util.getBlkDevByUuid(self._espDevUuid)
+                if self._espDev is None:
+                    raise _InternalParseError()
             elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
                 self._bootMode = BootMode.BIOS
 
@@ -344,6 +348,8 @@ class BootLoader:
                     raise _InternalParseError()
                 self._bootDiskId = m.group(1)
                 self._bootDisk = Util.getDiskById(self._bootDiskId)
+                if self._bootDisk is None:
+                    raise _InternalParseError()
             else:
                 assert False
 
