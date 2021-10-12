@@ -63,7 +63,7 @@ class Bbki:
         self._bootDirWriter = BootDirWriter(self)
         self._bootloader = BootLoader(self)
 
-        ConfigValidator(self).validate()
+        ConfigValidator(self).validateAfterAllInitIsDone()
 
     @property
     def config(self):

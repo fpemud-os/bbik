@@ -109,15 +109,20 @@ class EtcDirConfig(Config):
 
         self._tmpDir = self.DEFAULT_TMP_DIR
 
+        # validate and fill cache
         self._tKernelTypeName = None
-        self._tKernelAddonNameList = None
-        self._tOptions = None
-        self._tMaskBufList = None
-
-        # fill cache
         self._filltKernel()
+
+        # validate and fill cache
+        self._tKernelAddonNameList = None
         self._filltKernelAddonNameList()
+
+        # validate and fill cache
+        self._tOptions = None
         self._filltMaskBufList()
+
+        # validate and fill cache
+        self._tMaskBufList = None
         self._filltOptions()
 
     @property
