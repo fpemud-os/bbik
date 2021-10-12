@@ -308,9 +308,6 @@ class FsLayout:
     def get_boot_dir(self):
         return "/boot"
 
-    def get_lib_dir(self):
-        return "/boot"
-
     def get_boot_history_dir(self):
         return "/boot/history"
 

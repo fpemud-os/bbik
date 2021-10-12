@@ -81,8 +81,6 @@ class Bbki:
     def check_running_environment(self):
         if not os.path.isdir(self._fsLayout.get_boot_dir()):
             raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_boot_dir()))
-        if not os.path.isdir(self._fsLayout.get_lib_dir()):
-            raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_lib_dir()))
 
         if not Util.cmdCallTestSuccess("make", "-v"):
             raise RunningEnvironmentError("executable \"make\" does not exist")
