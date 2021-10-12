@@ -75,6 +75,9 @@ class Config:
     def test_version_mask(self, item_fullname, item_verstr):
         raise NotImplementedError()
 
+    def do_check(self, autofix, error_callback):
+        raise NotImplementedError()
+
 
 class EtcDirConfig(Config):
 
@@ -202,6 +205,47 @@ class EtcDirConfig(Config):
                     return False
         return True
 
+    def do_check(self, bbki, autofix, error_callback):
+        # check kernel name
+        bFound = False
+        for repo in bbki.repositories:
+            ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL, self._tKernelTypeName[1])
+            if len(ret) > 0:
+                bFound = True
+        if not bFound:
+            # no way to auto fix
+            error_callback("%s/%s does not exist." % (self._tKernelTypeName[0], self._tKernelTypeName[1]))
+
+        # check kernel addon names
+        dirList = [
+            self._profileKernelAddonDir,
+            self._cfgKernelAddonDir,
+        ]
+        for dirPath in dirList:
+            if not os.path.exits(dirPath):
+                continue
+            for fn in os.listdir(dirPath):
+                fullfn = os.path.join(dirPath, fn)
+                for addonName, bAdd in self.__parseAddonFile(fullfn):
+                    bFound = False
+                    for repo in bbki.repositories:
+                        ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL_ADDON, addonName)
+                        if len(ret) > 0:
+                            bFound = True
+                    if not bFound:
+                        # no way to auto fix
+                        error_callback("%s%s/%s in \"%s\" does not exist." % ("" if bAdd else "-", self._tKernelTypeName[0], addonName, fullfn))
+
+        # check initramfs name
+        bFound = False
+        for repo in bbki.repositories:
+            ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_INITRAMFS, self.get_initramfs_name())
+            if len(ret) > 0:
+                bFound = True
+        if not bFound:
+            # no way to auto fix
+            error_callback("%s/%s does not exist." % (self._tKernelTypeName[0], self.get_initramfs_name()))
+
     def _filltKernel(self):
         assert self._tKernelTypeName is None
 
@@ -220,27 +264,19 @@ class EtcDirConfig(Config):
     def _filltKernelAddonNameList(self):
         assert self._tKernelAddonNameList is None
 
-        def __myParse(path):
-            if os.path.exists(path):
-                for fn in os.listdir(path):
-                    for line in Util.readListFile(os.path.join(path, fn)):
-                        bAdd = True
-                        if line.startswith("-"):
-                            bAdd = False
-                            line = line[1:]
-                        tlist = line.split("/")
-                        if len(tlist) != 2:
-                            raise ConfigError("invalid value of kernel addon atom name")
-                        if tlist[0] != self._tKernelTypeName[0] + "-addon":
-                            raise ConfigError("invalid value of kernel addon atom name")
-                        if bAdd:
-                            self._tKernelAddonNameList.add(tlist[1])
-                        else:
-                            self._tKernelAddonNameList.remove(tlist[1])
-
-        self._tKernelAddonNameList = set()
-        __myParse(self._profileKernelAddonDir)                           # step1: use /etc/bbki/profile/bbki.*
-        __myParse(self._cfgKernelAddonDir)                               # step2: use /etc/bbki/bbki.*
+        dirList = [
+            self._profileKernelAddonDir,   # step1: use /etc/bbki/profile/bbki.*
+            self._cfgKernelAddonDir,       # step2: use /etc/bbki/bbki.*
+        ]
+        for dirPath in dirList:
+            if not os.path.exits(dirPath):
+                continue
+            for fn in os.listdir(dirPath):
+                for addonName, bAdd in self.__parseAddonFile(os.path.join(dirPath, fn)):
+                    if bAdd:
+                        self._tKernelAddonNameList.add(addonName)
+                    else:
+                        self._tKernelAddonNameList.remove(addonName)
         self._tKernelAddonNameList = list(self._tKernelAddonNameList)
         self._tKernelAddonNameList.sort()
 
@@ -329,3 +365,18 @@ class EtcDirConfig(Config):
             varVal = varVal.replace(m.group(0), varVal2)
 
         return varVal
+
+    def __parseAddonFile(self, filepath):
+        ret = []
+        for line in Util.readListFile(filepath):
+            bAdd = True
+            if line.startswith("-"):
+                bAdd = False
+                line = line[1:]
+            tlist = line.split("/")
+            if len(tlist) != 2:
+                raise ConfigError("invalid value of kernel addon atom name")
+            if tlist[0] != self._tKernelTypeName[0] + "-addon":
+                raise ConfigError("invalid value of kernel addon atom name")
+            ret.append(tlist[1], bAdd)
+        return ret
