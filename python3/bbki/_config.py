@@ -234,7 +234,7 @@ class EtcDirConfig(Config):
                             bFound = True
                     if not bFound:
                         # no way to auto fix
-                        error_callback("%s%s/%s in \"%s\" does not exist." % ("" if bAdd else "-", self._tKernelTypeName[0], addonName, fullfn))
+                        error_callback("%s%s/%s in \"%s\" references a non-exist BBKI atom." % ("" if bAdd else "-", self._tKernelTypeName[0], addonName, fullfn))
 
         # check initramfs name
         bFound = False

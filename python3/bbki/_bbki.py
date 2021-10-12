@@ -292,7 +292,7 @@ class Bbki:
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())          # remove /lib/modules
 
     def check_config(self, autofix=False, error_callback=None):
-        self._cfg.do_check(autofix, error_callback)
+        self._cfg.do_check(self, autofix, error_callback)
 
     def check_repositories(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
