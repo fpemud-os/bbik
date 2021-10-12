@@ -46,7 +46,7 @@ class Checker:
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
             self._errCb("Boot-loader is not installed.")
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_INVALID:
-            self._errCb("Boot-loader is invalid.")
+            self._errCb("Boot-loader is invalid, %s." % (self._bbki._bootloader.getInvalidReason()))
         else:
             assert False
 
@@ -102,9 +102,6 @@ class Checker:
                 else:
                     for fullfn in sorted(list(tset)):
                         self._errCb("Redundant file \"%s\"." % (fullfn))
-
-        # check /boot/grub/grub.cfg
-        pass
 
         # check free space
         pass

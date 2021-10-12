@@ -75,7 +75,7 @@ class Config:
     def test_version_mask(self, item_fullname, item_verstr):
         raise NotImplementedError()
 
-    def check(self, autofix=False, error_callback=None):
+    def _check(self, autofix=False, error_callback=None):
         raise NotImplementedError()
 
 
@@ -134,11 +134,11 @@ class EtcDirConfig(Config):
         return self._tmpDir
 
     def get_build_variable(self, var_name):
-        return self._getMakeConfVariable(var_name)
+        return self.__getMakeConfVariable(var_name)
 
     def get_kernel_type(self):
         # fill cache
-        self._filltKernel()
+        self.__filltKernel()
 
         if self._tKernelTypeName is None:
             raise ConfigError("no kernel type and kernel name specified")
@@ -148,7 +148,7 @@ class EtcDirConfig(Config):
 
     def get_kernel_name(self):
         # fill cache
-        self._filltKernel()
+        self.__filltKernel()
 
         if self._tKernelTypeName is None:
             raise ConfigError("no kernel type and kernel name specified")
@@ -156,8 +156,8 @@ class EtcDirConfig(Config):
 
     def get_kernel_addon_names(self):
         # fill cache
-        self._filltKernel()
-        self._filltKernelAddonNameList()
+        self.__filltKernel()
+        self.__filltKernelAddonNameList()
 
         return self._tKernelAddonNameList
 
@@ -166,7 +166,7 @@ class EtcDirConfig(Config):
 
     def get_system_init(self):
         # fill cache
-        self._filltOptions()
+        self.__filltOptions()
 
         if self._tOptions["system"]["init"] == "auto-detect":
             if os.path.exists("/sbin/openrc-init"):
@@ -191,20 +191,20 @@ class EtcDirConfig(Config):
         assert False
 
     def get_remount_boot_rw(self):
-        self._filltOptions()            # fill cache
+        self.__filltOptions()            # fill cache
         return self._tOptions["system"]["remount-boot-rw"]
 
     def get_bootloader_extra_time(self):
-        self._filltOptions()            # fill cache
+        self.__filltOptions()            # fill cache
         return self._tOptions["bootloader"]["wait-time"]
 
     def get_kernel_extra_init_cmdline(self):
-        self._filltOptions()            # fill cache
+        self.__filltOptions()            # fill cache
         return self._tOptions["kernel"]["init-cmdline"]
 
     def test_version_mask(self, item_fullname, item_verstr):
         # fill cache
-        self._filltMaskBufList()
+        self.__filltMaskBufList()
 
         for buf in self._tMaskBufList:
             m = re.search("^>%s-(.*)$" % (item_fullname), buf, re.M)
@@ -213,14 +213,14 @@ class EtcDirConfig(Config):
                     return False
         return True
 
-    def check(self, autofix=False, error_callback=None):
+    def _check(self, autofix=False, error_callback=None):
         pass
 
-    def _filltKernel(self):
+    def __filltKernel(self):
         if self._tKernelTypeName is not None:
             return
 
-        def _myParse(path):
+        def __myParse(path):
             if os.path.exists(path):
                 ret = Util.readListFile(path)
                 if len(ret) > 0:
@@ -229,14 +229,14 @@ class EtcDirConfig(Config):
                         raise ConfigError("invalid value of kernel atom name")
                     self._tKernelTypeName = (tlist[0], tlist[1])
 
-        _myParse(self._profileKernelFile)       # step1: use /etc/bbki/profile/bbki.*
-        _myParse(self._cfgKernelFile)           # step2: use /etc/bbki/bbki.*
+        __myParse(self._profileKernelFile)       # step1: use /etc/bbki/profile/bbki.*
+        __myParse(self._cfgKernelFile)           # step2: use /etc/bbki/bbki.*
 
-    def _filltKernelAddonNameList(self):
+    def __filltKernelAddonNameList(self):
         if self._tKernelAddonNameList is not None:
             return
 
-        def _myParse(path):
+        def __myParse(path):
             if os.path.exists(path):
                 for fn in os.listdir(path):
                     for line in Util.readListFile(os.path.join(path, fn)):
@@ -255,16 +255,16 @@ class EtcDirConfig(Config):
                             self._tKernelAddonNameList.remove(tlist[1])
 
         self._tKernelAddonNameList = set()
-        _myParse(self._profileKernelAddonDir)                           # step1: use /etc/bbki/profile/bbki.*
-        _myParse(self._cfgKernelAddonDir)                               # step2: use /etc/bbki/bbki.*
+        __myParse(self._profileKernelAddonDir)                           # step1: use /etc/bbki/profile/bbki.*
+        __myParse(self._cfgKernelAddonDir)                               # step2: use /etc/bbki/bbki.*
         self._tKernelAddonNameList = list(self._tKernelAddonNameList)
         self._tKernelAddonNameList.sort()
 
-    def _filltOptions(self):
+    def __filltOptions(self):
         if self._tOptions is not None:
             return
 
-        def _myParse(path):
+        def __myParse(path):
             if os.path.exists(path):
                 cfg = configparser.ConfigParser()
                 cfg.read(path)
@@ -305,24 +305,24 @@ class EtcDirConfig(Config):
                 "remount-boot-rw": True,
             },
         }
-        _myParse(self._profileOptionsFile)      # step1: use /etc/bbki/profile/bbki.*
-        _myParse(self._cfgOptionsFile)          # step2: use /etc/bbki/bbki.*
+        __myParse(self._profileOptionsFile)      # step1: use /etc/bbki/profile/bbki.*
+        __myParse(self._cfgOptionsFile)          # step2: use /etc/bbki/bbki.*
 
-    def _filltMaskBufList(self):
+    def __filltMaskBufList(self):
         if self._tMaskBufList is not None:
             return
 
-        def _myParse(path):
+        def __myParse(path):
             if os.path.exists(path):
                 for fn in os.listdir(path):
                     with open(os.path.join(path, fn), "r") as f:
                         self._tMaskBufList.append(f.read())
 
         self._tMaskBufList = []
-        _myParse(self._profileMaskDir)      # step1: use /etc/bbki/profile/bbki.*
-        _myParse(self._cfgMaskDir)          # step2: use /etc/bbki/bbki.*
+        __myParse(self._profileMaskDir)      # step1: use /etc/bbki/profile/bbki.*
+        __myParse(self._cfgMaskDir)          # step2: use /etc/bbki/bbki.*
 
-    def _getMakeConfVariable(self, varName):
+    def __getMakeConfVariable(self, varName):
         # Returns variable value, returns "" when not found
         # Multiline variable definition is not supported yet
 
@@ -340,7 +340,7 @@ class EtcDirConfig(Config):
             if m is None:
                 break
             varName2 = m.group(1)
-            varVal2 = self._getMakeConfVariable(self._makeConf, varName2)
+            varVal2 = self.__getMakeConfVariable(self._makeConf, varName2)
             if varVal2 is None:
                 varVal2 = ""
 
