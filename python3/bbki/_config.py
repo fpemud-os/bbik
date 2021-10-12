@@ -72,7 +72,10 @@ class Config:
     def get_kernel_extra_init_cmdline(self):
         raise NotImplementedError()
 
-    def check_version_mask(self, item_fullname, item_verstr):
+    def test_version_mask(self, item_fullname, item_verstr):
+        raise NotImplementedError()
+
+    def check(self, autofix=False, error_callback=None):
         raise NotImplementedError()
 
 
@@ -199,7 +202,7 @@ class EtcDirConfig(Config):
         self._filltOptions()            # fill cache
         return self._tOptions["kernel"]["init-cmdline"]
 
-    def check_version_mask(self, item_fullname, item_verstr):
+    def test_version_mask(self, item_fullname, item_verstr):
         # fill cache
         self._filltMaskBufList()
 
@@ -209,6 +212,9 @@ class EtcDirConfig(Config):
                 if Util.compareVerstr(item_verstr, m.group(1)) > 0:
                     return False
         return True
+
+    def check(self, autofix=False, error_callback=None):
+        pass
 
     def _filltKernel(self):
         if self._tKernelTypeName is not None:

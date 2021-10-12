@@ -55,10 +55,15 @@ class BootLoader:
         self._bootDiskId = None
         self._mainBootPostfix = None
         self._kernelCmdLine = None
+        self._invalidReason = None
         self._parseGrubCfg()
 
     def getStatus(self):
         return self._status
+
+    def getInvalidReason(self):
+        assert self._status == self.STATUS_INVALID
+        return self._invalidReason
 
     def getBootMode(self):
         assert self._status == self.STATUS_NORMAL
@@ -208,6 +213,7 @@ class BootLoader:
         self._bootDiskId = boot_disk_id
         self._mainBootPostfix = main_boot_entry.postfix
         self._kernelCmdLine = kernelCmdLine
+        self._invalidReason = None
 
     def update(self, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
         assert self._status == self.STATUS_NORMAL
@@ -292,8 +298,9 @@ class BootLoader:
         self._espDevUuid = None
         self._bootDisk = None
         self._bootDiskId = None
-        self._kernelCmdLine = None
         self._mainBootPostfix = None
+        self._kernelCmdLine = None
+        self._invalidReason = None
 
     def _getKernelCmdLine(self, aux_kernel_init_cmdline):
         kernelCmdLine = ""
@@ -314,51 +321,51 @@ class BootLoader:
             self._status = self.STATUS_NORMAL
 
             if not os.path.exists(self._grubCfgFile):
-                raise _InternalParseError()
+                raise _InternalParseError("\"%s\" does not exist" % (self._grubCfgFile))
             if not Util.cmdCallTestSuccess("grub-script-check", self._grubCfgFile):
-                raise _InternalParseError()
+                raise _InternalParseError("\"%s\" is invalid" % (self._grubCfgFile))
             buf = pathlib.Path(self._grubCfgFile).read_text()
 
             m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
             if m is None:
-                raise _InternalParseError()
+                raise _InternalParseError("no rootfs device UUID in \"%s\"" % (self._grubCfgFile))
             self._rootfsDevUuid = m.group(1)
             self._rootfsDev = Util.getBlkDevByUuid(self._rootfsDevUuid)
             if self._rootfsDev is None:
-                raise _InternalParseError()
+                raise _InternalParseError("rootfs device %s can not be found" % (self._rootfsDevUuid))
 
             if os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "x86_64-efi")):
                 self._bootMode = BootMode.EFI
 
                 if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
-                    raise _InternalParseError()
+                    raise _InternalParseError("\"%s\" does not exist" % (self._bbki._fsLayout.get_boot_grub_efi_dir()))
 
                 m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
                 if m is None:
-                    raise _InternalParseError()
+                    raise _InternalParseError("no ESP partition UUID in \"%s\"" % (self._grubCfgFile))
                 self._espDevUuid = m.group(1)
                 self._espDev = Util.getBlkDevByUuid(self._espDevUuid)
                 if self._espDev is None:
-                    raise _InternalParseError()
+                    raise _InternalParseError("ESP partition %s can not be found" % (self._espDevUuid))
             elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
                 self._bootMode = BootMode.BIOS
 
                 m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
                 if m is None:
-                    raise _InternalParseError()
+                    raise _InternalParseError("no boot disk ID in \"%s\"" % (self._grubCfgFile))
                 self._bootDiskId = m.group(1)
                 self._bootDisk = Util.getDiskById(self._bootDiskId)
                 if self._bootDisk is None:
-                    raise _InternalParseError()
+                    raise _InternalParseError("boot disk %s can not be found" % (self._bootDiskId))
             else:
                 assert False
 
             m = re.search(r'menuentry "Stable: Linux-\S+" {\n.*?\n  linux \S*/kernel-(\S+) quiet (.*?)\n', buf, re.S)
             if m is None:
-                raise _InternalParseError()
+                raise _InternalParseError("no main boot entry in \"%s\"" % (self._grubCfgFile))
             self._mainBootPostfix = m.group(1)
             self._kernelCmdLine = m.group(2)
-        except _InternalParseError:
+        except _InternalParseError as e:
             self._status = self.STATUS_INVALID
             self._bootMode = None
             self._rootfsDev = None
@@ -369,6 +376,7 @@ class BootLoader:
             self._bootDiskId = None
             self._mainBootPostfix = None
             self._kernelCmdLine = None
+            self._invalidReason = e.message
 
     def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, mainBootEntry, auxOsList, kernelCmdLine):
         buf = ''

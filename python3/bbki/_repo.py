@@ -30,7 +30,6 @@ import pathlib
 import tarfile
 import zipfile
 import urllib.parse
-import pkg_resources
 import robust_layer.simple_git
 import robust_layer.simple_fops
 from ._util import Util
