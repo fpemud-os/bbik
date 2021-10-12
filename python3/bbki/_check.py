@@ -24,9 +24,46 @@
 import os
 import robust_layer.simple_fops
 from ._util import Util
+from ._exception import ConfigError
+from ._repo import Repo
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
+
+
+class ConfigValidator:
+
+    def __init__(self, bbki):
+        self._bbki = bbki
+
+    def validate(self):
+        # check kernel name
+        bFound = False
+        for repo in self._bbki.repositories:
+            ret = repo.get_atoms_by_type_name(self._bbki.config.get_kernel_type(), Repo.ATOM_TYPE_KERNEL, self._bbki.config.get_kernel_name())
+            if len(ret) > 0:
+                bFound = True
+        if not bFound:
+            raise ConfigError("%s/%s does not exist" % (self._bbki.config.get_kernel_type(), self._bbki.config.get_kernel_name()))
+
+        # check kernel addon names
+        for n in self._bbki.config.get_kernel_addon_names():
+            bFound = False
+            for repo in self._bbki.repositories:
+                ret = repo.get_atoms_by_type_name(self._bbki.config.get_kernel_type(), Repo.ATOM_TYPE_KERNEL_ADDON, n)
+                if len(ret) > 0:
+                    bFound = True
+            if not bFound:
+                raise ConfigError("%s/%s does not exist" % (self._bbki.config.get_kernel_type(), n))
+
+        # check initramfs name
+        bFound = False
+        for repo in self._bbki.repositories:
+            ret = repo.get_atoms_by_type_name(self._bbki.config.get_kernel_type(), Repo.ATOM_TYPE_INITRAMFS, self._bbki.config.get_initramfs_name())
+            if len(ret) > 0:
+                bFound = True
+        if not bFound:
+            raise ConfigError("%s/%s does not exist" % (self._bbki.config.get_kernel_type(), self._bbki.config.get_initramfs_name()))
 
 
 class Checker:

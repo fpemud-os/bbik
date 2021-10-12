@@ -41,6 +41,7 @@ from ._boot_dir import BootDirWriter
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
+from ._check import ConfigValidator
 from ._check import Checker
 
 
@@ -61,6 +62,8 @@ class Bbki:
 
         self._bootDirWriter = BootDirWriter(self)
         self._bootloader = BootLoader(self)
+
+        ConfigValidator(self).validate()
 
     @property
     def config(self):
@@ -290,9 +293,6 @@ class Bbki:
             robust_layer.simple_fops.truncate_dir(self._fsLayout.get_boot_dir())      # remove /boot/*
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())                # remove /lib/firmware
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())          # remove /lib/modules
-
-    def check_config(self, autofix=False, error_callback=None):
-        self._cfg._check(autofix, error_callback)
 
     def check_repositories(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)
