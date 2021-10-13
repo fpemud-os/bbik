@@ -63,6 +63,7 @@ class Repo:
 
     def create(self):
         # Business exception should not be raise, but be printed as error message
+        assert not self.exists()
         self.sync()
 
     def sync(self):
