@@ -27,8 +27,8 @@ import configparser
 from ._util import Util
 from ._po import KernelType
 from ._po import SystemInit
-from ._exception import ConfigError
 from ._config import ConfigBase
+from ._exception import ConfigError
 
 
 class Config(ConfigBase):
@@ -97,7 +97,7 @@ class Config(ConfigBase):
         return self._tmpDir
 
     def get_build_variable(self, var_name):
-        return self._getMakeConfVariable(var_name)
+        return MakeConfFile.get_variable_from_file(self._makeConf, var_name)
 
     def get_kernel_type(self):
         if self._tKernelTypeName is None:
@@ -178,7 +178,7 @@ class Config(ConfigBase):
                 continue
             for fn in os.listdir(dirPath):
                 fullfn = os.path.join(dirPath, fn)
-                for addonName, bAdd in KernelAddonFile.parse_file(fullfn):
+                for addonName, bAdd in KernelAddonFile.parse_from_file(fullfn):
                     bFound = False
                     for repo in bbki.repositories:
                         ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL_ADDON, addonName)
@@ -202,9 +202,9 @@ class Config(ConfigBase):
         assert self._tKernelTypeName is None
 
         if os.path.exists(self._profileKernelFile):                                     # step1: use /etc/bbki/profile/bbki.*
-            self._tKernelTypeName = KernelFile.parse_file(self._profileKernelFile)
+            self._tKernelTypeName = KernelFile.parse_from_file(self._profileKernelFile)
         if os.path.exists(self._cfgKernelFile):                                         # step2: use /etc/bbki/bbki.*
-            self._tKernelTypeName = KernelFile.parse_file(self._cfgKernelFile)
+            self._tKernelTypeName = KernelFile.parse_from_file(self._cfgKernelFile)
 
     def _filltKernelAddonNameList(self):
         assert self._tKernelAddonNameList is None
@@ -217,7 +217,7 @@ class Config(ConfigBase):
             if not os.path.exits(dirPath):
                 continue
             for fn in os.listdir(dirPath):
-                for addonName, bAdd in KernelAddonFile.parse_file(os.path.join(dirPath, fn)):
+                for addonName, bAdd in KernelAddonFile.parse_from_file(os.path.join(dirPath, fn)):
                     if bAdd:
                         self._tKernelAddonNameList.add(addonName)
                     else:
@@ -285,15 +285,19 @@ class Config(ConfigBase):
         __myParse(self._profileMaskDir)      # step1: use /etc/bbki/profile/bbki.*
         __myParse(self._cfgMaskDir)          # step2: use /etc/bbki/bbki.*
 
-    def _getMakeConfVariable(self, varName):
-        # Returns variable value, returns "" when not found
+
+class MakeConfFile:
+
+    # data format: {
+    #     "VAR-NAME": "VALUE",
+    # }
+
+    @staticmethod
+    def get_variable(buf, var_name):
+        # Returns variable value, variable value is "" if not found
         # Multiline variable definition is not supported yet
 
-        buf = ""
-        with open(self._makeConf, 'r') as f:
-            buf = f.read()
-
-        m = re.search("^%s=\"(.*)\"$" % varName, buf, re.MULTILINE)
+        m = re.search("^%s=\"(.*)\"$" % (var_name), buf, re.MULTILINE)
         if m is None:
             return ""
         varVal = m.group(1)
@@ -303,7 +307,7 @@ class Config(ConfigBase):
             if m is None:
                 break
             varName2 = m.group(1)
-            varVal2 = self._getMakeConfVariable(self._makeConf, varName2)
+            varVal2 = MakeConfFile.get_variable(buf, varName2)
             if varVal2 is None:
                 varVal2 = ""
 
@@ -311,9 +315,17 @@ class Config(ConfigBase):
 
         return varVal
 
+    @staticmethod
+    def get_variable_from_file(filepath, var_name):
+        buf = pathlib.Path(filepath).read_text()
+        return MakeConfFile.get_variable(buf, var_name)
+
 
 class KernelFile:
 
+    # data format: (kernel_type, kernel_name)
+
+    @staticmethod
     def parse(buf):
         ret = None
         for line in buf.split("\n"):
@@ -329,7 +341,8 @@ class KernelFile:
             raise ConfigError("invalid content")
         return ret
 
-    def parse_file(filepath):
+    @staticmethod
+    def parse_from_file(filepath):
         buf = pathlib.Path(filepath).read_text()
         return KernelFile.parse(buf)
 
@@ -340,6 +353,7 @@ class KernelAddonFile:
     #     (addon-atom-name, enable-or-disable),
     # ]
 
+    @staticmethod
     def generate(kernel_type_name, data):
         buf = ""
         for name, bAdd in data:
@@ -349,6 +363,7 @@ class KernelAddonFile:
             buf += "%s%s\n" % ("" if bAdd else "-", name)
         return buf
 
+    @staticmethod
     def generate_file(kernel_type_name, data, filepath):
         assert os.uid() == 0
 
@@ -357,6 +372,7 @@ class KernelAddonFile:
             f.write(buf)
         os.chmod(filepath, 0o0644)
 
+    @staticmethod
     def parse(kernel_type_name, buf):
         ret = []
         for line in buf.split("\n"):
@@ -374,6 +390,7 @@ class KernelAddonFile:
                 ret.append(tlist[1], bAdd)
         return ret
 
-    def parse_file(kernel_type_name, filepath):
+    @staticmethod
+    def parse_from_file(kernel_type_name, filepath):
         buf = pathlib.Path(filepath).read_text()
         return KernelAddonFile.parse(kernel_type_name, buf)
