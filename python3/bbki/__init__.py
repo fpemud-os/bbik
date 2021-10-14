@@ -50,8 +50,7 @@ from ._po import HostDiskVirtioDisk
 from ._po import HostDiskPartition
 from ._po import HostAuxOs
 
-from ._config import Config
-from ._config import EtcDirConfig
+from ._config import ConfigBase
 
 from ._repo import Repo
 from ._repo import RepoAtom
