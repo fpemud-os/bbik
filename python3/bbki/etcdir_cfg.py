@@ -388,7 +388,7 @@ class KernelAddonFile:
                     raise ConfigError("invalid value of kernel addon atom name")
                 if tlist[0] != kernel_type + "-addon":
                     raise ConfigError("invalid value of kernel addon atom name")
-                ret.append(tlist[1], bAdd)
+                ret.append((tlist[1], bAdd))
         return ret
 
     @staticmethod
