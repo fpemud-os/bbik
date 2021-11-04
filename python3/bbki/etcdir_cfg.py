@@ -219,7 +219,7 @@ class Config(ConfigBase):
             if not os.path.exists(dirPath):
                 continue
             for fn in os.listdir(dirPath):
-                for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName, os.path.join(dirPath, fn)):
+                for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName[0], os.path.join(dirPath, fn)):
                     if bAdd:
                         self._tKernelAddonNameList.add(addonName)
                     else:
@@ -355,26 +355,26 @@ class KernelAddonFile:
     # ]
 
     @staticmethod
-    def generate(kernel_type_name, data):
+    def generate(kernel_type, data):
         buf = ""
         for name, bAdd in data:
             tlist = name.split("/")
             assert len(tlist) == 2
-            assert tlist[0] == kernel_type_name + "-addon"
+            assert tlist[0] == kernel_type + "-addon"
             buf += "%s%s\n" % ("" if bAdd else "-", name)
         return buf
 
     @staticmethod
-    def generate_file(kernel_type_name, data, filepath):
+    def generate_file(kernel_type, data, filepath):
         assert os.uid() == 0
 
-        buf = KernelAddonFile.generate(kernel_type_name, data)      # may raise exception
+        buf = KernelAddonFile.generate(kernel_type, data)      # may raise exception
         with open(filepath, "w") as f:
             f.write(buf)
         os.chmod(filepath, 0o0644)
 
     @staticmethod
-    def parse(kernel_type_name, buf):
+    def parse(kernel_type, buf):
         ret = []
         for line in buf.split("\n"):
             line = line.strip()
@@ -386,12 +386,12 @@ class KernelAddonFile:
                 tlist = line.split("/")
                 if len(tlist) != 2:
                     raise ConfigError("invalid value of kernel addon atom name")
-                if tlist[0] != kernel_type_name + "-addon":
+                if tlist[0] != kernel_type + "-addon":
                     raise ConfigError("invalid value of kernel addon atom name")
                 ret.append(tlist[1], bAdd)
         return ret
 
     @staticmethod
-    def parse_from_file(kernel_type_name, filepath):
+    def parse_from_file(kernel_type, filepath):
         buf = pathlib.Path(filepath).read_text()
-        return KernelAddonFile.parse(kernel_type_name, buf)
+        return KernelAddonFile.parse(kernel_type, buf)
