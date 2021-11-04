@@ -28,7 +28,6 @@ import robust_layer.simple_fops
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
-from ._config import EtcDirConfig
 from ._repo import Repo
 from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
@@ -42,6 +41,8 @@ from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
 from ._check import Checker
+
+from .etcdir_cfg import EtcDirConfig
 
 
 class Bbki:
