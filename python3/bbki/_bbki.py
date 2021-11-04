@@ -25,7 +25,8 @@ import os
 import glob
 import robust_layer.simple_fops
 
-from .etcdir_cfg import Config
+from ._config import ConfigBase
+from .etcdir_cfg import Config as EtcDirConfig
 
 from ._po import BootMode
 from ._po import KernelType
@@ -47,7 +48,13 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg=Config(), self_boot=True):
+    def __init__(self, cfg=None, self_boot=True):
+        if cfg is not None:
+            assert isinstance(cfg, ConfigBase)
+        else:
+            cfg = EtcDirConfig()
+        assert isinstance(self_boot, bool)
+
         self._cfg = cfg
         self._bSelfBoot = self_boot
 
