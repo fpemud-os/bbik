@@ -207,6 +207,7 @@ class Config(ConfigBase):
             self._tKernelTypeName = KernelFile.parse_from_file(self._cfgKernelFile)
 
     def _filltKernelAddonNameList(self):
+        assert self._tKernelTypeName is not None
         assert self._tKernelAddonNameList is None
 
         dirList = [
@@ -218,7 +219,7 @@ class Config(ConfigBase):
             if not os.path.exists(dirPath):
                 continue
             for fn in os.listdir(dirPath):
-                for addonName, bAdd in KernelAddonFile.parse_from_file(os.path.join(dirPath, fn)):
+                for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName, os.path.join(dirPath, fn)):
                     if bAdd:
                         self._tKernelAddonNameList.add(addonName)
                     else:
