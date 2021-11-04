@@ -221,7 +221,7 @@ class Config(ConfigBase):
             for fn in os.listdir(dirPath):
                 for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName[0], os.path.join(dirPath, fn)):
                     if bAdd:
-                        self._tKernelAddonNameList.add(addonName)
+                        self._tKernelAddonNameList.append(addonName)
                     else:
                         self._tKernelAddonNameList.remove(addonName)
         self._tKernelAddonNameList.sort()
