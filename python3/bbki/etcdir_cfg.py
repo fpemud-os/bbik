@@ -174,7 +174,7 @@ class Config(ConfigBase):
             self._cfgKernelAddonDir,
         ]
         for dirPath in dirList:
-            if not os.path.exits(dirPath):
+            if not os.path.exists(dirPath):
                 continue
             for fn in os.listdir(dirPath):
                 fullfn = os.path.join(dirPath, fn)
@@ -214,7 +214,7 @@ class Config(ConfigBase):
             self._cfgKernelAddonDir,       # step2: use /etc/bbki/bbki.*
         ]
         for dirPath in dirList:
-            if not os.path.exits(dirPath):
+            if not os.path.exists(dirPath):
                 continue
             for fn in os.listdir(dirPath):
                 for addonName, bAdd in KernelAddonFile.parse_from_file(os.path.join(dirPath, fn)):
