@@ -213,6 +213,7 @@ class Config(ConfigBase):
             self._profileKernelAddonDir,   # step1: use /etc/bbki/profile/bbki.*
             self._cfgKernelAddonDir,       # step2: use /etc/bbki/bbki.*
         ]
+        self._tKernelAddonNameList = []
         for dirPath in dirList:
             if not os.path.exists(dirPath):
                 continue
@@ -222,7 +223,6 @@ class Config(ConfigBase):
                         self._tKernelAddonNameList.add(addonName)
                     else:
                         self._tKernelAddonNameList.remove(addonName)
-        self._tKernelAddonNameList = list(self._tKernelAddonNameList)
         self._tKernelAddonNameList.sort()
 
     def _filltOptions(self):
