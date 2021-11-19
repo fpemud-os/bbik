@@ -55,8 +55,6 @@ from ._config import ConfigBase
 from ._repo import Repo
 from ._repo import RepoAtom
 
-from ._boot_dir import BootDirWriter
-
 from ._boot_entry import BootEntry
 
 from ._kernel import KernelInstaller

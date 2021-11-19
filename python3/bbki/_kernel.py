@@ -188,18 +188,17 @@ class KernelInstaller:
     def install(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
-        with self._bbki._bootDirWriter:
-            self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile)
-            for item in self._addonAtomList:
-                self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
+        self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile)
+        for item in self._addonAtomList:
+            self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
 
-            for be in self._bbki.get_boot_entries():
-                if be != self._targetBootEntry:
-                    BootEntryWrapper(be).move_to_history()
+        for be in self._bbki.get_boot_entries():
+            if be != self._targetBootEntry:
+                BootEntryWrapper(be).move_to_history()
 
-            self._executorDict[self._kernelAtom].exec_kernel_cleanup()
-            for item in self._addonAtomList:
-                self._executorDict[item].exec_kernel_addon_cleanup()
+        self._executorDict[self._kernelAtom].exec_kernel_cleanup()
+        for item in self._addonAtomList:
+            self._executorDict[item].exec_kernel_addon_cleanup()
 
         self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
 
