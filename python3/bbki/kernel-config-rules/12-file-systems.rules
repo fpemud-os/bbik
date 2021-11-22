@@ -47,10 +47,6 @@ MSDOS_FS=m
 [symbols:MSDOS_FS]=m,y
 VFAT_FS=m
 [symbols:VFAT_FS]=m,y
-HFS_FS=m
-[symbols:HFS_FS]=m,y
-HFSPLUS_FS=m
-[symbols:HFSPLUS_FS]=m,y
 CIFS=m
 [symbols:CIFS]=m,y
 
