@@ -16,15 +16,13 @@ SYSFS=y
 HUGETLBFS=y
 CONFIGFS_FS=y
 
-# common file systems
-EXT2_FS=m
-[symbols:EXT2_FS]=m,y
+# ext4 file system
 EXT4_FS=m
 [symbols:EXT4_FS]=m,y
-XFS_FS=m
-[symbols:XFS_FS]=m,y
-F2FS_FS=m
-[symbols:F2FS_FS]=m,y
+
+# btrfs file system
+BTRFS_FS=m
+BTRFS_FS_POSIX_ACL=y                            # there's many debug switchs under BTRFS menu, so we only select this one
 
 # special file systems
 FUSE_FS=m
