@@ -131,8 +131,9 @@ class HostMountPoint:
     NAME_ESP = "boot"
 
     FS_TYPE_VFAT = "vfat"
-    FS_TYPE_EXT4 = "ext4"           # deprecated
+    FS_TYPE_EXT4 = "ext4"
     FS_TYPE_BTRFS = "btrfs"
+    FS_TYPE_BCACHEFS = "bcachefs"
 
     def __init__(self, name, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disk=None):
         self.name = None
@@ -166,7 +167,7 @@ class HostMountPoint:
         # self.fs_type
         if fs_type is not None:
             assert self.dev_path is None                                    # self.dev_path and parameter "fs_type" are mutally exclusive
-            assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS]
+            assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS, self.FS_TYPE_BCACHEFS]
             self.fs_type = fs_type
         else:
             assert self.dev_path is not None

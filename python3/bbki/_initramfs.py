@@ -112,7 +112,7 @@ class InitramfsInstaller:
                         kaliasList.add("nls_%s" % (m.group(1)))
                     else:
                         raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._be.kernel_config_filepath))
-                elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS]:
+                elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS, HostMountPoint.FS_TYPE_BCACHEFS]:
                     kaliasList.add(mp.fs_type)
                 else:
                     assert False
