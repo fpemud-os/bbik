@@ -30,6 +30,7 @@ from ._util import Util
 from ._boot_entry import BootEntry
 from ._boot_entry import BootEntryWrapper
 from ._repo import BbkiAtomExecutor
+from ._exception import KernelInstallError
 
 
 class KernelInstaller:
@@ -260,17 +261,17 @@ def _getKernelVerStr(kernelDir):
 
         m = re.search("VERSION = ([0-9]+)", buf, re.M)
         if m is None:
-            raise Exception("illegal kernel source directory")
+            raise KernelInstallError("illegal kernel source directory")
         version = int(m.group(1))
 
         m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
         if m is None:
-            raise Exception("illegal kernel source directory")
+            raise KernelInstallError("illegal kernel source directory")
         patchlevel = int(m.group(1))
 
         m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
         if m is None:
-            raise Exception("illegal kernel source directory")
+            raise KernelInstallError("illegal kernel source directory")
         sublevel = int(m.group(1))
 
         m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
