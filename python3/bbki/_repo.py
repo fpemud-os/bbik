@@ -320,7 +320,7 @@ class BbkiAtomExecutor:
             cmd += "src_prepare\n"
             Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_kernel_install(self, kernelConfigFile, kernelConfigRulesFile):
+    def exec_kernel_install(self, kernelConfigFile, kernelConfigRulesFile, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if not self._item_has_me():
@@ -332,7 +332,7 @@ class BbkiAtomExecutor:
             cmd += self._vars_after_fetch()
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
-            cmd += "export KVER='%s'\n" % (self._atom.verstr)
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
@@ -343,7 +343,7 @@ class BbkiAtomExecutor:
             cmd += "kernel_install\n"
             Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_kernel_cleanup(self):
+    def exec_kernel_cleanup(self, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL)
 
         if not self._item_has_me():
@@ -354,15 +354,15 @@ class BbkiAtomExecutor:
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
-            cmd += "export KVER='%s'\n" % (self._atom.verstr)
-            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(self._atom.verstr))
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
+            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
             cmd += "\n"
             cmd += "kernel_cleanup\n"
             Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_kernel_addon_patch_kernel(self, kernel_atom):
+    def exec_kernel_addon_patch_kernel(self, kernel_atom, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if not self._item_has_me():
@@ -373,7 +373,7 @@ class BbkiAtomExecutor:
             cmd = ""
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
-            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
@@ -381,7 +381,7 @@ class BbkiAtomExecutor:
             cmd += "kernel_addon_patch_kernel\n"
             Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_kernel_addon_contribute_config_rules(self, kernel_atom):
+    def exec_kernel_addon_contribute_config_rules(self, kernel_atom, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if not self._item_has_me():
@@ -392,7 +392,7 @@ class BbkiAtomExecutor:
             cmd = ""
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
-            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
@@ -400,7 +400,7 @@ class BbkiAtomExecutor:
             cmd += "kernel_addon_contribute_config_rules\n"
             return Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_kernel_addon_install(self, kernel_atom):
+    def exec_kernel_addon_install(self, kernel_atom, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_KERNEL_ADDON)
 
         if not self._item_has_me():
@@ -411,9 +411,9 @@ class BbkiAtomExecutor:
             cmd = ""
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
-            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
-            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(kernel_atom.verstr))
+            cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
             cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
             cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
@@ -429,7 +429,7 @@ class BbkiAtomExecutor:
         if not self._item_has_me():
             return
 
-    def exec_initramfs_contribute_config_rules(self, kernel_atom):
+    def exec_initramfs_contribute_config_rules(self, kernel_atom, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
         if not self._item_has_me():
@@ -440,7 +440,7 @@ class BbkiAtomExecutor:
             cmd = ""
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
-            cmd += "export KVER='%s'\n" % (kernel_atom.verstr)
+            cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)

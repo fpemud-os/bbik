@@ -80,7 +80,7 @@ class KernelInstaller:
         assert self._progress == KernelInstallProgress.STEP_UNPACKED
 
         for addon_item in self._addonAtomList:
-            self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom)
+            self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom, self._targetBootEntry)
         self._progress = KernelInstallProgress.STEP_PATCHED
 
     def generate_kernel_config_file(self):
@@ -153,11 +153,11 @@ class KernelInstaller:
 
         # addon rules
         for addon_item in self._addonAtomList:
-            rulesDict[addon_item.name] = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules(self._kernelAtom)
+            rulesDict[addon_item.name] = self._executorDict[addon_item].exec_kernel_addon_contribute_config_rules(self._kernelAtom, self._targetBootEntry)
 
         # initramfs rules
         if self._initramfsAtom is not None:
-            rulesDict["initramfs"] = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom)
+            rulesDict["initramfs"] = self._executorDict[self._initramfsAtom].exec_initramfs_contribute_config_rules(self._kernelAtom, self._targetBootEntry)
 
         # sysadmin rules
         rulesDict["custom"] = ""            # FIXME
@@ -188,15 +188,15 @@ class KernelInstaller:
     def install(self):
         assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
 
-        self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile)
+        self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile, self._targetBootEntry)
         for item in self._addonAtomList:
-            self._executorDict[item].exec_kernel_addon_install(self._kernelAtom)
+            self._executorDict[item].exec_kernel_addon_install(self._kernelAtom, self._targetBootEntry)
 
         for be in self._bbki.get_boot_entries():
             if be != self._targetBootEntry:
                 BootEntryWrapper(be).move_to_history()
 
-        self._executorDict[self._kernelAtom].exec_kernel_cleanup()
+        self._executorDict[self._kernelAtom].exec_kernel_cleanup(self._targetBootEntry)
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_cleanup()
 
