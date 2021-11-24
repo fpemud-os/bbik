@@ -49,7 +49,7 @@ class KernelInstaller:
             self._executorDict[self._initramfsAtom] = BbkiAtomExecutor(self._initramfsAtom)
 
         self._progress = KernelInstallProgress.STEP_INIT
-        self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, self._kernelAtom.verstr)
+        self._targetBootEntry = None
 
         self._myTmpDir = os.path.join(self._bbki.config.tmp_dir, "kernel")
         self._kcfgRulesTmpFile = os.path.join(self._myTmpDir, "config.rules")
@@ -74,13 +74,16 @@ class KernelInstaller:
             self._executorDict[item].exec_src_unpack()
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].exec_src_unpack()
+
         self._progress = KernelInstallProgress.STEP_UNPACKED
+        self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
 
     def patch_kernel(self):
         assert self._progress == KernelInstallProgress.STEP_UNPACKED
 
         for addon_item in self._addonAtomList:
             self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom, self._targetBootEntry)
+
         self._progress = KernelInstallProgress.STEP_PATCHED
 
     def generate_kernel_config_file(self):
@@ -245,3 +248,36 @@ class KernelInstallProgress:
     def kernel_source_signature(self):
         # FIXME
         assert False
+
+
+def _getKernelVerStr(kernelDir):
+    version = None
+    patchlevel = None
+    sublevel = None
+    extraversion = None
+    with open(os.path.join(kernelDir, "Makefile")) as f:
+        buf = f.read()
+
+        m = re.search("VERSION = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise Exception("illegal kernel source directory")
+        version = int(m.group(1))
+
+        m = re.search("PATCHLEVEL = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise Exception("illegal kernel source directory")
+        patchlevel = int(m.group(1))
+
+        m = re.search("SUBLEVEL = ([0-9]+)", buf, re.M)
+        if m is None:
+            raise Exception("illegal kernel source directory")
+        sublevel = int(m.group(1))
+
+        m = re.search("EXTRAVERSION = (\\S+)", buf, re.M)
+        if m is not None:
+            extraversion = m.group(1)
+
+    if extraversion is not None:
+        return "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
+    else:
+        return "%d.%d.%d" % (version, patchlevel, sublevel)
