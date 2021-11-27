@@ -23,6 +23,7 @@
 
 import os
 import re
+import platform
 import pylkcutil
 import pkg_resources
 import robust_layer.simple_fops
@@ -77,7 +78,7 @@ class KernelInstaller:
             self._executorDict[self._initramfsAtom].exec_src_unpack()
 
         self._progress = KernelInstallProgress.STEP_UNPACKED
-        self._targetBootEntry = BootEntry(self._bbki, os.uname().machine, _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
+        self._targetBootEntry = BootEntry(self._bbki, platform.machine, _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
 
     def patch_kernel(self):
         assert self._progress == KernelInstallProgress.STEP_UNPACKED

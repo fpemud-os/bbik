@@ -29,6 +29,7 @@ import inspect
 import pathlib
 import tarfile
 import zipfile
+import platform
 import urllib.parse
 import robust_layer.simple_git
 import robust_layer.simple_fops
@@ -486,7 +487,7 @@ class BbkiAtomExecutor:
             buf += "export PN='%s'\n" % (self._atom.name)
             buf += "export PV='%s'\n" % (self._atom.ver)
         if True:
-            buf += "export ARCH='%s'\n" % (os.uname().machine)
+            buf += "export ARCH='%s'\n" % (platform.machine)
         if True:
             buf += "export FILESDIR='%s'\n" % (self.get_files_dir())
             buf += "export WORKDIR='%s'\n" % (self._trWorkDir)
@@ -614,7 +615,7 @@ def _new_boot_entry_from_kernel_srcdir(bbki, kernel_srcdir):
         verstr = "%d.%d.%d%s" % (version, patchlevel, sublevel, extraversion)
     else:
         verstr = "%d.%d.%d" % (version, patchlevel, sublevel)
-    return BootEntry(bbki, os.uname().machine, verstr)
+    return BootEntry(bbki, platform.machine, verstr)
 
 
 def _new_atom_from_bbki_filepath(repo, bbki_file):

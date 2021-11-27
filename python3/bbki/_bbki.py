@@ -23,6 +23,7 @@
 
 import os
 import glob
+import platform
 import robust_layer.simple_fops
 
 from ._config import ConfigBase
@@ -98,7 +99,7 @@ class Bbki:
         assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
-            ret = BootEntry(self, os.uname().machine, os.uname().release, history_entry=bHistoryEntry)
+            ret = BootEntry(self, platform.machine, platform.release, history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
         raise RunningEnvironmentError("current boot entry is lost")
