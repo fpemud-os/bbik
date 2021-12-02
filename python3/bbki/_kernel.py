@@ -37,17 +37,10 @@ from ._exception import KernelInstallError
 def Step(progress_step):
     def decorator(func):
         def wrapper(self):
-            # check
             assert self._progress == progress_step
-
-            # do work
             func(self)
-
-            # do progress
             self._progress += 1
-
         return wrapper
-
     return decorator
 
 
