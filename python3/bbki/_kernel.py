@@ -34,6 +34,59 @@ from ._repo import BbkiAtomExecutor
 from ._exception import KernelInstallError
 
 
+def Step(progress_step):
+    def decorator(func):
+        def wrapper(self):
+            # check
+            assert self._progress == progress_step
+
+            # do work
+            func(self)
+
+            # do progress
+            self._progress += 1
+
+        return wrapper
+
+    return decorator
+
+
+class KernelInstallProgress:
+
+    STEP_INIT = 1
+    STEP_UNPACKED = 2
+    STEP_PATCHED = 3
+    STEP_KERNEL_CONFIG_FILE_GENERATED = 4
+    STEP_KERNEL_INSTALLED = 5
+
+    def __init__(self, parent):
+        self._parent = parent
+        self._progress = self.STEP_INIT
+
+    @property
+    def progress(self):
+        return self._progress
+
+    @property
+    def target_boot_entry(self):
+        return self._parent._targetBootEntry
+
+    @property
+    def kernel_config_filepath(self):
+        assert self._parent._dotCfgFile is not None
+        return self._parent._dotCfgFile
+
+    @property
+    def kernel_config_rules_filepath(self):
+        assert self._parent._kcfgRulesTmpFile is not None
+        return self._parent._kcfgRulesTmpFile
+
+    @property
+    def kernel_source_signature(self):
+        # FIXME
+        assert False
+
+
 class KernelInstaller:
 
     def __init__(self, bbki, kernel_atom, kernel_atom_item_list, initramfs_atom):
@@ -68,29 +121,23 @@ class KernelInstaller:
     def get_progress(self):
         return KernelInstallProgress(self)
 
+    @Step(KernelInstallProgress.STEP_INIT)
     def unpack(self):
-        assert self._progress == KernelInstallProgress.STEP_INIT
-
         self._executorDict[self._kernelAtom].exec_src_unpack()
         for item in self._addonAtomList:
             self._executorDict[item].exec_src_unpack()
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].exec_src_unpack()
 
-        self._progress = KernelInstallProgress.STEP_UNPACKED
         self._targetBootEntry = BootEntry(self._bbki, platform.machine, _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
 
+    @Step(KernelInstallProgress.STEP_UNPACKED)
     def patch_kernel(self):
-        assert self._progress == KernelInstallProgress.STEP_UNPACKED
-
         for addon_item in self._addonAtomList:
             self._executorDict[addon_item].exec_kernel_addon_patch_kernel(self._kernelAtom, self._targetBootEntry)
 
-        self._progress = KernelInstallProgress.STEP_PATCHED
-
+    @Step(KernelInstallProgress.STEP_PATCHED)
     def generate_kernel_config_file(self):
-        assert self._progress == KernelInstallProgress.STEP_PATCHED
-
         rulesDict = dict()
 
         # head rules
@@ -188,11 +235,8 @@ class KernelInstaller:
                                      "allnoconfig+module",
                                      self._kcfgRulesTmpFile, output=self._dotCfgFile)
 
-        self._progress = KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
-
+    @Step(KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED)
     def install(self):
-        assert self._progress == KernelInstallProgress.STEP_KERNEL_CONFIG_FILE_GENERATED
-
         self._executorDict[self._kernelAtom].exec_kernel_install(self._dotCfgFile, self._kcfgRulesTmpFile, self._targetBootEntry)
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_install(self._kernelAtom, self._targetBootEntry)
@@ -205,8 +249,6 @@ class KernelInstaller:
         for item in self._addonAtomList:
             self._executorDict[item].exec_kernel_addon_cleanup()
 
-        self._progress = KernelInstallProgress.STEP_KERNEL_INSTALLED
-
     def dispose(self):
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].remove_tmpdirs()
@@ -214,42 +256,6 @@ class KernelInstaller:
             self._executorDict[item].remove_tmpdirs()
         self._executorDict[self._kernelAtom].remove_tmpdirs()
         robust_layer.simple_fops.rm(self._myTmpDir)
-
-
-class KernelInstallProgress:
-
-    STEP_INIT = 1
-    STEP_UNPACKED = 2
-    STEP_PATCHED = 3
-    STEP_KERNEL_CONFIG_FILE_GENERATED = 4
-    STEP_KERNEL_INSTALLED = 5
-
-    def __init__(self, parent):
-        self._parent = parent
-        self._progress = self.STEP_INIT
-
-    @property
-    def progress(self):
-        return self._progress
-
-    @property
-    def target_boot_entry(self):
-        return self._parent._targetBootEntry
-
-    @property
-    def kernel_config_filepath(self):
-        assert self._parent._dotCfgFile is not None
-        return self._parent._dotCfgFile
-
-    @property
-    def kernel_config_rules_filepath(self):
-        assert self._parent._kcfgRulesTmpFile is not None
-        return self._parent._kcfgRulesTmpFile
-
-    @property
-    def kernel_source_signature(self):
-        # FIXME
-        assert False
 
 
 def _getKernelVerStr(kernelDir):
