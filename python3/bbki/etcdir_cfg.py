@@ -178,7 +178,7 @@ class Config(ConfigBase):
                 continue
             for fn in os.listdir(dirPath):
                 fullfn = os.path.join(dirPath, fn)
-                for addonName, bAdd in KernelAddonFile.parse_from_file(fullfn):
+                for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName[0], fullfn):
                     bFound = False
                     for repo in bbki.repositories:
                         ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL_ADDON, addonName)
