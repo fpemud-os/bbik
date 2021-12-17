@@ -122,7 +122,7 @@ class KernelInstaller:
         if self._initramfsAtom is not None:
             self._executorDict[self._initramfsAtom].exec_src_unpack()
 
-        self._targetBootEntry = BootEntry(self._bbki, platform.machine, _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
+        self._targetBootEntry = BootEntry(self._bbki, platform.machine(), _getKernelVerStr((self._executorDict[self._kernelAtom].get_work_dir())))
 
     @Step(KernelInstallProgress.STEP_UNPACKED)
     def patch_kernel(self):

@@ -13,7 +13,7 @@ if sys.version_info < (3, 8):
 # check linux platform
 platform = distutils.util.get_platform()
 if not platform.startswith('linux'):
-    sys.stderr.write("This module is not available on %s\n" % platform)
+    sys.stderr.write("This module is not available on %s\n" % (platform))
     sys.exit(1)
 
 classif = [

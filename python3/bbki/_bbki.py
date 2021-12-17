@@ -99,7 +99,7 @@ class Bbki:
         assert self._bSelfBoot
 
         for bHistoryEntry in [False, True]:
-            ret = BootEntry(self, platform.machine, platform.release, history_entry=bHistoryEntry)
+            ret = BootEntry(self, platform.machine(), platform.release(), history_entry=bHistoryEntry)
             if ret.has_kernel_files() and ret.has_initrd_files():
                 return ret
         raise RunningEnvironmentError("current boot entry is lost")
@@ -182,15 +182,15 @@ class Bbki:
             rootfsMp = host_storage.get_root_mount_point()
             espMp = host_storage.get_esp_mount_point()
             self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
-                                        None, None,
-                                        main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
-                                        bForce=True)
+                                     None, None,
+                                     main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
+                                     bForce=True)
         elif boot_mode == BootMode.BIOS:
             rootfsMp = host_storage.get_root_mount_point()
             self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
-                                        host_storage.boot_disk_path, host_storage.boot_disk_id,
-                                        main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
-                                        bForce=True)
+                                     host_storage.boot_disk_path, host_storage.boot_disk_id,
+                                     main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
+                                     bForce=True)
         else:
             assert False
 
