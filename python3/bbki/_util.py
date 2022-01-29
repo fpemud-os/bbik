@@ -211,9 +211,15 @@ class Util:
 
     @staticmethod
     def bcachefsGetUuid(slaveDevPathList):
-        ret = Util.cmdCall("bcachefs", "show-super", slaveDevPathList[0])
-        m = re.search("External UUID: *(\\S+)", ret, re.M)
-        return m.group(1)
+        ret = None
+        for devPath in slaveDevPathList:
+            out = Util.cmdCall("bcachefs", "show-super", devPath)
+            m = re.search("External UUID: *(\\S+)", out, re.M)
+            if ret is None:
+                ret = m.group(1)
+            else:
+                assert ret == m.group(1)
+        return ret
 
     @staticmethod
     def btrfsGetUuid(devPath):
