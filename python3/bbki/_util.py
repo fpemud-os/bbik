@@ -213,8 +213,8 @@ class Util:
     def bcachefsGetUuid(slaveDevPathList):
         ret = None
         for devPath in slaveDevPathList:
-            out = Util.cmdCall("bcachefs", "show-super", devPath)
-            m = re.search("External UUID: *(\\S+)", out, re.M)
+            out = Util.cmdCall("file", "-sb", devPath)
+            m = re.search("^bcachefs, UUID=(\\S+),", out)
             if ret is None:
                 ret = m.group(1)
             else:
@@ -294,13 +294,13 @@ class Util:
 
     @staticmethod
     def getBlkDevFsType(devPath):
-        # FIXME: blkid doesn't support bcachefs yet, use /usr/bin/file instead
-        ret = Util.cmdCall("/usr/bin/file", "-sb", devPath)
+        # FIXME: blkid doesn't support bcachefs yet, use file instead
+        ret = Util.cmdCall("file", "-sb", devPath)
         if re.search("^bcachefs, UUID=", ret) is not None:
             return "bcachefs"
 
-        # use /sbin/blkid to get fstype
-        ret = Util.cmdCall("/sbin/blkid", "-o", "export", devPath)
+        # use blkid to get fstype
+        ret = Util.cmdCall("blkid", "-o", "export", devPath)
         m = re.search("^TYPE=(\\S+)$", ret, re.M)
         if m is not None:
             return m.group(1).lower()
