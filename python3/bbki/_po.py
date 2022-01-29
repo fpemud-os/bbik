@@ -223,18 +223,21 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
 class HostDiskBtrfs(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: UUID of the whole btrfs filesystem
         super().__init__(uuid, parent)
 
 
 class HostDiskBcachefs(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: UUID of the whole bcachefs filesystem
         super().__init__(uuid, parent)
 
 
 class HostDiskLvmLv(HostDisk):
 
     def __init__(self, uuid, vg_name, lv_name, parent=None):
+        # uuid: FS-UUID of the filesystem in LV??
         super().__init__(uuid, parent)
         self.vg_name = vg_name
         self.lv_name = lv_name
@@ -243,6 +246,7 @@ class HostDiskLvmLv(HostDisk):
 class HostDiskBcache(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: FS-UUID of the filesystem in bcache device??
         super().__init__(uuid, parent)
         self.cache_dev_list = []
         self.backing_dev = None
@@ -258,6 +262,7 @@ class HostDiskBcache(HostDisk):
 class HostDiskScsiDisk(HostDisk):
 
     def __init__(self, uuid, host_controller_name, parent=None):
+        # uuid: I don't know what the value is, no code is using this value
         super().__init__(uuid, parent)
         self.host_controller_name = host_controller_name
 
@@ -265,18 +270,21 @@ class HostDiskScsiDisk(HostDisk):
 class HostDiskNvmeDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: I don't know what the value is, no code is using this value
         super().__init__(uuid, parent)
 
 
 class HostDiskXenDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: I don't know what the value is, no code is using this value
         super().__init__(uuid, parent)
 
 
 class HostDiskVirtioDisk(HostDisk):
 
     def __init__(self, uuid, parent=None):
+        # uuid: I don't know what the value is, no code is using this value
         super().__init__(uuid, parent)
 
 
@@ -288,6 +296,7 @@ class HostDiskPartition(HostDisk):
     def __init__(self, uuid, part_type, parent=None):
         assert self.PART_TYPE_MBR <= part_type <= self.PART_TYPE_GPT
 
+        # uuid: FS-UUID of the filesystem in this partition, no code is using this value
         super().__init__(uuid, parent)
         self.part_type = part_type
 
