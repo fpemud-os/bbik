@@ -220,6 +220,18 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
         return hash(self.uuid)
 
 
+class HostDiskBtrfs(HostDisk):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(uuid, parent)
+
+
+class HostDiskBcachefs(HostDisk):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(uuid, parent)
+
+
 class HostDiskLvmLv(HostDisk):
 
     def __init__(self, uuid, vg_name, lv_name, parent=None):
@@ -241,18 +253,6 @@ class HostDiskBcache(HostDisk):
     def add_backing_dev(self, disk):
         assert self.backing_dev is None
         self.backing_dev = disk
-
-
-class HostDiskBtrfs(HostDisk):
-
-    def __init__(self, uuid, parent=None):
-        super().__init__(uuid, parent)
-
-
-class HostDiskBcachefs(HostDisk):
-
-    def __init__(self, uuid, parent=None):
-        super().__init__(uuid, parent)
 
 
 class HostDiskScsiDisk(HostDisk):

@@ -33,6 +33,8 @@ from ordered_set import OrderedSet
 from ._util import Util
 from ._util import TempChdir
 from ._po import HostMountPoint
+from ._po import HostDiskBtrfs
+from ._po import HostDiskBcachefs
 from ._po import HostDiskLvmLv
 from ._po import HostDiskBcache
 from ._po import HostDiskNvmeDisk
@@ -93,6 +95,11 @@ class InitramfsInstaller:
                     kaliasList.add("virtio_blk")
                 elif isinstance(disk, HostDiskBcache):
                     kaliasList.add("bcache")
+                elif isinstance(disk, HostDiskBtrfs):
+                    kaliasList.add("btrfs")
+                elif isinstance(disk, HostDiskBcachefs):
+                    # FIXME: currently bcache module is alway built-in
+                    pass
                 elif isinstance(disk, HostDiskPartition):
                     pass        # get kernel module for partition format
                 else:
@@ -135,6 +142,10 @@ class InitramfsInstaller:
                     for cacheDev in disk.cache_dev_list:
                         blkOpList.add("bcache-cache-device-activate %s" % (cacheDev.uuid))
                     blkOpList.add("bcache-backing-device-activate %s %s" % (disk.uuid, disk.backing_dev.uuid))
+                elif isinstance(disk, HostDiskBcachefs):
+                    pass
+                elif isinstance(disk, HostDiskBtrfs):
+                    pass
                 elif isinstance(disk, HostDiskScsiDisk):
                     # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
                     pass
@@ -190,6 +201,10 @@ class InitramfsInstaller:
             if isinstance(disk, HostDiskLvmLv):
                 self._installFilesLvm(self._initramfsTmpDir)
             elif isinstance(disk, HostDiskBcache):
+                pass
+            elif isinstance(disk, HostDiskBcachefs):
+                pass
+            elif isinstance(disk, HostDiskBtrfs):
                 pass
             elif isinstance(disk, HostDiskScsiDisk):
                 pass
@@ -281,9 +296,8 @@ class InitramfsInstaller:
         # build the initramfs file and tar file
         with TempChdir(self._initramfsTmpDir):
             # initramfs file
-            cmdStr = "/usr/bin/find . -print0 "
-            cmdStr += "| /bin/cpio --null -H newc -o "
-            cmdStr += "| /usr/bin/xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
+            cmdStr = "find . -print0 | cpio --null -H newc -o "
+            cmdStr += "| xz --format=lzma "            # it seems linux kernel config RD_XZ has bug, so we must use format lzma
             cmdStr += "> \"%s\" " % (self._be.initrd_filepath)
             Util.shellCall(cmdStr)
 
@@ -396,7 +410,8 @@ class InitramfsInstaller:
 
         # mount block devices
         for mi in self._mountPointList:
-            buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, mi.dev_uuid, _getPrefixedMountPoint(mi))
+            uuidStr = ":".join(["UUID=%s" % (x) for x in mi.dev_uuid.split(":")])
+            buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, uuidStr, _getPrefixedMountPoint(mi))
             buf += "\n"
 
         # switch to new root
