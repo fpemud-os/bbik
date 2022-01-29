@@ -212,7 +212,7 @@ class Util:
     @staticmethod
     def bcachefsGetUuid(slaveDevPathList):
         ret = Util.cmdCall("bcachefs", "show-super", slaveDevPathList[0])
-        m = re.search("XXXX", ret)            # FIXME
+        m = re.search("External UUID: *(\\S+)", ret, re.M)
         return m.group(1)
 
     @staticmethod
