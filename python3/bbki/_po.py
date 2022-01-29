@@ -350,13 +350,13 @@ class HostDiskPartition(HostDisk):
                 if m is None:
                     m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
         if m is not None:
-            m2 = re.search(r'[^| ]PTTYPE="(\S+)"', Util.cmdCall("blkid", m.group(1)), re.M)
-            if m2.group(1) == "dos":
+            m2 = re.search(r'(^| )PTTYPE="(\S+)"', Util.cmdCall("blkid", m.group(1)), re.M)
+            if m2.group(2) == "dos":
                 ptType = cls.PART_TYPE_MBR
-            elif m2.group(1) == "gpt":
+            elif m2.group(2) == "gpt":
                 ptType = cls.PART_TYPE_GPT
             else:
-                raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(1), devPath))
+                raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(2), devPath))
             bdi = cls(Util.getBlkDevUuid(devPath), ptType, parent)
             HostDisk.getUnderlayDisk(m.group(1), bdi)
             return bdi
