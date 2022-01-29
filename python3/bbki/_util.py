@@ -59,6 +59,21 @@ class Util:
         return os.path.realpath(path)
 
     @staticmethod
+    def getBlkDevPartUuid(devPath):
+        """UUID is also called FS-UUID, PARTUUID is another thing"""
+
+        ret = Util.cmdCall("/sbin/blkid", devPath)
+        m = re.search("PARTUUID=\"(\\S*)\"", ret, re.M)
+        return m.group(1)
+
+    @staticmethod
+    def getBlkDevByPartUuid(uuid):
+        path = os.path.join("/dev", "disk", "by-partuuid", uuid)
+        if not os.path.exists(path):
+            return None
+        return os.path.realpath(path)
+
+    @staticmethod
     def getDiskId(devPath):
         for fn in os.listdir("/dev/disk/by-id"):
             fullfn = os.path.join("/dev/disk/by-id", fn)
@@ -195,6 +210,20 @@ class Util:
         return (ret.returncode, ret.stdout.rstrip())
 
     @staticmethod
+    def bcachefsGetUuid(slaveDevPathList):
+        ret = Util.cmdCall("bcachefs", "show-super", slaveDevPathList[0])
+        m = re.search("XXXX", ret)            # FIXME
+        return m.group(1)
+
+    @staticmethod
+    def btrfsGetUuid(devPath):
+        assert False            # FIXME
+
+    @staticmethod
+    def btrfsGetSlavePathList(devPath):
+        assert False            # FIXME
+
+    @staticmethod
     def bcacheGetSlaveDevPathList(bcacheDevPath):
         """Last element in the returned list is the backing device, others are cache device"""
 
@@ -230,7 +259,7 @@ class Util:
         """Returns (vg-name, lv-name)
            Returns None if the device is not lvm"""
 
-        rc, out = Util.shellCallWithRetCode("/sbin/dmsetup info %s" % (devPath))
+        rc, out = Util.shellCallWithRetCode("dmsetup info %s" % (devPath))
         if rc == 0:
             m = re.search("^Name: *(\\S+)$", out, re.M)
             assert m is not None

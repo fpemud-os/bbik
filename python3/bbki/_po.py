@@ -156,13 +156,16 @@ class HostMountPoint:
             assert mount_point == "/boot"
         self.mount_point = mount_point
 
-        # self.dev_path and self.dev_uuid
-        if dev_path_or_uuid.startswith("/dev/"):
+        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
+        tlist = dev_path_or_uuid.split(":")
+        if all([item.startswith("/dev/") for item in tlist]):
             self.dev_path = dev_path_or_uuid
-            self.dev_uuid = Util.getBlkDevUuid(self.dev_path)               # FS-UUID, not PART-UUID
-        else:
+            self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
+        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
             self.dev_path = None
             self.dev_uuid = dev_path_or_uuid
+        else:
+            assert False
 
         # self.fs_type
         if fs_type is not None:
@@ -171,7 +174,12 @@ class HostMountPoint:
             self.fs_type = fs_type
         else:
             assert self.dev_path is not None
-            self.fs_type = Util.getBlkDevFsType(self.dev_path)
+            for item in self.dev_path.split(":"):
+                t = Util.getBlkDevFsType(item)
+                if self.fs_type is None:
+                    self.fs_type = t
+                else:
+                    assert self.fs_type == t
 
         # self.mnt_opt
         if self.name == self.NAME_ROOT:
@@ -233,6 +241,18 @@ class HostDiskBcache(HostDisk):
     def add_backing_dev(self, disk):
         assert self.backing_dev is None
         self.backing_dev = disk
+
+
+class HostDiskBtrfs(HostDisk):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(uuid, parent)
+
+
+class HostDiskBcachefs(HostDisk):
+
+    def __init__(self, uuid, parent=None):
+        super().__init__(uuid, parent)
 
 
 class HostDiskScsiDisk(HostDisk):
@@ -338,12 +358,37 @@ class FsLayout:
 
 
 def _getUnderlayDisk(devPath, parent=None):
+    # HostDiskBcachefs
+    if ":" in devPath or (Util.getBlkDevFsType(devPath) == "bcachefs" and (parent is None or not isinstance(parent, HostDiskBcachefs))):
+        slaveDevPathList = devPath.split(":")
+        bdi = HostDiskBcachefs(Util.bcachefsGetUuid(slaveDevPathList), parent=parent)
+        for slaveDevPath in slaveDevPathList:
+            _getUnderlayDisk(slaveDevPath, parent=bdi)
+
+    # HostDiskBtrfs
+    if Util.getBlkDevFsType(devPath) == "btrfs" and (parent is None or not isinstance(parent, HostDiskBtrfs)):
+        bdi = HostDiskBtrfs(Util.btrfsGetUuid(devPath), parent=parent)
+        for slaveDevPath in Util.btrfsGetSlavePathList(devPath):
+            _getUnderlayDisk(slaveDevPath, parent=bdi)
+
     # HostDiskLvmLv
     lvmInfo = Util.getBlkDevLvmInfo(devPath)
     if lvmInfo is not None:
         bdi = HostDiskLvmLv(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent=parent)
         for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
             _getUnderlayDisk(slaveDevPath, parent=bdi)
+        return bdi
+
+    # HostDiskBcache
+    m = re.fullmatch("/dev/bcache[0-9]+", devPath)
+    if m is not None:
+        bdi = HostDiskBcache(Util.getBlkDevUuid(devPath), parent=parent)
+        slist = Util.bcacheGetSlaveDevPathList(devPath)
+        for i in range(0, len(slist)):
+            if i < len(slist) - 1:
+                bdi.add_cache_dev(_getUnderlayDisk(slist[i], parent=bdi))
+            else:
+                bdi.add_backing_dev(_getUnderlayDisk(slist[i], parent=bdi))
         return bdi
 
     # HostDiskPartition
@@ -378,18 +423,6 @@ def _getUnderlayDisk(devPath, parent=None):
     m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
     if m is not None:
         return HostDiskNvmeDisk(Util.getBlkDevUuid(devPath), parent=parent)
-
-    # HostDiskBcache
-    m = re.fullmatch("/dev/bcache[0-9]+", devPath)
-    if m is not None:
-        bdi = HostDiskBcache(Util.getBlkDevUuid(devPath), parent=parent)
-        slist = Util.bcacheGetSlaveDevPathList(devPath)
-        for i in range(0, len(slist)):
-            if i < len(slist) - 1:
-                bdi.add_cache_dev(_getUnderlayDisk(slist[i], parent=bdi))
-            else:
-                bdi.add_backing_dev(_getUnderlayDisk(slist[i], parent=bdi))
-        return bdi
 
     # unknown
     raise RunningEnvironmentError("unknown device \"%s\"" % (devPath))
