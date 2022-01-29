@@ -156,6 +156,17 @@ class HostMountPoint:
             assert mount_point == "/boot"
         self.mount_point = mount_point
 
+        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
+        tlist = dev_path_or_uuid.split(":")
+        if all([item.startswith("/dev/") for item in tlist]):
+            self.dev_path = dev_path_or_uuid
+            self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
+        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
+            self.dev_path = None
+            self.dev_uuid = dev_path_or_uuid
+        else:
+            assert False
+
         # self.fs_type
         if fs_type is not None:
             assert self.dev_path is None                                    # self.dev_path and parameter "fs_type" are mutally exclusive
@@ -170,19 +181,10 @@ class HostMountPoint:
                 else:
                     assert self.fs_type == t
 
-        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
-        tlist = dev_path_or_uuid.split(":")
-        if all([item.startswith("/dev/") for item in tlist]):
-            self.dev_path = dev_path_or_uuid
-            if self.fs_type == "bcachefs":
-                self.dev_uuid = ":".join([Util.getBlkDevPartUuid(item) for item in tlist])   # FIXME: use PART-UUID for bcachefs until blkid supports it
-            else:
-                self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
-        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
-            self.dev_path = None
-            self.dev_uuid = dev_path_or_uuid
-        else:
-            assert False
+        # FIXME: use PART-UUID for bcachefs until blkid supports it
+        if self.fs_type == "bcachefs":
+            if self.dev_path is not None:
+                self.dev_uuid = ":".join([Util.getBlkDevPartUuid(item) for item in self.dev_path.split(":")])
 
         # self.mnt_opt
         if self.name == self.NAME_ROOT:
