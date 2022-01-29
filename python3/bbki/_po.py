@@ -156,17 +156,6 @@ class HostMountPoint:
             assert mount_point == "/boot"
         self.mount_point = mount_point
 
-        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
-        tlist = dev_path_or_uuid.split(":")
-        if all([item.startswith("/dev/") for item in tlist]):
-            self.dev_path = dev_path_or_uuid
-            self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
-        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
-            self.dev_path = None
-            self.dev_uuid = dev_path_or_uuid
-        else:
-            assert False
-
         # self.fs_type
         if fs_type is not None:
             assert self.dev_path is None                                    # self.dev_path and parameter "fs_type" are mutally exclusive
@@ -180,6 +169,20 @@ class HostMountPoint:
                     self.fs_type = t
                 else:
                     assert self.fs_type == t
+
+        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
+        tlist = dev_path_or_uuid.split(":")
+        if all([item.startswith("/dev/") for item in tlist]):
+            self.dev_path = dev_path_or_uuid
+            if self.fs_type == "bcachefs":
+                self.dev_uuid = ":".join([Util.getBlkDevPartUuid(item) for item in tlist])   # FIXME: use PART-UUID for bcachefs until blkid supports it
+            else:
+                self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
+        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
+            self.dev_path = None
+            self.dev_uuid = dev_path_or_uuid
+        else:
+            assert False
 
         # self.mnt_opt
         if self.name == self.NAME_ROOT:
@@ -409,7 +412,14 @@ def _getUnderlayDisk(devPath, parent=None):
             if m is None:
                 m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
     if m is not None:
-        bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), HostDiskPartition.PART_TYPE_MBR, parent=parent)        # FIXME: currently there's no difference when processing mbr and gpt partition
+        m2 = re.search(r'[^| ]PTTYPE="(\S+)"', Util.cmdCall("blkid", m.group(1)), re.M)
+        if m2.group(1) == "dos":
+            ptType = HostDiskPartition.PART_TYPE_MBR
+        elif m2.group(1) == "gpt":
+            ptType = HostDiskPartition.PART_TYPE_GPT
+        else:
+            raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(1), devPath))
+        bdi = HostDiskPartition(Util.getBlkDevUuid(devPath), ptType, parent=parent)
         _getUnderlayDisk(m.group(1), parent=bdi)
         return bdi
 

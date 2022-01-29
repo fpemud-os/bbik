@@ -410,7 +410,10 @@ class InitramfsInstaller:
 
         # mount block devices
         for mi in self._mountPointList:
-            uuidStr = ":".join(["UUID=%s" % (x) for x in mi.dev_uuid.split(":")])
+            if mi.fs_type == "bcachefs":
+                uuidStr = ":".join(["PARTUUID=%s" % (x) for x in mi.dev_uuid.split(":")])   # FIXME: use PART-UUID for bcachefs until blkid supports it
+            else:
+                uuidStr = ":".join(["UUID=%s" % (x) for x in mi.dev_uuid.split(":")])
             buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, uuidStr, _getPrefixedMountPoint(mi))
             buf += "\n"
 
