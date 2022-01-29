@@ -254,7 +254,7 @@ class HostDiskBtrfs(HostDisk):
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent):
-        if Util.getBlkDevFsType(devPath) == "btrfs" and (parent is None or not isinstance(parent, cls)):
+        if ":" not in devPath and Util.getBlkDevFsType(devPath) == "btrfs" and (parent is None or not isinstance(parent, cls)):
             bdi = cls(Util.btrfsGetUuid(devPath), parent)
             for slaveDevPath in Util.btrfsGetSlavePathList(devPath):
                 HostDisk.getUnderlayDisk(slaveDevPath, bdi)
