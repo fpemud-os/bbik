@@ -350,7 +350,7 @@ class InitramfsInstaller:
             self._copyToInitrd(df, rootDir)
 
     def _installFilesLvm(self, rootDir):
-        self._installBin("/usr/bin/lvm", self._initramfsTmpDir)
+        self._installBin("/sbin/lvm", self._initramfsTmpDir)
 
         # note: surrounded " would be recognized as part of rootDir, it's a bug of systemd-tmpfiles
         Util.cmdCall("/bin/systemd-tmpfiles", "--create", "--root=%s" % (rootDir), "/usr/lib/tmpfiles.d/lvm2.conf")
