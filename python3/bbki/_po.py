@@ -181,11 +181,6 @@ class HostMountPoint:
                 else:
                     assert self.fs_type == t
 
-        # FIXME: use PART-UUID for bcachefs until blkid supports it
-        if self.fs_type == "bcachefs":
-            if self.dev_path is not None:
-                self.dev_uuid = ":".join([Util.getBlkDevPartUuid(item) for item in self.dev_path.split(":")])
-
         # self.mnt_opt
         if self.name == self.NAME_ROOT:
             if mnt_opt is not None:
