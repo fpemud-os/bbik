@@ -393,7 +393,7 @@ class InitramfsInstaller:
 
         # write comments
         for mi in self._mountPointList:
-            buf += "# uuid(%s)=%s\n" % (mi.name, mi.dev_uuid)
+            buf += "# uuid(%s)=%s\n" % (mi.mount_point, mi.dev_uuid)
         buf += "\n"
 
         # load kernel modules

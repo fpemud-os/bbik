@@ -79,14 +79,14 @@ class HostStorage:
         # self.mount_points
         if boot_mode == BootMode.EFI:
             assert len(mount_points) >= 2
-            assert mount_points[0].name == HostMountPoint.NAME_ROOT
-            assert mount_points[1].name == HostMountPoint.NAME_ESP
-            assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ROOT]) == 1
-            assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ESP]) == 1
+            assert mount_points[0].mount_point == "/"
+            assert mount_points[1].mount_point == "/boot"
+            assert len([x for x in mount_points if x.mount_point == "/"]) == 1
+            assert len([x for x in mount_points if x.mount_point == "/boot"]) == 1
         elif boot_mode == BootMode.BIOS:
-            assert mount_points[0].name == HostMountPoint.NAME_ROOT
-            assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ROOT]) == 1
-            assert len([x for x in mount_points if x.name == HostMountPoint.NAME_ESP]) == 0
+            assert mount_points[0].mount_point == "/"
+            assert len([x for x in mount_points if x.mount_point == "/"]) == 1
+            assert len([x for x in mount_points if x.mount_point == "/boot"]) == 0
             assert all([x.dev_path is not None for x in mount_points])
         else:
             assert False
@@ -107,36 +107,32 @@ class HostStorage:
 
     def get_root_mount_point(self):
         for m in self.mount_points:
-            if m.name == HostMountPoint.NAME_ROOT:
+            if m.mount_point == "/":
                 return m
         assert False
 
     def get_esp_mount_point(self):
         for m in self.mount_points:
-            if m.name == HostMountPoint.NAME_ESP:
+            if m.mount_point == "/boot":
                 return m
         assert False
 
     def get_other_mount_points(self):
         ret = []
         for m in self.mount_points:
-            if m.name not in [HostMountPoint.NAME_ROOT, HostMountPoint.NAME_ESP]:
+            if m.mount_point not in ["/", "/boot"]:
                 ret.append(m)
         return ret
 
 
 class HostMountPoint:
 
-    NAME_ROOT = "root"
-    NAME_ESP = "boot"
-
     FS_TYPE_VFAT = "vfat"
     FS_TYPE_EXT4 = "ext4"
     FS_TYPE_BTRFS = "btrfs"
     FS_TYPE_BCACHEFS = "bcachefs"
 
-    def __init__(self, name, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disk=None):
-        self.name = None
+    def __init__(self, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disk=None):
         self.mount_point = None
         self.dev_path = None
         self.dev_uuid = None
@@ -144,16 +140,8 @@ class HostMountPoint:
         self.mnt_opt = None
         self.underlay_disk = None
 
-        # self.name
-        assert isinstance(name, str)
-        self.name = name
-
         # self.mount_point
         assert os.path.isabs(mount_point)
-        if self.name == self.NAME_ROOT:
-            assert mount_point == "/"
-        if self.name == self.NAME_ESP:
-            assert mount_point == "/boot"
         self.mount_point = mount_point
 
         # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
@@ -182,12 +170,12 @@ class HostMountPoint:
                     assert self.fs_type == t
 
         # self.mnt_opt
-        if self.name == self.NAME_ROOT:
+        if self.mount_point == "/":
             if mnt_opt is not None:
                 assert mnt_opt == ""
             else:
                 mnt_opt = ""
-        elif self.name == self.NAME_ESP:
+        elif self.mount_point == "/boot":
             if mnt_opt is not None:
                 assert mnt_opt == "ro,dmask=022,fmask=133"
             else:
