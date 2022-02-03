@@ -203,7 +203,7 @@ class HostMountPoint:
             self.underlay_disk = underlay_disk
         else:
             assert self.dev_path is not None
-            self.underlay_disk = HostDisk.getUnderlayDisk(self.dev_path, None)
+            self.underlay_disk = HostDisk.getUnderlayDisk(self.dev_path, mount_point=self.mount_point)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
@@ -220,7 +220,12 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
         return hash(self.uuid)
 
     @staticmethod
-    def getUnderlayDisk(devPath, parent):
+    def getUnderlayDisk(devPath, parent=None, mount_point=None):
+        if parent is None:
+            assert mount_point is not None
+        else:
+            assert mount_point is None
+
         klassList = [
             HostDiskBtrfs,
             HostDiskBcachefs,
@@ -233,7 +238,7 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
             HostDiskNvmeDisk,
         ]
         for klass in klassList:
-            ret = klass.getUnderlayDisk(devPath, parent)
+            ret = klass.getUnderlayDisk(devPath, parent, mount_point)
             if ret is not None:
                 return ret
 
@@ -248,11 +253,11 @@ class HostDiskBtrfs(HostDisk):
         super().__init__(uuid, parent)
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
-        if ":" not in devPath and Util.getBlkDevFsType(devPath) == "btrfs" and (parent is None or not isinstance(parent, cls)):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
+        if parent is None and ":" not in devPath and Util.getBlkDevFsType(devPath) == "btrfs":
             bdi = cls(Util.btrfsGetUuid(devPath), parent)
-            for slaveDevPath in Util.btrfsGetSlavePathList(devPath):
-                HostDisk.getUnderlayDisk(slaveDevPath, bdi)
+            for slaveDevPath in Util.btrfsGetSlavePathList(mountPoint):
+                HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
             return bdi
         return None
 
@@ -264,12 +269,12 @@ class HostDiskBcachefs(HostDisk):
         super().__init__(uuid, parent)
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
-        if ":" in devPath or (Util.getBlkDevFsType(devPath) == "bcachefs" and (parent is None or not isinstance(parent, cls))):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
+        if parent is None and (":" in devPath or Util.getBlkDevFsType(devPath) == "bcachefs"):
             slaveDevPathList = devPath.split(":")
             bdi = cls(Util.bcachefsGetUuid(slaveDevPathList), parent)
             for slaveDevPath in slaveDevPathList:
-                HostDisk.getUnderlayDisk(slaveDevPath, bdi)
+                HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
             return bdi
         return None
 
@@ -283,12 +288,12 @@ class HostDiskLvmLv(HostDisk):
         self.lv_name = lv_name
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         lvmInfo = Util.getBlkDevLvmInfo(devPath)
         if lvmInfo is not None:
             bdi = cls(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent)
             for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
-                HostDisk.getUnderlayDisk(slaveDevPath, bdi)
+                HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
             return bdi
         return None
 
@@ -309,16 +314,16 @@ class HostDiskBcache(HostDisk):
         self.backing_dev = disk
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/bcache[0-9]+", devPath)
         if m is not None:
             bdi = cls(Util.getBlkDevUuid(devPath), parent)
             slist = Util.bcacheGetSlaveDevPathList(devPath)
             for i in range(0, len(slist)):
                 if i < len(slist) - 1:
-                    bdi.add_cache_dev(HostDisk.getUnderlayDisk(slist[i], bdi))
+                    bdi.add_cache_dev(HostDisk.getUnderlayDisk(slist[i], parent=bdi))
                 else:
-                    bdi.add_backing_dev(HostDisk.getUnderlayDisk(slist[i], bdi))
+                    bdi.add_backing_dev(HostDisk.getUnderlayDisk(slist[i], parent=bdi))
             return bdi
         return None
 
@@ -336,7 +341,7 @@ class HostDiskPartition(HostDisk):
         self.part_type = part_type
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
         if m is None:
             m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
@@ -353,7 +358,7 @@ class HostDiskPartition(HostDisk):
             else:
                 raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(2), devPath))
             bdi = cls(Util.getBlkDevUuid(devPath), ptType, parent)
-            HostDisk.getUnderlayDisk(m.group(1), bdi)
+            HostDisk.getUnderlayDisk(m.group(1), parent=bdi)
             return bdi
         return None
 
@@ -366,7 +371,7 @@ class HostDiskScsiDisk(HostDisk):
         self.host_controller_name = host_controller_name
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/sd[a-z]", devPath)
         if m is not None:
             return cls(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerName(devPath), parent)
@@ -380,7 +385,7 @@ class HostDiskNvmeDisk(HostDisk):
         super().__init__(uuid, parent)
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
         if m is not None:
             return cls(Util.getBlkDevUuid(devPath), parent)
@@ -394,7 +399,7 @@ class HostDiskXenDisk(HostDisk):
         super().__init__(uuid, parent)
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/xvd[a-z]", devPath)
         if m is not None:
             return cls(Util.getBlkDevUuid(devPath), parent)
@@ -408,7 +413,7 @@ class HostDiskVirtioDisk(HostDisk):
         super().__init__(uuid, parent)
 
     @classmethod
-    def getUnderlayDisk(cls, devPath, parent):
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/vd[a-z]", devPath)
         if m is not None:
             return cls(Util.getBlkDevUuid(devPath), parent)

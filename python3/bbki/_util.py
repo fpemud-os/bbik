@@ -222,12 +222,18 @@ class Util:
         return ret
 
     @staticmethod
-    def btrfsGetUuid(devPath):
-        assert False            # FIXME
+    def btrfsGetUuid(mountPoint):
+        out = Util.cmdCall("btrfs", "filesystem", "show", mountPoint)
+        m = re.search("uuid: (\\S+)", out, re.M)
+        return m.group(1)
 
     @staticmethod
-    def btrfsGetSlavePathList(devPath):
-        assert False            # FIXME
+    def btrfsGetSlavePathList(mountPoint):
+        ret = []
+        out = Util.cmdCall("btrfs", "filesystem", "show", mountPoint)
+        for m in re.finditer("path (\\S+)", out, re.M):
+            ret.append(m.group(1))
+        return ret
 
     @staticmethod
     def bcacheGetSlaveDevPathList(bcacheDevPath):
