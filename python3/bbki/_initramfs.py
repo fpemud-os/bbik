@@ -96,9 +96,8 @@ class InitramfsInstaller:
                 elif isinstance(disk, HostDiskBcache):
                     kaliasList.add("bcache")
                 elif isinstance(disk, HostDiskBtrfs):
-                    kaliasList.add("btrfs")
+                    pass
                 elif isinstance(disk, HostDiskBcachefs):
-                    # FIXME: currently bcache module is alway built-in
                     pass
                 elif isinstance(disk, HostDiskPartition):
                     pass        # get kernel module for partition format
