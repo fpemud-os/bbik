@@ -383,12 +383,12 @@ class InitramfsInstaller:
     def _installStartupRc(self, rootDir, kmodList, blkOpList):
         buf = ""
 
-        def _getPrefixedMountPoint(mi):
-            if mi.mount_point == "/":
-                return "/sysroot"
+        def _getPrefixedMountPoint(mount_point):
+            if mount_point == "/":
+                return "./sysroot"
             else:
-                assert mi.mount_point.startswith("/")
-                return "/sysroot" + mi.mount_point
+                assert mount_point.startswith("/")
+                return "./sysroot" + mount_point
 
         # write comments
         for mi in self._mountPointList:
@@ -413,21 +413,21 @@ class InitramfsInstaller:
             if mi.fs_type == "btrfs":
                 assert isinstance(mi.underlay_disk, HostDiskBtrfsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
-                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
-                buf += "echo debug > /sysroot/%d.txt\n" % (i)
+                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
+                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             elif mi.fs_type == "bcachefs":
                 assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
-                buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
+                buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
             else:
-                buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi))
-                buf += "echo debug > /sysroot/%d.txt\n" % (i)
+                buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
+                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             buf += "\n"
 
         # switch to new root
-        buf += ("switchroot \"/sysroot\" %s\n" % (self._bbki.config.get_system_init().cmd)).rstrip()
+        buf += ("switchroot \"%s\" %s\n" % (_getPrefixedMountPoint("/"), self._bbki.config.get_system_init().cmd)).rstrip()
         buf += "\n"
 
         # write cfg file
