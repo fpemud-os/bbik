@@ -33,8 +33,8 @@ from ordered_set import OrderedSet
 from ._util import Util
 from ._util import TempChdir
 from ._po import HostMountPoint
-from ._po import HostDiskBtrfs
-from ._po import HostDiskBcachefs
+from ._po import HostDiskBtrfsRaid
+from ._po import HostDiskBcachefsRaid
 from ._po import HostDiskLvmLv
 from ._po import HostDiskBcache
 from ._po import HostDiskNvmeDisk
@@ -95,9 +95,9 @@ class InitramfsInstaller:
                     kaliasList.add("virtio_blk")
                 elif isinstance(disk, HostDiskBcache):
                     kaliasList.add("bcache")
-                elif isinstance(disk, HostDiskBtrfs):
+                elif isinstance(disk, HostDiskBtrfsRaid):
                     pass
-                elif isinstance(disk, HostDiskBcachefs):
+                elif isinstance(disk, HostDiskBcachefsRaid):
                     pass
                 elif isinstance(disk, HostDiskPartition):
                     pass        # get kernel module for partition format
@@ -141,9 +141,9 @@ class InitramfsInstaller:
                     for cacheDev in disk.cache_dev_list:
                         blkOpList.add("bcache-cache-device-activate %s" % (cacheDev.uuid))
                     blkOpList.add("bcache-backing-device-activate %s %s" % (disk.uuid, disk.backing_dev.uuid))
-                elif isinstance(disk, HostDiskBcachefs):
+                elif isinstance(disk, HostDiskBcachefsRaid):
                     pass
-                elif isinstance(disk, HostDiskBtrfs):
+                elif isinstance(disk, HostDiskBtrfsRaid):
                     pass
                 elif isinstance(disk, HostDiskScsiDisk):
                     # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
@@ -201,9 +201,9 @@ class InitramfsInstaller:
                 self._installFilesLvm(self._initramfsTmpDir)
             elif isinstance(disk, HostDiskBcache):
                 pass
-            elif isinstance(disk, HostDiskBcachefs):
+            elif isinstance(disk, HostDiskBcachefsRaid):
                 pass
-            elif isinstance(disk, HostDiskBtrfs):
+            elif isinstance(disk, HostDiskBtrfsRaid):
                 pass
             elif isinstance(disk, HostDiskScsiDisk):
                 pass
@@ -410,11 +410,11 @@ class InitramfsInstaller:
         # mount block devices
         for mi in self._mountPointList:
             if mi.fs_type == "btrfs":
-                assert isinstance(mi.underlay_disk, HostDiskBtrfs)
+                assert isinstance(mi.underlay_disk, HostDiskBtrfsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
                 buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
             elif mi.fs_type == "bcachefs":
-                assert isinstance(mi.underlay_disk, HostDiskBcachefs)
+                assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
                 buf += "mount-cachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
             else:
