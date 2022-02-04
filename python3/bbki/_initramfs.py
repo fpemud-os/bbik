@@ -412,13 +412,13 @@ class InitramfsInstaller:
             if mi.fs_type == "btrfs":
                 assert isinstance(mi.underlay_disk, HostDiskBtrfs)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
-                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opt, " ".join(uuidList))
+                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
             elif mi.fs_type == "bcachefs":
                 assert isinstance(mi.underlay_disk, HostDiskBcachefs)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
-                buf += "mount-cachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opt, " ".join(uuidList))
+                buf += "mount-cachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
             else:
-                buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opt, mi.dev_uuid, _getPrefixedMountPoint(mi))
+                buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi))
             buf += "\n"
 
         # switch to new root

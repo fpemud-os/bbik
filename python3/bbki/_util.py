@@ -310,8 +310,8 @@ class Util:
         m = re.search("^TYPE=(\\S+)$", ret, re.M)
         if m is not None:
             return m.group(1).lower()
-        else:
-            return ""
+
+        return ""
 
     @staticmethod
     def libUsed(binFile):
@@ -406,7 +406,7 @@ class SystemMounts:
             self.dev = _items[0]
             self.mount_point = _items[1]
             self.fs_type = _items[2]
-            self.mnt_opts = _items[3].split(",")
+            self.mnt_opt_list = _items[3].split(",")
 
     class NotFoundError(Exception):
         pass

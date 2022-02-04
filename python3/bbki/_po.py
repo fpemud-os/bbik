@@ -25,6 +25,7 @@ import os
 import re
 import anytree
 from ._util import Util
+from ._util import SystemMounts
 from ._exception import RunningEnvironmentError
 
 
@@ -132,12 +133,12 @@ class HostMountPoint:
     FS_TYPE_BTRFS = "btrfs"
     FS_TYPE_BCACHEFS = "bcachefs"
 
-    def __init__(self, mount_point, dev_path_or_uuid, fs_type=None, mnt_opt=None, underlay_disk=None):
+    def __init__(self, mount_point, dev_path_or_uuid, fs_type=None, mnt_opts=None, underlay_disk=None):
         self.mount_point = None
         self.dev_path = None
         self.dev_uuid = None
         self.fs_type = None
-        self.mnt_opt = None
+        self.mnt_opts = None
         self.underlay_disk = None
 
         # self.mount_point
@@ -156,42 +157,37 @@ class HostMountPoint:
             assert False
 
         # self.fs_type
-        if fs_type is not None:
-            assert self.dev_path is None                                    # self.dev_path and parameter "fs_type" are mutally exclusive
-            assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS, self.FS_TYPE_BCACHEFS]
-            self.fs_type = fs_type
-        else:
-            assert self.dev_path is not None
+        if self.dev_path is not None:
+            assert fs_type is None                                     # self.dev_path and parameter "fs_type" are mutally exclusive
             for item in self.dev_path.split(":"):
                 t = Util.getBlkDevFsType(item)
                 if self.fs_type is None:
                     self.fs_type = t
                 else:
                     assert self.fs_type == t
-
-        # self.mnt_opt
-        if self.mount_point == "/":
-            if mnt_opt is not None:
-                assert mnt_opt == ""
-            else:
-                mnt_opt = ""
-        elif self.mount_point == "/boot":
-            if mnt_opt is not None:
-                assert mnt_opt == "ro,dmask=022,fmask=133"
-            else:
-                mnt_opt = "ro,dmask=022,fmask=133"
         else:
-            assert isinstance(mnt_opt, str)
-        self.mnt_opt = mnt_opt
+            assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS, self.FS_TYPE_BCACHEFS]
+            self.fs_type = fs_type
+
+        # self.mnt_opts
+        if self.dev_path is not None:
+            assert mnt_opts is None                                    # self.dev_path and parameter "mnt_opts" are mutally exclusive
+            self.mnt_opts = ",".join(SystemMounts.find_entry_by_mount_point(self.mount_point).mnt_opt_list)
+        else:
+            if mnt_opts is not None:
+                assert isinstance(mnt_opts, str)
+                self.mnt_opts = mnt_opts
+            else:
+                self.mnt_opts = ""
 
         # self.underlay_disk
-        if underlay_disk is not None:
-            assert self.dev_path is None                                    # self.dev_path and parameter "underlay_disk" are mutally exclusive
+        if self.dev_path is not None:
+            assert underlay_disk is None                               # self.dev_path and parameter "underlay_disk" are mutally exclusive
+            self.underlay_disk = HostDisk.getUnderlayDisk(self.dev_path, mount_point=self.mount_point)
+        else:
+            assert underlay_disk is not None
             assert all([isinstance(x, HostDisk) for x in anytree.PostOrderIter(underlay_disk)])
             self.underlay_disk = underlay_disk
-        else:
-            assert self.dev_path is not None
-            self.underlay_disk = HostDisk.getUnderlayDisk(self.dev_path, mount_point=self.mount_point)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
@@ -215,8 +211,8 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
             assert mount_point is None
 
         klassList = [
-            HostDiskBtrfs,
-            HostDiskBcachefs,
+            HostDiskBtrfsRaid,
+            HostDiskBcachefsRaid,
             HostDiskLvmLv,
             HostDiskBcache,
             HostDiskPartition,
@@ -234,7 +230,7 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
         raise RunningEnvironmentError("unknown device \"%s\"" % (devPath))
 
 
-class HostDiskBtrfs(HostDisk):
+class HostDiskBtrfsRaid(HostDisk):
 
     def __init__(self, uuid, parent):
         # uuid: UUID of the whole btrfs filesystem
@@ -242,15 +238,16 @@ class HostDiskBtrfs(HostDisk):
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        if parent is None and ":" not in devPath and Util.getBlkDevFsType(devPath) == "btrfs":
-            bdi = cls(Util.btrfsGetUuid(devPath), parent)
-            for slaveDevPath in Util.btrfsGetSlavePathList(mountPoint):
-                HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
-            return bdi
+        if os.path.exists(devPath):
+            if parent is None and Util.getBlkDevFsType(devPath) == "btrfs":
+                bdi = cls(Util.btrfsGetUuid(devPath), parent)
+                for slaveDevPath in Util.btrfsGetSlavePathList(mountPoint):
+                    HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
+                return bdi
         return None
 
 
-class HostDiskBcachefs(HostDisk):
+class HostDiskBcachefsRaid(HostDisk):
 
     def __init__(self, uuid, parent):
         # uuid: UUID of the whole bcachefs filesystem
@@ -258,12 +255,13 @@ class HostDiskBcachefs(HostDisk):
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        if parent is None and (":" in devPath or Util.getBlkDevFsType(devPath) == "bcachefs"):
+        if ":" in devPath:
             slaveDevPathList = devPath.split(":")
-            bdi = cls(Util.bcachefsGetUuid(slaveDevPathList), parent)
-            for slaveDevPath in slaveDevPathList:
-                HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
-            return bdi
+            if all([Util.getBlkDevFsType(x) == "bcachefs" for x in slaveDevPathList]):
+                bdi = cls(Util.bcachefsGetUuid(slaveDevPathList), parent)
+                for slaveDevPath in slaveDevPathList:
+                    HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
+                return bdi
         return None
 
 
