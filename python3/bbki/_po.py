@@ -172,7 +172,7 @@ class HostMountPoint:
         # self.mnt_opts
         if self.dev_path is not None:
             assert mnt_opts is None                                    # self.dev_path and parameter "mnt_opts" are mutally exclusive
-            self.mnt_opts = ",".join(SystemMounts.find_entry_by_mount_point(self.mount_point).mnt_opt_list)
+            self.mnt_opts = ",".join(SystemMounts().find_entry_by_mount_point(self.mount_point).mnt_opt_list)
         else:
             assert isinstance(mnt_opts, str)
             self.mnt_opts = mnt_opts
