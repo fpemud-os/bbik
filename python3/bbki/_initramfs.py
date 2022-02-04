@@ -416,7 +416,7 @@ class InitramfsInstaller:
             elif mi.fs_type == "bcachefs":
                 assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
-                buf += "mount-cachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
+                buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi), mi.mnt_opts, " ".join(uuidList))
             else:
                 buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi))
             buf += "\n"
