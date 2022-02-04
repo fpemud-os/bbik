@@ -81,13 +81,11 @@ class HostStorage:
         if boot_mode == BootMode.EFI:
             assert len(mount_points) >= 2
             assert mount_points[0].mount_point == "/"
-            assert mount_points[1].mount_point == "/boot"
             assert len([x for x in mount_points if x.mount_point == "/"]) == 1
             assert len([x for x in mount_points if x.mount_point == "/boot"]) == 1
         elif boot_mode == BootMode.BIOS:
             assert mount_points[0].mount_point == "/"
             assert len([x for x in mount_points if x.mount_point == "/"]) == 1
-            assert len([x for x in mount_points if x.mount_point == "/boot"]) == 0
             assert all([x.dev_path is not None for x in mount_points])
         else:
             assert False
