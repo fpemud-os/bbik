@@ -408,22 +408,17 @@ class InitramfsInstaller:
             buf += "\n"
 
         # mount block devices
-        i = 0
         for mi in self._mountPointList:
             if mi.fs_type == "btrfs":
                 assert isinstance(mi.underlay_disk, HostDiskBtrfsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
                 buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
-                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
-                i += 1
             elif mi.fs_type == "bcachefs":
                 assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
                 uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
                 buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
             else:
                 buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
-                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
-                i += 1
             buf += "\n"
 
         # switch to new root
