@@ -37,11 +37,11 @@ from ._po import HostDiskBtrfsRaid
 from ._po import HostDiskBcachefsRaid
 from ._po import HostDiskLvmLv
 from ._po import HostDiskBcache
-from ._po import HostDiskNvmeDisk
-from ._po import HostDiskScsiDisk
-from ._po import HostDiskXenDisk
-from ._po import HostDiskVirtioDisk
-from ._po import HostDiskPartition
+from ._po import HostDiskNvmeHdd
+from ._po import HostDiskScsiHdd
+from ._po import HostDiskXenHdd
+from ._po import HostDiskVirtioHdd
+from ._po import HostDiskWholeDiskOrPartition
 from ._boot_entry import BootEntryWrapper
 from ._exception import InitramfsInstallError
 
@@ -81,28 +81,38 @@ class InitramfsInstaller:
             kaliasList = OrderedSet()
 
             for disk in diskList:
-                if isinstance(disk, HostDiskLvmLv):
-                    kaliasList.add("dm_mod")
-                elif isinstance(disk, HostDiskScsiDisk):
-                    kaliasList.add(disk.host_controller_name)
-                    kaliasList.add("sd_mod")
-                elif isinstance(disk, HostDiskNvmeDisk):
-                    kaliasList.add("nvme")
-                elif isinstance(disk, HostDiskXenDisk):
-                    kaliasList.add("xen-blkfront")
-                elif isinstance(disk, HostDiskVirtioDisk):
-                    kaliasList.add("virtio_pci")
-                    kaliasList.add("virtio_blk")
-                elif isinstance(disk, HostDiskBcache):
-                    kaliasList.add("bcache")
-                elif isinstance(disk, HostDiskBtrfsRaid):
+                if isinstance(disk, HostDiskBtrfsRaid):
                     pass
                 elif isinstance(disk, HostDiskBcachefsRaid):
                     pass
-                elif isinstance(disk, HostDiskPartition):
-                    pass        # get kernel module for partition format
+                elif isinstance(disk, HostDiskBcache):
+                    kaliasList.add("bcache")
+                elif isinstance(disk, HostDiskLvmLv):
+                    kaliasList.add("dm_mod")
+                elif isinstance(disk, HostDiskScsiHdd):
+                    kaliasList.add(disk.host_controller_name)
+                    kaliasList.add("sd_mod")
+                elif isinstance(disk, HostDiskNvmeHdd):
+                    kaliasList.add("nvme")
+                elif isinstance(disk, HostDiskXenHdd):
+                    kaliasList.add("xen-blkfront")
+                elif isinstance(disk, HostDiskVirtioHdd):
+                    kaliasList.add("virtio_pci")
+                    kaliasList.add("virtio_blk")
                 else:
                     assert False
+
+                if isinstance(disk, HostDiskWholeDiskOrPartition):
+                    if disk.partition_type == disk.WHOLE_DISK:
+                        pass
+                    elif disk.partition_type == disk.MBR_PARTITION:
+                        # get kernel module for partition format
+                        pass
+                    elif disk.partition_type == disk.GPT_PARTITION:
+                        # get kernel module for partition format
+                        pass
+                    else:
+                        assert False
 
             for mp in self._mountPointList:
                 if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
@@ -145,17 +155,13 @@ class InitramfsInstaller:
                     pass
                 elif isinstance(disk, HostDiskBtrfsRaid):
                     pass
-                elif isinstance(disk, HostDiskScsiDisk):
-                    # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
+                elif isinstance(disk, HostDiskScsiHdd):
                     pass
-                elif isinstance(disk, HostDiskNvmeDisk):
+                elif isinstance(disk, HostDiskNvmeHdd):
                     pass
-                elif isinstance(disk, HostDiskXenDisk):
+                elif isinstance(disk, HostDiskXenHdd):
                     pass
-                elif isinstance(disk, HostDiskVirtioDisk):
-                    pass
-                elif isinstance(disk, HostDiskPartition):
-                    # blkOpList.append("blkdev-wait sd* %s" % (Util.getBlkDevUuid(d.devPath))
+                elif isinstance(disk, HostDiskVirtioHdd):
                     pass
                 else:
                     assert False
@@ -197,23 +203,21 @@ class InitramfsInstaller:
         # install files for block device preparation
         self._installFilesBlkid(self._initramfsTmpDir)
         for disk in diskList:
-            if isinstance(disk, HostDiskLvmLv):
-                self._installFilesLvm(self._initramfsTmpDir)
-            elif isinstance(disk, HostDiskBcache):
+            if isinstance(disk, HostDiskBtrfsRaid):
                 pass
             elif isinstance(disk, HostDiskBcachefsRaid):
                 pass
-            elif isinstance(disk, HostDiskBtrfsRaid):
+            elif isinstance(disk, HostDiskLvmLv):
+                self._installFilesLvm(self._initramfsTmpDir)
+            elif isinstance(disk, HostDiskBcache):
                 pass
-            elif isinstance(disk, HostDiskScsiDisk):
+            elif isinstance(disk, HostDiskScsiHdd):
                 pass
-            elif isinstance(disk, HostDiskNvmeDisk):
+            elif isinstance(disk, HostDiskNvmeHdd):
                 pass
-            elif isinstance(disk, HostDiskXenDisk):
+            elif isinstance(disk, HostDiskXenHdd):
                 pass
-            elif isinstance(disk, HostDiskVirtioDisk):
-                pass
-            elif isinstance(disk, HostDiskPartition):
+            elif isinstance(disk, HostDiskVirtioHdd):
                 pass
             else:
                 assert False
@@ -392,7 +396,7 @@ class InitramfsInstaller:
 
         # write comments
         for mi in self._mountPointList:
-            buf += "# uuid(%s)=%s\n" % (mi.mount_point, mi.dev_uuid)
+            buf += "# uuid(%s):%s\n" % (mi.mount_point, mi.dev_uuid)
         buf += "\n"
 
         # load kernel modules
@@ -412,16 +416,16 @@ class InitramfsInstaller:
         for mi in self._mountPointList:
             if mi.fs_type == "btrfs":
                 assert isinstance(mi.underlay_disk, HostDiskBtrfsRaid)
-                uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
+                uuidList = [x.uuid for x in mi.underlay_disk.children]
                 buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
                 buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             elif mi.fs_type == "bcachefs":
                 assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
-                uuidList = ["UUID=%s" % (x.uuid) for x in mi.underlay_disk.children]
+                uuidList = [x.uuid for x in mi.underlay_disk.children]
                 buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
             else:
-                buf += "mount -t %s -o \"%s\" \"UUID=%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
+                buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
                 buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             buf += "\n"

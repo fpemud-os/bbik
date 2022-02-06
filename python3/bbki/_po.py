@@ -143,16 +143,26 @@ class HostMountPoint:
         assert os.path.isabs(mount_point)
         self.mount_point = mount_point
 
-        # self.dev_path and self.dev_uuid, may contain multiple value seperated by ":"
-        tlist = dev_path_or_uuid.split(":")
-        if all([item.startswith("/dev/") for item in tlist]):
-            self.dev_path = dev_path_or_uuid
-            self.dev_uuid = ":".join([Util.getBlkDevUuid(item) for item in tlist])   # FS-UUID, not PART-UUID
-        elif all([re.fullmatch("[A-Z0-9-]+", item) for item in tlist]):
-            self.dev_path = None
-            self.dev_uuid = dev_path_or_uuid
+        # self.dev_path and self.dev_uuid, may contain multiple values seperated by ":"
+        if ":" not in dev_path_or_uuid:
+            if dev_path_or_uuid.startswith("/dev/"):
+                self.dev_path = dev_path_or_uuid
+                self.dev_uuid = "UUID=%s" % (Util.getBlkDevUuid(dev_path_or_uuid))
+            elif re.fullmatch("UUID=[A-Z0-9-]+", dev_path_or_uuid):
+                self.dev_path = None
+                self.dev_uuid = dev_path_or_uuid
+            else:
+                assert False
         else:
-            assert False
+            tlist = dev_path_or_uuid.split(":")
+            if all([item.startswith("/dev/") for item in tlist]):
+                self.dev_path = dev_path_or_uuid
+                self.dev_uuid = ":".join(["UUID_SUB=%s" % (Util.getBlkDevSubUuid(item)) for item in tlist])
+            elif all([re.fullmatch("UUID_SUB=[A-Z0-9-]+", item) for item in tlist]):
+                self.dev_path = None
+                self.dev_uuid = dev_path_or_uuid
+            else:
+                assert False
 
         # self.fs_type
         if self.dev_path is not None:
@@ -170,7 +180,7 @@ class HostMountPoint:
         # self.mnt_opts
         if self.dev_path is not None:
             assert mnt_opts is None                                    # self.dev_path and parameter "mnt_opts" are mutally exclusive
-            self.mnt_opts = ",".join(SystemMounts().find_entry_by_mount_point(self.mount_point).mnt_opt_list)
+            self.mnt_opts = SystemMounts().find_entry_by_mount_point(self.mount_point).mnt_opts
         else:
             assert isinstance(mnt_opts, str)
             self.mnt_opts = mnt_opts
@@ -188,6 +198,7 @@ class HostMountPoint:
 class HostDisk(anytree.node.nodemixin.NodeMixin):
 
     def __init__(self, uuid, parent):
+        assert re.fullmatch("(UUID=|UUID_SUB=)[A-Z0-9-]+", uuid)
         super().__init__()
         self.parent = parent
         self.uuid = uuid
@@ -210,11 +221,10 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
             HostDiskBcachefsRaid,
             HostDiskLvmLv,
             HostDiskBcache,
-            HostDiskPartition,
-            HostDiskScsiDisk,
-            HostDiskXenDisk,
-            HostDiskVirtioDisk,
-            HostDiskNvmeDisk,
+            HostDiskScsiHdd,
+            HostDiskXenHdd,
+            HostDiskVirtioHdd,
+            HostDiskNvmeHdd,
         ]
         for klass in klassList:
             ret = klass.getUnderlayDisk(devPath, parent, mount_point)
@@ -224,46 +234,86 @@ class HostDisk(anytree.node.nodemixin.NodeMixin):
         # unknown
         raise RunningEnvironmentError("unknown device \"%s\"" % (devPath))
 
+    @staticmethod
+    def _getSubUuidOrUuidWithPrefix(devPath):
+        ret = Util.getBlkDevSubUuid(devPath)
+        if ret is not None:
+            return "UUID_SUB=" + ret
+        ret = Util.getBlkDevUuid(devPath)
+        if ret is not None:
+            return "UUID=" + ret
+        assert False
+
+
+class HostDiskWholeDiskOrPartition(HostDisk):
+
+    WHOLE_DISK = 1
+    MBR_PARTITION = 2
+    GPT_PARTITION = 3
+
+    def __init__(self, uuid, partition_type, parent):
+        super().__init__(uuid, parent)
+        assert partition_type in [self.WHOLE_DISK, self.MBR_PARTITION, self.GPT_PARTITION]
+        self.partition_type = partition_type
+
+    @classmethod
+    def _getPartitionType(cls, diskDevPath, partitionId):
+        if partitionId is None:
+            return cls.WHOLE_DISK
+        else:
+            m2 = re.search(r'(^| )PTTYPE="(\S+)"', Util.cmdCall("blkid", diskDevPath), re.M)
+            if m2.group(2) == "dos":
+                return cls.MBR_PARTITION
+            elif m2.group(2) == "gpt":
+                return cls.GPT_PARTITION
+            else:
+                raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(2), diskDevPath))
+
 
 class HostDiskBtrfsRaid(HostDisk):
 
     def __init__(self, uuid, parent):
-        # uuid: UUID of the whole btrfs filesystem
+        # uuid: FS-UUID of the whole btrfs filesystem
         super().__init__(uuid, parent)
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        if os.path.exists(devPath):
-            if parent is None and Util.getBlkDevFsType(devPath) == "btrfs":
-                bdi = cls(Util.btrfsGetUuid(devPath), parent)
-                for slaveDevPath in Util.btrfsGetSlavePathList(mountPoint):
-                    HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
-                return bdi
+        if mountPoint is not None:
+            if os.path.exists(devPath) and Util.getBlkDevFsType(devPath) == "btrfs":
+                slaveDevPathList = Util.btrfsGetSlavePathList(mountPoint)
+                if len(slaveDevPathList) > 1:
+                    assert all([Util.getBlkDevFsType(x) == "btrfs" for x in slaveDevPathList])
+                    bdi = cls("UUID=" + Util.btrfsGetUuid(mountPoint), parent)
+                    for slaveDevPath in slaveDevPathList:
+                        HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
+                    return bdi
         return None
 
 
 class HostDiskBcachefsRaid(HostDisk):
 
     def __init__(self, uuid, parent):
-        # uuid: UUID of the whole bcachefs filesystem
+        # uuid: FS-UUID of the whole bcachefs filesystem
         super().__init__(uuid, parent)
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        if ":" in devPath:
+        if mountPoint is not None:
             slaveDevPathList = devPath.split(":")
-            if all([Util.getBlkDevFsType(x) == "bcachefs" for x in slaveDevPathList]):
-                bdi = cls(Util.bcachefsGetUuid(slaveDevPathList), parent)
-                for slaveDevPath in slaveDevPathList:
-                    HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
-                return bdi
+            if len(slaveDevPathList) > 1:
+                if any([Util.getBlkDevFsType(x) == "bcachefs" for x in slaveDevPathList]):
+                    assert all([Util.getBlkDevFsType(x) == "btrfs" for x in slaveDevPathList])
+                    bdi = cls("UUID=" + Util.bcachefsGetUuid(slaveDevPathList), parent)
+                    for slaveDevPath in slaveDevPathList:
+                        HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
+                    return bdi
         return None
 
 
 class HostDiskLvmLv(HostDisk):
 
     def __init__(self, uuid, vg_name, lv_name, parent):
-        # uuid: FS-UUID of the filesystem in LV??
+        # uuid: FS-UUID of the filesystem in this LV, or SUB-UUID takes priority for multi-volume filesystem
         super().__init__(uuid, parent)
         self.vg_name = vg_name
         self.lv_name = lv_name
@@ -272,7 +322,8 @@ class HostDiskLvmLv(HostDisk):
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
         lvmInfo = Util.getBlkDevLvmInfo(devPath)
         if lvmInfo is not None:
-            bdi = cls(Util.getBlkDevUuid(devPath), lvmInfo[0], lvmInfo[1], parent)
+            assert mountPoint is not None
+            bdi = cls(cls._getSubUuidOrUuidWithPrefix(devPath), lvmInfo[0], lvmInfo[1], parent)
             for slaveDevPath in Util.lvmGetSlaveDevPathList(lvmInfo[0]):
                 HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
             return bdi
@@ -282,7 +333,7 @@ class HostDiskLvmLv(HostDisk):
 class HostDiskBcache(HostDisk):
 
     def __init__(self, uuid, parent):
-        # uuid: FS-UUID of the filesystem in bcache device??
+        # uuid: FS-UUID of the filesystem in this bcache device, or SUB-UUID takes priority for multi-volume filesystem
         super().__init__(uuid, parent)
         self.cache_dev_list = []
         self.backing_dev = None
@@ -298,7 +349,7 @@ class HostDiskBcache(HostDisk):
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
         m = re.fullmatch("/dev/bcache[0-9]+", devPath)
         if m is not None:
-            bdi = cls(Util.getBlkDevUuid(devPath), parent)
+            bdi = cls(cls._getSubUuidOrUuidWithPrefix(devPath), parent)
             slist = Util.bcacheGetSlaveDevPathList(devPath)
             for i in range(0, len(slist)):
                 if i < len(slist) - 1:
@@ -309,95 +360,64 @@ class HostDiskBcache(HostDisk):
         return None
 
 
-class HostDiskPartition(HostDisk):
+class HostDiskScsiHdd(HostDiskWholeDiskOrPartition):
 
-    PART_TYPE_MBR = 1
-    PART_TYPE_GPT = 2
-
-    def __init__(self, uuid, part_type, parent):
-        assert self.PART_TYPE_MBR <= part_type <= self.PART_TYPE_GPT
-
-        # uuid: FS-UUID of the filesystem in this partition, no code is using this value
-        super().__init__(uuid, parent)
-        self.part_type = part_type
-
-    @classmethod
-    def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        m = re.fullmatch("(/dev/sd[a-z])[0-9]+", devPath)
-        if m is None:
-            m = re.fullmatch("(/dev/xvd[a-z])[0-9]+", devPath)
-            if m is None:
-                m = re.fullmatch("(/dev/vd[a-z])[0-9]+", devPath)
-                if m is None:
-                    m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)p[0-9]+", devPath)
-        if m is not None:
-            m2 = re.search(r'(^| )PTTYPE="(\S+)"', Util.cmdCall("blkid", m.group(1)), re.M)
-            if m2.group(2) == "dos":
-                ptType = cls.PART_TYPE_MBR
-            elif m2.group(2) == "gpt":
-                ptType = cls.PART_TYPE_GPT
-            else:
-                raise RunningEnvironmentError("unknown partition type \"%s\" for block device \"%s\"" % (m2.group(2), devPath))
-            bdi = cls(Util.getBlkDevUuid(devPath), ptType, parent)
-            HostDisk.getUnderlayDisk(m.group(1), parent=bdi)
-            return bdi
-        return None
-
-
-class HostDiskScsiDisk(HostDisk):
-
-    def __init__(self, uuid, host_controller_name, parent):
-        # uuid: I don't know what the value is, no code is using this value
-        super().__init__(uuid, parent)
+    def __init__(self, uuid, partition_type, host_controller_name, parent):
+        # uuid: FS-UUID of the filesystem in this bcache device, or SUB-UUID takes priority for multi-volume filesystem
+        super().__init__(uuid, partition_type, parent)
         self.host_controller_name = host_controller_name
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        m = re.fullmatch("/dev/sd[a-z]", devPath)
+        m = re.fullmatch("(/dev/sd[a-z])([0-9]+)?", devPath)
         if m is not None:
-            return cls(Util.getBlkDevUuid(devPath), Util.scsiGetHostControllerName(devPath), parent)
+            ptype = cls._getPartitionType(m.group(1), m.group(2))
+            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, Util.scsiGetHostControllerName(devPath), parent)
         return None
 
 
-class HostDiskNvmeDisk(HostDisk):
+class HostDiskNvmeHdd(HostDiskWholeDiskOrPartition):
+
+    def __init__(self, uuid, partition_type, parent):
+        # uuid: FS-UUID of the filesystem in this bcache device, or SUB-UUID takes priority for multi-volume filesystem
+        super().__init__(uuid, partition_type, parent)
+
+    @classmethod
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
+        m = re.fullmatch("(/dev/nvme[0-9]+n[0-9]+)(p([0-9]+))?", devPath)
+        if m is not None:
+            ptype = cls._getPartitionType(m.group(1), m.group(3))
+            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, parent)
+        return None
+
+
+class HostDiskXenHdd(HostDiskWholeDiskOrPartition):
+
+    def __init__(self, uuid, partition_type, parent):
+        # uuid: FS-UUID of the filesystem in this bcache device, or SUB-UUID takes priority for multi-volume filesystem
+        super().__init__(uuid, partition_type, parent)
+
+    @classmethod
+    def getUnderlayDisk(cls, devPath, parent, mountPoint):
+        m = re.fullmatch("(/dev/xvd[a-z])([0-9]+)?", devPath)
+        if m is not None:
+            ptype = cls._getPartitionType(m.group(1), m.group(2))
+            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, parent)
+        return None
+
+
+class HostDiskVirtioHdd(HostDiskWholeDiskOrPartition):
 
     def __init__(self, uuid, parent):
-        # uuid: I don't know what the value is, no code is using this value
+        # uuid: FS-UUID of the filesystem in this bcache device, or SUB-UUID takes priority for multi-volume filesystem
         super().__init__(uuid, parent)
 
     @classmethod
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        m = re.fullmatch("/dev/nvme[0-9]+n[0-9]+", devPath)
+        m = re.fullmatch("(/dev/vd[a-z])([0-9]+)?", devPath)
         if m is not None:
-            return cls(Util.getBlkDevUuid(devPath), parent)
-        return None
-
-
-class HostDiskXenDisk(HostDisk):
-
-    def __init__(self, uuid, parent):
-        # uuid: I don't know what the value is, no code is using this value
-        super().__init__(uuid, parent)
-
-    @classmethod
-    def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        m = re.fullmatch("/dev/xvd[a-z]", devPath)
-        if m is not None:
-            return cls(Util.getBlkDevUuid(devPath), parent)
-        return None
-
-
-class HostDiskVirtioDisk(HostDisk):
-
-    def __init__(self, uuid, parent):
-        # uuid: I don't know what the value is, no code is using this value
-        super().__init__(uuid, parent)
-
-    @classmethod
-    def getUnderlayDisk(cls, devPath, parent, mountPoint):
-        m = re.fullmatch("/dev/vd[a-z]", devPath)
-        if m is not None:
-            return cls(Util.getBlkDevUuid(devPath), parent)
+            ptype = cls._getPartitionType(m.group(1), m.group(2))
+            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, parent)
         return None
 
 
@@ -407,7 +427,7 @@ class HostAuxOs:
         self.name = name
         if partition_path_or_uuid.startswith("/dev/"):
             self.partition_path = partition_path_or_uuid
-            self.partition_uuid = Util.getBlkDevUuid(self.partition_path)   # FS-UUID, not PART-UUID
+            self.partition_uuid = "UUID=" + Util.getBlkDevUuid(self.partition_path)
         else:
             self.partition_path = None
             self.partition_uuid = partition_path_or_uuid

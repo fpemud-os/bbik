@@ -43,11 +43,10 @@ from ._po import HostMountPoint
 from ._po import HostDisk
 from ._po import HostDiskLvmLv
 from ._po import HostDiskBcache
-from ._po import HostDiskScsiDisk
-from ._po import HostDiskNvmeDisk
-from ._po import HostDiskXenDisk
-from ._po import HostDiskVirtioDisk
-from ._po import HostDiskPartition
+from ._po import HostDiskScsiHdd
+from ._po import HostDiskNvmeHdd
+from ._po import HostDiskXenHdd
+from ._po import HostDiskVirtioHdd
 from ._po import HostAuxOs
 
 from ._config import ConfigBase

@@ -45,11 +45,13 @@ class Util:
 
     @staticmethod
     def getBlkDevUuid(devPath):
-        """UUID is also called FS-UUID, PARTUUID is another thing"""
+        """UUID is also called FS-UUID, only device containing a file system has it, note that all btrfs device has same UUID"""
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search("UUID=\"(\\S*)\"", ret, re.M)
-        return m.group(1)
+        m = re.search(r'\bUUID="(\S*)"\b', ret, re.M)
+        if m is not None:
+            return m.group(1)
+        return None
 
     @staticmethod
     def getBlkDevByUuid(uuid):
@@ -59,12 +61,37 @@ class Util:
         return os.path.realpath(path)
 
     @staticmethod
-    def getBlkDevPartUuid(devPath):
-        """UUID is also called FS-UUID, PARTUUID is another thing"""
+    def getBlkDevSubUuid(devPath):
+        """UUID_SUB is special UUID for btrfs device"""
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search("PARTUUID=\"(\\S*)\"", ret, re.M)
-        return m.group(1)
+        m = re.search(r'\bUUID_SUB="(\S*)"\b', ret, re.M)
+        if m is not None:
+            return m.group(1)
+        return None
+
+    @staticmethod
+    def getBlkDevBySubUuid(uuid):
+        devName = None
+        for line in Util.cmdCall("blkid", "-o", "export").split("\n"):
+            m = re.fullmatch("DEVNAME=(\\S+)", line)
+            if m is not None:
+                devName = m.group(1)
+                continue
+            m = re.fullmatch("UUID_SUB=(\\S+)", line)
+            if m is not None and m.group(1) == uuid:
+                break
+        return devName
+
+    @staticmethod
+    def getBlkDevPartUuid(devPath):
+        """only disk partition has PARTUUID"""
+
+        ret = Util.cmdCall("/sbin/blkid", devPath)
+        m = re.search(r'\bPARTUUID="(\S*)"\b', ret, re.M)
+        if m is not None:
+            return m.group(1)
+        return None
 
     @staticmethod
     def getBlkDevByPartUuid(uuid):
@@ -79,7 +106,7 @@ class Util:
             fullfn = os.path.join("/dev/disk/by-id", fn)
             if os.path.realpath(fullfn) == devPath:
                 return fn
-        assert False
+        return None
 
     @staticmethod
     def getDiskById(diskId):
@@ -406,7 +433,11 @@ class SystemMounts:
             self.dev = _items[0]
             self.mount_point = _items[1]
             self.fs_type = _items[2]
-            self.mnt_opt_list = _items[3].split(",")
+            self.mnt_opts = _items[3]
+
+        @property
+        def mnt_opt_list(self):
+            return self.mnt_opts.split(",")
 
     class NotFoundError(Exception):
         pass

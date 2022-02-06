@@ -428,10 +428,10 @@ class BootLoader:
         # write comments
         buf += '# Parameters:\n'
         if bootMode == BootMode.EFI:
-            buf += '#   rootfs device UUID: %s\n' % (rootfsDevUuid)
-            buf += '#   ESP partition UUID: %s\n' % (espDevUuid)
+            buf += '#   rootfs device: %s\n' % (rootfsDevUuid)
+            buf += '#   ESP partition: %s\n' % (espDevUuid)
         elif bootMode == BootMode.BIOS:
-            buf += '#   rootfs device UUID: %s\n' % (rootfsDevUuid)
+            buf += '#   rootfs device: %s\n' % (rootfsDevUuid)
             buf += '#   boot disk ID: %s\n' % (bootDiskId)
         else:
             assert False
@@ -540,8 +540,10 @@ def _prefixedPathBios(path):
 def _grubRootDevCmd(devUuid):
     if devUuid.startswith("lvm/"):
         return "set root=(%s)" % (devUuid)
+    elif devUuid.startswith("UUID="):
+        return "search --fs-uuid --no-floppy --set %s" % (devUuid.replace("UUID=", ""))
     else:
-        return "search --fs-uuid --no-floppy --set %s" % (devUuid)
+        assert False
 
 
 class _InternalParseError(Exception):
