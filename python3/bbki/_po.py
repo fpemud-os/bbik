@@ -372,7 +372,7 @@ class HostDiskScsiHdd(HostDiskWholeDiskOrPartition):
         m = re.fullmatch("(/dev/sd[a-z])([0-9]+)?", devPath)
         if m is not None:
             ptype = cls._getPartitionType(m.group(1), m.group(2))
-            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, Util.scsiGetHostControllerName(devPath), parent)
+            return cls(cls._getSubUuidOrUuidWithPrefix(devPath), ptype, Util.scsiGetHostControllerName(m.group(1)), parent)
         return None
 
 
