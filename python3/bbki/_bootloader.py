@@ -326,7 +326,7 @@ class BootLoader:
                 raise _InternalParseError("\"%s\" is invalid" % (self._grubCfgFile))
             buf = pathlib.Path(self._grubCfgFile).read_text()
 
-            m = re.search(r'#   rootfs device UUID: (\S+)', buf, re.M)
+            m = re.search(r'#   rootfs device: (\S+)', buf, re.M)
             if m is None:
                 raise _InternalParseError("no rootfs device UUID in \"%s\"" % (self._grubCfgFile))
             self._rootfsDevUuid = m.group(1)
@@ -340,7 +340,7 @@ class BootLoader:
                 if not os.path.exists(self._bbki._fsLayout.get_boot_grub_efi_dir()):
                     raise _InternalParseError("\"%s\" does not exist" % (self._bbki._fsLayout.get_boot_grub_efi_dir()))
 
-                m = re.search(r'#   ESP partition UUID: (\S+)', buf, re.M)
+                m = re.search(r'#   ESP partition: (\S+)', buf, re.M)
                 if m is None:
                     raise _InternalParseError("no ESP partition UUID in \"%s\"" % (self._grubCfgFile))
                 self._espDevUuid = m.group(1)
