@@ -376,7 +376,7 @@ class BootLoader:
             self._bootDiskId = None
             self._mainBootPostfix = None
             self._kernelCmdLine = None
-            self._invalidReason = e.message
+            self._invalidReason = str(e)
 
     def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, mainBootEntry, auxOsList, kernelCmdLine):
         buf = ''
