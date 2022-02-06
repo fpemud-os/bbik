@@ -329,7 +329,9 @@ class BootLoader:
             m = re.search(r'#   rootfs device: (\S+)', buf, re.M)
             if m is None:
                 raise _InternalParseError("no rootfs device UUID in \"%s\"" % (self._grubCfgFile))
-            self._rootfsDevUuid = m.group(1)
+            if not m.group(1).startswith("UUID="):
+                raise _InternalParseError("invalid rootfs device UUID in \"%s\"" % (self._grubCfgFile))
+            self._rootfsDevUuid = m.group(1).replace("UUID=", "")
             self._rootfsDev = Util.getBlkDevByUuid(self._rootfsDevUuid)
             if self._rootfsDev is None:
                 raise _InternalParseError("rootfs device %s can not be found" % (self._rootfsDevUuid))
@@ -343,7 +345,9 @@ class BootLoader:
                 m = re.search(r'#   ESP partition: (\S+)', buf, re.M)
                 if m is None:
                     raise _InternalParseError("no ESP partition UUID in \"%s\"" % (self._grubCfgFile))
-                self._espDevUuid = m.group(1)
+                if not m.group(1).startswith("UUID="):
+                    raise _InternalParseError("invalid ESP partition UUID in \"%s\"" % (self._grubCfgFile))
+                self._espDevUuid = m.group(1).replace("UUID=", "")
                 self._espDev = Util.getBlkDevByUuid(self._espDevUuid)
                 if self._espDev is None:
                     raise _InternalParseError("ESP partition %s can not be found" % (self._espDevUuid))
