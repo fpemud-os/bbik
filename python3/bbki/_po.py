@@ -148,7 +148,7 @@ class HostMountPoint:
             if dev_path_or_uuid.startswith("/dev/"):
                 self.dev_path = dev_path_or_uuid
                 self.dev_uuid = "UUID=%s" % (Util.getBlkDevUuid(dev_path_or_uuid))
-            elif re.fullmatch("UUID=[A-Z0-9-]+", dev_path_or_uuid):
+            elif re.fullmatch("UUID=[A-Za-z0-9-]+", dev_path_or_uuid):
                 self.dev_path = None
                 self.dev_uuid = dev_path_or_uuid
             else:
@@ -158,7 +158,7 @@ class HostMountPoint:
             if all([item.startswith("/dev/") for item in tlist]):
                 self.dev_path = dev_path_or_uuid
                 self.dev_uuid = ":".join(["UUID_SUB=%s" % (Util.getBlkDevSubUuid(item)) for item in tlist])
-            elif all([re.fullmatch("UUID_SUB=[A-Z0-9-]+", item) for item in tlist]):
+            elif all([re.fullmatch("UUID_SUB=[A-Za-z0-9-]+", item) for item in tlist]):
                 self.dev_path = None
                 self.dev_uuid = dev_path_or_uuid
             else:
@@ -198,7 +198,7 @@ class HostMountPoint:
 class HostDisk(anytree.node.nodemixin.NodeMixin):
 
     def __init__(self, uuid, parent):
-        assert re.fullmatch("(UUID=|UUID_SUB=)[A-Z0-9-]+", uuid)
+        assert re.fullmatch("(UUID=|UUID_SUB=)[A-Za-z0-9-]+", uuid)
         super().__init__()
         self.parent = parent
         self.uuid = uuid
