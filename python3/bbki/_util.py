@@ -49,7 +49,7 @@ class Util:
         """UUID is also called FS-UUID, only device containing a file system has it, note that all btrfs device has same UUID"""
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search(r'\bUUID="(\S*)"\b', ret, re.M)
+        m = re.search(r'\bUUID="(\S*)"\B', ret, re.M)
         if m is not None:
             return m.group(1)
         return None
@@ -66,7 +66,7 @@ class Util:
         """UUID_SUB is special UUID for btrfs device"""
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search(r'\bUUID_SUB="(\S*)"\b', ret, re.M)
+        m = re.search(r'\bUUID_SUB="(\S*)"\B', ret, re.M)
         if m is not None:
             return m.group(1)
         return None
@@ -89,7 +89,7 @@ class Util:
         """only disk partition has PARTUUID"""
 
         ret = Util.cmdCall("/sbin/blkid", devPath)
-        m = re.search(r'\bPARTUUID="(\S*)"\b', ret, re.M)
+        m = re.search(r'\bPARTUUID="(\S*)"\B', ret, re.M)
         if m is not None:
             return m.group(1)
         return None
