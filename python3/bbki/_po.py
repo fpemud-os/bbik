@@ -25,7 +25,7 @@ import os
 import re
 import anytree
 from ._util import Util
-from ._util import SystemMounts
+from ._util import PhysicalDiskMounts
 from ._exception import RunningEnvironmentError
 
 
@@ -180,7 +180,7 @@ class HostMountPoint:
         # self.mnt_opts
         if self.dev_path is not None:
             assert mnt_opts is None                                    # self.dev_path and parameter "mnt_opts" are mutally exclusive
-            self.mnt_opts = SystemMounts().find_entry_by_mount_point(self.mount_point).mnt_opts
+            self.mnt_opts = PhysicalDiskMounts.find_entry_by_mount_point(self.mount_point).mnt_opts
         else:
             assert isinstance(mnt_opts, str)
             self.mnt_opts = mnt_opts

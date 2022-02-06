@@ -26,7 +26,7 @@ import re
 import pathlib
 import robust_layer.simple_fops
 from ._util import Util
-from ._util import SystemMounts
+from ._util import PhysicalDiskMounts
 from ._po import BootMode
 from ._po import HostAuxOs
 from ._boot_entry import BootEntryUtils
@@ -120,9 +120,9 @@ class BootLoader:
 
         bDifferent = False
         if boot_mode == BootMode.EFI:
-            if rootfs_dev != SystemMounts().find_root_entry().dev:
+            if rootfs_dev != PhysicalDiskMounts.find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
-            if esp_dev != SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
+            if esp_dev != PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
                 raise ValueError("invalid ESP partition mount point")
             if self._status == self.STATUS_NORMAL:
                 if boot_mode != self._bootMode:
@@ -141,7 +141,7 @@ class BootLoader:
                     else:
                         bDifferent = True
         elif boot_mode == BootMode.BIOS:
-            if rootfs_dev != SystemMounts().find_root_entry().dev:
+            if rootfs_dev != PhysicalDiskMounts.find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
             if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):
                 raise ValueError("invalid boot disk")
@@ -254,18 +254,18 @@ class BootLoader:
         bDifferent = False
         if self._status == self.STATUS_NORMAL:
             if self._bootMode == BootMode.EFI:
-                if self._rootfsDev != SystemMounts().find_root_entry().dev:
+                if self._rootfsDev != PhysicalDiskMounts.find_root_entry().dev:
                     if not bForce:
                         raise ValueError("invalid rootfs mount point")
                     else:
                         bDifferent = True
-                if self._espDev != SystemMounts().find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
+                if self._espDev != PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
                     if not bForce:
                         raise ValueError("invalid ESP partition mount point")
                     else:
                         bDifferent = True
             elif self._bootMode == BootMode.BIOS:
-                if self._rootfsDev != SystemMounts().find_root_entry().dev:
+                if self._rootfsDev != PhysicalDiskMounts.find_root_entry().dev:
                     if not bForce:
                         raise ValueError("invalid rootfs mount point")
                     else:

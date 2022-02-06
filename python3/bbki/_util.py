@@ -25,6 +25,7 @@ import os
 import re
 import glob
 import time
+import psutil
 import pathlib
 import subprocess
 
@@ -424,16 +425,17 @@ class TempChdir:
         os.chdir(self.olddir)
 
 
-class SystemMounts:
+class PhysicalDiskMounts:
+
+    """This class is a better psutil.disk_partitions()"""
 
     class Entry:
 
-        def __init__(self, line):
-            _items = line.rstrip("\n").split(" ")
-            self.dev = _items[0]
-            self.mount_point = _items[1]
-            self.fs_type = _items[2]
-            self.mnt_opts = _items[3]
+        def __init__(self, p):
+            self.dev = p.device
+            self.mount_point = p.mountpoint
+            self.fs_type = p.fstype
+            self.mnt_opts = p.opts
 
         @property
         def mnt_opt_list(self):
@@ -442,31 +444,21 @@ class SystemMounts:
     class NotFoundError(Exception):
         pass
 
-    def get_entries(self):
-        return self._parse()
+    @classmethod
+    def get_entries(cls):
+        return [cls.Entry(p) for p in psutil.disk_partitions()]
 
-    def find_root_entry(self):
-        for entry in self._parse():
-            if entry.mount_point == "/":
-                return entry
-        raise self.NotFoundError("no rootfs mount point")
+    @classmethod
+    def find_root_entry(cls):
+        ret = cls.find_entry_by_mount_point("/")
+        if ret is None:
+            raise cls.NotFoundError("no rootfs mount point")
+        else:
+            return ret
 
-    def find_entry_by_mount_point(self, mount_point_path):
-        for entry in self._parse():
-            if entry.mount_point == mount_point_path:
-                return entry
+    @classmethod
+    def find_entry_by_mount_point(cls, mount_point_path):
+        for p in psutil.disk_partitions():
+            if p.mountpoint == mount_point_path:
+                return cls.Entry(p)
         return None
-
-    def find_entry_by_filepath(self, file_path):
-        entries = self._parse()
-        while True:
-            for entry in entries:
-                if entry.mount_point == file_path:
-                    return entry
-            if file_path == "/":
-                raise self.NotFoundError("no rootfs mount point")
-            file_path = os.path.dirname(file_path)
-
-    def _parse(self):
-        with open("/proc/mounts") as f:
-            return [self.Entry(line) for line in f.readlines()]
