@@ -396,7 +396,7 @@ class InitramfsInstaller:
 
         # write comments
         for mi in self._mountPointList:
-            buf += "# uuid(%s):%s\n" % (mi.mount_point, mi.dev_uuid)
+            buf += "# %s: %s\n" % (mi.mount_point, mi.dev_uuid)
         buf += "\n"
 
         # load kernel modules
@@ -415,14 +415,18 @@ class InitramfsInstaller:
         i = 0
         for mi in self._mountPointList:
             if mi.fs_type == "btrfs":
-                assert isinstance(mi.underlay_disk, HostDiskBtrfsRaid)
-                uuidList = [x.uuid for x in mi.underlay_disk.children]
+                if isinstance(mi.underlay_disk, HostDiskBtrfsRaid):
+                    uuidList = [x.uuid for x in mi.underlay_disk.children]
+                else:
+                    uuidList = [mi.underlay_disk.uuid]
                 buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
                 buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             elif mi.fs_type == "bcachefs":
-                assert isinstance(mi.underlay_disk, HostDiskBcachefsRaid)
-                uuidList = [x.uuid for x in mi.underlay_disk.children]
+                if isinstance(mi.underlay_disk, HostDiskBcachefsRaid):
+                    uuidList = [x.uuid for x in mi.underlay_disk.children]
+                else:
+                    uuidList = [mi.underlay_disk.uuid]
                 buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
             else:
                 buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
