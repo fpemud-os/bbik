@@ -196,12 +196,8 @@ class InitramfsInstaller:
         for f in firmwareList:
             self._copyToInitrd(f, self._initramfsTmpDir)
 
-        # install insmod binary
-        if len(kmodList) > 0:
-            self._installBin("/sbin/insmod", self._initramfsTmpDir)
-
         # install files for block device preparation
-        self._installFilesBlkid(self._initramfsTmpDir)
+        # self._installFilesBlkid(self._initramfsTmpDir)
         for disk in diskList:
             if isinstance(disk, HostDiskBtrfsRaid):
                 pass
