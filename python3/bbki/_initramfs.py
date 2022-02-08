@@ -24,6 +24,7 @@
 import os
 import re
 import glob
+import copy
 import shutil
 import tarfile
 import pathlib
@@ -73,6 +74,8 @@ class InitramfsInstaller:
         diskList = OrderedSet()
         for mp in self._mountPointList:
             for disk in anytree.PostOrderIter(mp.underlay_disk):
+                disk = copy.copy(disk)
+                disk.parent = None
                 diskList.add(disk)
 
         # get kernel module file list (order is important)
