@@ -370,13 +370,6 @@ class InitramfsInstaller:
             f.write("    archive = 0\n")
             f.write("}\n")
 
-    def _installFilesBlkid(self, rootDir):
-        etcDir = os.path.join(rootDir, "etc")
-        if not os.path.exists(etcDir):
-            os.mkdir(etcDir)
-        with open(os.path.join(etcDir, "blkid.conf"), "w") as f:
-            f.write("EVALUATE=scan\n")
-
     def _installInit(self, rootDir):
         self._installBinFromInitDataDir("init", rootDir, "")
 
