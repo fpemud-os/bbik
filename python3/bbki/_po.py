@@ -280,7 +280,7 @@ class HostDiskBtrfsRaid(HostDisk):
     def getUnderlayDisk(cls, devPath, parent, mountPoint):
         if os.path.exists(devPath):
             if parent is None and Util.getBlkDevFsType(devPath) == "btrfs":
-                bdi = cls(Util.btrfsGetUuid(mountPoint), parent)
+                bdi = cls("UUID=" + Util.btrfsGetUuid(mountPoint), parent)
                 for slaveDevPath in Util.btrfsGetSlavePathList(mountPoint):
                     HostDisk.getUnderlayDisk(slaveDevPath, parent=bdi)
                 return bdi
