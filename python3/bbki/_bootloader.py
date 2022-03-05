@@ -481,7 +481,7 @@ class BootLoader:
         # write menu entry for auxillary os
         for auxOs in auxOsList:
             buf += 'menuentry "Auxillary: %s" {\n' % (auxOs.name)
-            buf += '  search --fs-uuid --no-floppy --set %s\n' % (auxOs.partition_uuid.replace("UUID=", ""))    # root device for aux-os is not same as the device grub.cfg is in
+            buf += '  search --fs-uuid --no-floppy --set %s\n' % (auxOs.partition_uuid.replace("UUID=", ""))    # aux-os is not in the same device as grub.cfg is
             buf += '  chainloader +%d\n' % (auxOs.chainloader_number)
             buf += '}\n'
             buf += '\n'
