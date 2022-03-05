@@ -449,7 +449,6 @@ class BootLoader:
             buf += '  set gfxpayload=keep\n'
             buf += '  set recordfail=1\n'
             buf += '  save_env recordfail\n'
-            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  linux %s quiet %s\n' % (_prefixedPath(mainBootEntry.kernel_filepath), kernelCmdLine)
             buf += '  initrd %s\n' % (_prefixedPath(mainBootEntry.initrd_filepath))
             buf += '}\n'
@@ -457,7 +456,6 @@ class BootLoader:
 
             # write menu entry for main kernel
             buf += 'menuentry "Current: Linux-%s" {\n' % (mainBootEntry.postfix)
-            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  echo "Loading Linux kernel ..."\n'
             buf += '  linux %s %s\n' % (_prefixedPath(mainBootEntry.kernel_filepath), kernelCmdLine)
             buf += '  echo "Loading initial ramdisk ..."\n'
@@ -473,7 +471,6 @@ class BootLoader:
                 raise BootloaderInstallError("no rescue os initrd found")
 
             buf += 'menuentry "Rescue OS" {\n'
-            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  linux %s dev_uuid=%s basedir=%s\n' % (_prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_kernel_filepath()),
                                                             grubRootDevUuid,
                                                             _prefixedPath(self._bbki._fsLayout.get_boot_rescue_os_dir()))
@@ -484,7 +481,7 @@ class BootLoader:
         # write menu entry for auxillary os
         for auxOs in auxOsList:
             buf += 'menuentry "Auxillary: %s" {\n' % (auxOs.name)
-            buf += '  %s\n' % (_grubRootDevCmd(auxOs.partition_uuid))
+            buf += '  search --fs-uuid --no-floppy --set %s\n' % (auxOs.partition_uuid.replace("UUID=", ""))    # root device for aux-os is not same as the device grub.cfg is in
             buf += '  chainloader +%d\n' % (auxOs.chainloader_number)
             buf += '}\n'
             buf += '\n'
@@ -492,7 +489,6 @@ class BootLoader:
         # write menu entry for history kernels
         for bootEntry in self._bbki.get_history_boot_entries():
             buf += 'menuentry "History: Linux-%s" {\n' % (bootEntry.postfix)
-            buf += '  %s\n' % (_grubRootDevCmd(grubRootDevUuid))
             buf += '  echo "Loading Linux kernel ..."\n'
             buf += '  linux %s %s\n' % (_prefixedPath(bootEntry.kernel_filepath), kernelCmdLine)
             buf += '  echo "Loading initial ramdisk ..."\n'
@@ -539,15 +535,6 @@ def _prefixedPathEfi(path):
 
 def _prefixedPathBios(path):
     return path
-
-
-def _grubRootDevCmd(devUuid):
-    if devUuid.startswith("lvm/"):
-        return "set root=(%s)" % (devUuid)
-    elif devUuid.startswith("UUID="):
-        return "search --fs-uuid --no-floppy --set %s" % (devUuid.replace("UUID=", ""))
-    else:
-        assert False
 
 
 class _InternalParseError(Exception):

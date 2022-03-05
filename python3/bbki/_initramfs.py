@@ -24,7 +24,6 @@
 import os
 import re
 import glob
-import copy
 import shutil
 import tarfile
 import pathlib
