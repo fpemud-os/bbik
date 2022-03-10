@@ -117,23 +117,6 @@ class Util:
         return os.path.realpath(path)
 
     @staticmethod
-    def getDiskId(devPath):
-        for fn in os.listdir("/dev/disk/by-id"):
-            fullfn = os.path.join("/dev/disk/by-id", fn)
-            if os.path.realpath(fullfn) == devPath:
-                return fn
-        return None
-
-    @staticmethod
-    def getDiskById(diskId):
-        path = os.path.join("/dev", "disk", "by-id", diskId)
-        path = os.path.realpath(path)
-        if path.startswith("/dev/disk"):
-            return None
-        else:
-            return path
-
-    @staticmethod
     def splitToTuple(s, d, count):
         ret = s.split(d)
         assert len(ret) == count
