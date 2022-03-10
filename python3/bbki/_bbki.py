@@ -164,28 +164,32 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
-    def install_initramfs(self, initramfs_atom, host_storage, boot_entry):
-        assert host_storage is not None
-        assert host_storage.get_root_mount_point() is not None
+    def install_initramfs(self, initramfs_atom, mount_points, boot_entry):
+        assert mount_points[0].mount_point == "/"
+        assert Util.checkListUnique(mount_points, key=lambda x: x.mount_point)
         assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
         try:
             obj.exec_src_unpack()
-            obj.exec_initramfs_install(host_storage.mount_points, boot_entry)
+            obj.exec_initramfs_install(mount_points, boot_entry)
         finally:
             obj.remove_tmpdirs()
 
-    def install_bootloader(self, boot_mode, host_storage, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
+    def install_bootloader(self, boot_mode, mount_points, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
+        assert mount_points[0].mount_point == "/"
+        assert Util.checkListUnique(mount_points, key=lambda x: x.mount_point)
+        assert all([x.dev_path is not None for x in mount_points])
+
         if boot_mode == BootMode.EFI:
-            rootfsMp = host_storage.get_root_mount_point()
-            espMp = host_storage.get_esp_mount_point()
+            rootfsMp = mount_points[0]
+            espMp = Util.findInList(mount_points, key=lambda x: x.mount_point == "/boot")
             self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
                                      main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
                                      bForce=True)
         elif boot_mode == BootMode.BIOS:
-            rootfsMp = host_storage.get_root_mount_point()
+            rootfsMp = mount_points[0]
             self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
                                      main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
                                      bForce=True)

@@ -33,6 +33,21 @@ import subprocess
 class Util:
 
     @staticmethod
+    def findInList(lst, key):
+        for x in lst:
+            if key(x):
+                return x
+        assert False
+
+    @staticmethod
+    def checkListUnique(lst, key=None):
+        if key is None:
+            keyList = lst
+        else:
+            keyList = [key(x) for x in lst]
+        return len(keyList) == len(set(keyList))
+
+    @staticmethod
     def globDirRecursively(dirpath, excludeSelf=False):
         # glob.glob("/a/**", recursive=True) returns ["/a/", "/a/a", "/a/a/a", ...]
         # the first element sucks, normalize it

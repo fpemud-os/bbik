@@ -70,45 +70,6 @@ class RescueOsSpec:
         self.initrd_filepath = bbki._fsLayout.get_boot_rescue_os_initrd_filepath()
 
 
-class HostStorage:
-
-    def __init__(self, boot_mode, mount_points):
-        self.mount_points = None
-
-        # self.mount_points
-        if boot_mode == BootMode.EFI:
-            assert len(mount_points) >= 2
-            assert mount_points[0].mount_point == "/"
-            assert len([x for x in mount_points if x.mount_point == "/"]) == 1
-            assert len([x for x in mount_points if x.mount_point == "/boot"]) == 1
-        elif boot_mode == BootMode.BIOS:
-            assert mount_points[0].mount_point == "/"
-            assert len([x for x in mount_points if x.mount_point == "/"]) == 1
-            assert all([x.dev_path is not None for x in mount_points])
-        else:
-            assert False
-        self.mount_points = mount_points
-
-    def get_root_mount_point(self):
-        for m in self.mount_points:
-            if m.mount_point == "/":
-                return m
-        assert False
-
-    def get_esp_mount_point(self):
-        for m in self.mount_points:
-            if m.mount_point == "/boot":
-                return m
-        assert False
-
-    def get_other_mount_points(self):
-        ret = []
-        for m in self.mount_points:
-            if m.mount_point not in ["/", "/boot"]:
-                ret.append(m)
-        return ret
-
-
 class HostMountPoint:
 
     FS_TYPE_VFAT = "vfat"
