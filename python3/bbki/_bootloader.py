@@ -51,8 +51,6 @@ class BootLoader:
         self._rootfsDevUuid = None
         self._espDev = None
         self._espDevUuid = None
-        self._bootDisk = None
-        self._bootDiskId = None
         self._mainBootPostfix = None
         self._kernelCmdLine = None
         self._invalidReason = None
@@ -104,15 +102,13 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, rootfs_dev, rootfs_dev_uuid, esp_dev, esp_dev_uuid, boot_disk, boot_disk_id, main_boot_entry, aux_os_list, aux_kernel_init_cmdline, bForce=False):
+    def install(self, boot_mode, rootfs_dev, rootfs_dev_uuid, esp_dev, esp_dev_uuid, main_boot_entry, aux_os_list, aux_kernel_init_cmdline, bForce=False):
         if boot_mode == BootMode.EFI:
             assert rootfs_dev is not None and rootfs_dev_uuid is not None
             assert esp_dev is not None and esp_dev_uuid is not None
-            assert boot_disk is None and boot_disk_id is None
         elif boot_mode == BootMode.BIOS:
             assert rootfs_dev is not None and rootfs_dev_uuid is not None
             assert esp_dev is None and esp_dev_uuid is None
-            assert boot_disk is not None and boot_disk_id is not None
         else:
             assert False
         assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
@@ -143,8 +139,6 @@ class BootLoader:
         elif boot_mode == BootMode.BIOS:
             if rootfs_dev != PhysicalDiskMounts.find_root_entry().dev:
                 raise ValueError("invalid rootfs mount point")
-            if boot_disk != Util.devPathPartitionOrDiskToDisk(rootfs_dev):
-                raise ValueError("invalid boot disk")
             if self._status == self.STATUS_NORMAL:
                 if boot_mode != self._bootMode:
                     if not bForce:
@@ -156,18 +150,13 @@ class BootLoader:
                         raise ValueError("rootfs device and bootloader is different")
                     else:
                         bDifferent = True
-                if boot_disk != self._bootDisk:
-                    if not bForce:
-                        raise ValueError("boot disk and bootloader is different")
-                    else:
-                        bDifferent = True
         else:
             assert False
 
         # generate grub.cfg
         # may raise exception
         kernelCmdLine = self._getKernelCmdLine(aux_kernel_init_cmdline)
-        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, boot_disk_id, main_boot_entry, aux_os_list, kernelCmdLine)
+        buf = self._genGrubCfg(boot_mode, rootfs_dev_uuid, esp_dev_uuid, main_boot_entry, aux_os_list, kernelCmdLine)
 
         # remove if needed
         if self._status == self.STATUS_NORMAL:
@@ -192,7 +181,7 @@ class BootLoader:
             elif boot_mode == BootMode.BIOS:
                 # install /boot/grub directory
                 # install grub into disk MBR
-                Util.cmdCall("grub-install", "--target=i386-pc", boot_disk)
+                Util.cmdCall("grub-install", "--target=i386-pc", Util.devPathPartitionToDisk(rootfs_dev))
             else:
                 assert False
         else:
@@ -209,8 +198,6 @@ class BootLoader:
         self._rootfsDevUuid = rootfs_dev_uuid
         self._espDev = esp_dev
         self._espDevUuid = esp_dev_uuid
-        self._bootDisk = boot_disk
-        self._bootDiskId = boot_disk_id
         self._mainBootPostfix = main_boot_entry.postfix
         self._kernelCmdLine = kernelCmdLine
         self._invalidReason = None
@@ -240,7 +227,7 @@ class BootLoader:
 
         # generate grub.cfg
         # may raise exception
-        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, self._bootDiskId, mainBootEntry, auxOsList, kernelCmdLine)
+        buf = self._genGrubCfg(self._bootMode, self._rootfsDevUuid, self._espDevUuid, mainBootEntry, auxOsList, kernelCmdLine)
 
         # write grub.cfg file
         with open(self._grubCfgFile, "w") as f:
@@ -270,11 +257,6 @@ class BootLoader:
                         raise ValueError("invalid rootfs mount point")
                     else:
                         bDifferent = True
-                if self._bootDisk != Util.devPathPartitionOrDiskToDisk(self._rootfsDev):
-                    if not bForce:
-                        raise ValueError("invalid boot disk")
-                    else:
-                        bDifferent = True
             else:
                 assert False
 
@@ -282,7 +264,7 @@ class BootLoader:
         # MBR may not be correctly removed when status==STATUS_INVALID
         if self._status == self.STATUS_NORMAL and not bDifferent:
             if self._bootMode == BootMode.BIOS:
-                with open(self._bootDisk, "wb+") as f:
+                with open(Util.devPathPartitionToDisk(self._rootfsDev), "wb+") as f:
                     f.write(b'\x00' * 440)
 
         # delete files
@@ -296,8 +278,6 @@ class BootLoader:
         self._rootfsDevUuid = None
         self._espDev = None
         self._espDevUuid = None
-        self._bootDisk = None
-        self._bootDiskId = None
         self._mainBootPostfix = None
         self._kernelCmdLine = None
         self._invalidReason = None
@@ -353,14 +333,6 @@ class BootLoader:
                     raise _InternalParseError("ESP partition %s can not be found" % (self._espDevUuid))
             elif os.path.exists(os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "i386-pc")):
                 self._bootMode = BootMode.BIOS
-
-                m = re.search(r'#   boot disk ID: (\S+)', buf, re.M)
-                if m is None:
-                    raise _InternalParseError("no boot disk ID in \"%s\"" % (self._grubCfgFile))
-                self._bootDiskId = m.group(1)
-                self._bootDisk = Util.getDiskById(self._bootDiskId)
-                if self._bootDisk is None:
-                    raise _InternalParseError("boot disk %s can not be found" % (self._bootDiskId))
             else:
                 assert False
 
@@ -376,13 +348,11 @@ class BootLoader:
             self._rootfsDevUuid = None
             self._espDev = None
             self._espDevUuid = None
-            self._bootDisk = None
-            self._bootDiskId = None
             self._mainBootPostfix = None
             self._kernelCmdLine = None
             self._invalidReason = str(e)
 
-    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, bootDiskId, mainBootEntry, auxOsList, kernelCmdLine):
+    def _genGrubCfg(self, bootMode, rootfsDevUuid, espDevUuid, mainBootEntry, auxOsList, kernelCmdLine):
         buf = ''
 
         grubRootDevUuid = None
@@ -436,7 +406,6 @@ class BootLoader:
             buf += '#   ESP partition: %s\n' % (espDevUuid)
         elif bootMode == BootMode.BIOS:
             buf += '#   rootfs device: %s\n' % (rootfsDevUuid)
-            buf += '#   boot disk ID: %s\n' % (bootDiskId)
         else:
             assert False
         if initCmdLine != "":
