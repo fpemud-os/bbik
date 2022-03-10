@@ -240,23 +240,19 @@ class BootLoader:
     def remove(self, bForce=False):
         bDifferent = False
         if self._status == self.STATUS_NORMAL:
+            if self._rootfsDev != PhysicalDiskMounts.find_root_entry().dev:
+                if not bForce:
+                    raise ValueError("invalid rootfs mount point")
+                else:
+                    bDifferent = True
             if self._bootMode == BootMode.EFI:
-                if self._rootfsDev != PhysicalDiskMounts.find_root_entry().dev:
-                    if not bForce:
-                        raise ValueError("invalid rootfs mount point")
-                    else:
-                        bDifferent = True
                 if self._espDev != PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir()).dev:
                     if not bForce:
                         raise ValueError("invalid ESP partition mount point")
                     else:
                         bDifferent = True
             elif self._bootMode == BootMode.BIOS:
-                if self._rootfsDev != PhysicalDiskMounts.find_root_entry().dev:
-                    if not bForce:
-                        raise ValueError("invalid rootfs mount point")
-                    else:
-                        bDifferent = True
+                pass
             else:
                 assert False
 
