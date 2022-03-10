@@ -73,7 +73,7 @@ class RescueOsSpec:
 class HostStorage:
 
     def __init__(self, boot_mode, mount_points):
-        self._mntPtList = None
+        self.mount_points = None
 
         # self.mount_points
         if boot_mode == BootMode.EFI:
@@ -87,23 +87,23 @@ class HostStorage:
             assert all([x.dev_path is not None for x in mount_points])
         else:
             assert False
-        self._mntPtList = mount_points
+        self.mount_points = mount_points
 
     def get_root_mount_point(self):
-        for m in self._mntPtList:
+        for m in self.mount_points:
             if m.mount_point == "/":
                 return m
         assert False
 
     def get_esp_mount_point(self):
-        for m in self._mntPtList:
+        for m in self.mount_points:
             if m.mount_point == "/boot":
                 return m
         assert False
 
     def get_other_mount_points(self):
         ret = []
-        for m in self._mntPtList:
+        for m in self.mount_points:
             if m.mount_point not in ["/", "/boot"]:
                 ret.append(m)
         return ret

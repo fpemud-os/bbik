@@ -449,7 +449,7 @@ class BbkiAtomExecutor:
             cmd += "initramfs_contribute_config_rules\n"
             return Util.cmdCall("/bin/bash", "-c", cmd)
 
-    def exec_initramfs_install(self, host_storage, boot_entry):
+    def exec_initramfs_install(self, mount_points, boot_entry):
         self._restrict_atom_type(Repo.ATOM_TYPE_INITRAMFS)
 
         # if self._item_has_me():
@@ -469,7 +469,7 @@ class BbkiAtomExecutor:
                 return Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # FIXME
-            InitramfsInstaller(self._bbki, self._trWorkDir, host_storage, boot_entry).install()
+            InitramfsInstaller(self._bbki, self._trWorkDir, mount_points, boot_entry).install()
 
     def _restrict_atom_type(self, *atomTypes):
         if self._atom.atom_type not in atomTypes:
