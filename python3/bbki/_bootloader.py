@@ -24,6 +24,7 @@
 import os
 import re
 import pathlib
+import grub_install
 import robust_layer.simple_fops
 from ._util import Util
 from ._util import PhysicalDiskMounts
@@ -36,7 +37,7 @@ from ._exception import BootloaderInstallError
 class BootLoader:
 
     STATUS_NORMAL = 1
-    STATUS_INVALID = 2
+    STATUS_NOT_VALID = 2
     STATUS_NOT_INSTALLED = 3
 
     def __init__(self, bbki):
@@ -54,13 +55,14 @@ class BootLoader:
         self._mainBootPostfix = None
         self._kernelCmdLine = None
         self._invalidReason = None
+
         self._parseGrubCfg()
 
     def getStatus(self):
         return self._status
 
     def getInvalidReason(self):
-        assert self._status == self.STATUS_INVALID
+        assert self._status == self.STATUS_NOT_VALID
         return self._invalidReason
 
     def getBootMode(self):
@@ -162,10 +164,10 @@ class BootLoader:
         if self._status == self.STATUS_NORMAL:
             if bDifferent:
                 self.remove(bForce=True)
+        elif self._status == self.STATUS_NOT_VALID:
+            self.remove(bForce=True)
         elif self._status == self.STATUS_NOT_INSTALLED:
             pass
-        elif self._status == self.STATUS_INVALID:
-            self.remove(bForce=True)
         else:
             assert False
 
@@ -257,7 +259,7 @@ class BootLoader:
                 assert False
 
         # remove MBR
-        # MBR may not be correctly removed when status==STATUS_INVALID
+        # MBR may not be correctly removed when status==STATUS_NOT_VALID
         if self._status == self.STATUS_NORMAL and not bDifferent:
             if self._bootMode == BootMode.BIOS:
                 with open(Util.devPathPartitionToDisk(self._rootfsDev), "wb+") as f:
@@ -288,10 +290,6 @@ class BootLoader:
 
     def _parseGrubCfg(self):
         assert self._status is None
-
-        if not os.path.exists(self._bbki._fsLayout.get_boot_grub_dir()):
-            self._status = self.STATUS_NOT_INSTALLED
-            return
 
         try:
             self._status = self.STATUS_NORMAL
@@ -338,7 +336,7 @@ class BootLoader:
             self._mainBootPostfix = m.group(1)
             self._kernelCmdLine = m.group(2)
         except _InternalParseError as e:
-            self._status = self.STATUS_INVALID
+            self._status = self.STATUS_NOT_VALID
             self._bootMode = None
             self._rootfsDev = None
             self._rootfsDevUuid = None

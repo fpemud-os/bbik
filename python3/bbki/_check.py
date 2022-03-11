@@ -43,10 +43,10 @@ class Checker:
         # check bootloader
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             pass
+        elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_VALID:
+            self._errCb("Boot-loader is invalid, %s." % (self._bbki._bootloader.getInvalidReason()))
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
             self._errCb("Boot-loader is not installed.")
-        elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_INVALID:
-            self._errCb("Boot-loader is invalid, %s." % (self._bbki._bootloader.getInvalidReason()))
         else:
             assert False
 
