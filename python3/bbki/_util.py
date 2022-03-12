@@ -439,7 +439,7 @@ class PhysicalDiskMounts:
         @property
         def mount_point(self):
             return self.p.mountpoint
-        
+
         @property
         def fs_type(self):
             return self.p.fstype
