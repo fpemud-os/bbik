@@ -185,12 +185,12 @@ class Bbki:
         if boot_mode == BootMode.EFI:
             rootfsMp = mount_points[0]
             espMp = Util.findInList(mount_points, key=lambda x: x.mount_point == "/boot")
-            self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, espMp.dev_path, espMp.dev_uuid,
+            self._bootloader.install(boot_mode, rootfsMp, espMp,
                                      main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
                                      bForce=True)
         elif boot_mode == BootMode.BIOS:
             rootfsMp = mount_points[0]
-            self._bootloader.install(boot_mode, rootfsMp.dev_path, rootfsMp.dev_uuid, None, None,
+            self._bootloader.install(boot_mode, rootfsMp, None,
                                      main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
                                      bForce=True)
         else:

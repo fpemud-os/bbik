@@ -430,14 +430,27 @@ class PhysicalDiskMounts:
     class Entry:
 
         def __init__(self, p):
-            self.dev = p.device
-            self.mount_point = p.mountpoint
-            self.fs_type = p.fstype
-            self.mnt_opts = p.opts
+            self.p = p
+
+        @property
+        def dev(self):
+            return self.p.device
+
+        @property
+        def mount_point(self):
+            return self.p.mountpoint
+        
+        @property
+        def fs_type(self):
+            return self.p.fstype
+
+        @property
+        def mnt_opts(self):
+            return self.p.opts
 
         @property
         def mnt_opt_list(self):
-            return self.mnt_opts.split(",")
+            return self.p.opts.split(",")
 
     class NotFoundError(Exception):
         pass
