@@ -22,6 +22,7 @@
 
 
 import os
+import grub_install
 import robust_layer.simple_fops
 from ._util import Util
 from ._boot_entry import BootEntryUtils
@@ -49,6 +50,10 @@ class Checker:
             self._errCb("Boot-loader is not installed.")
         else:
             assert False
+        try:
+            self._bbki._bootloader.compare_source()
+        except grub_install.CompareSourceError as e:
+            self._errCb("Boot-loader is different with source files, %s." % (str(e)))
 
         # check pending boot entry
         pendingBe = self._bbki.get_pending_boot_entry()
