@@ -78,7 +78,7 @@ class HostMountPoint:
     FS_TYPE_BCACHEFS = "bcachefs"
 
     def __init__(self, mount_point, dev_path_or_uuid, fs_type=None, mnt_opts=None, underlay_disk=None):
-        self.device = None              # use same variable name as the elements in psutil.disk_partitions()
+        self.device = None              # use same variable name as the namedtuple elements in psutil.disk_partitions()
         self.mountpoint = None          # same as above
         self.fstype = None              # same as above
         self.opts = None                # same as above
