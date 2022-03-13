@@ -115,7 +115,7 @@ class InitramfsInstaller:
                         assert False
 
             for mp in self._mountPointList:
-                if mp.fs_type == HostMountPoint.FS_TYPE_VFAT:
+                if mp.fstype == HostMountPoint.FS_TYPE_VFAT:
                     buf = pathlib.Path(self._be.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
                     m = re.search("^CONFIG_FAT_DEFAULT_CODEPAGE=(\\S+)$", buf, re.M)
@@ -128,8 +128,8 @@ class InitramfsInstaller:
                         kaliasList.add("nls_%s" % (m.group(1)))
                     else:
                         raise InitramfsInstallError("CONFIG_FAT_DEFAULT_IOCHARSET is missing in \"%s\"" % (self._be.kernel_config_filepath))
-                elif mp.fs_type in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS, HostMountPoint.FS_TYPE_BCACHEFS]:
-                    kaliasList.add(mp.fs_type)
+                elif mp.fstype in [HostMountPoint.FS_TYPE_EXT4, HostMountPoint.FS_TYPE_BTRFS, HostMountPoint.FS_TYPE_BCACHEFS]:
+                    kaliasList.add(mp.fstype)
                 else:
                     assert False
 
@@ -385,7 +385,7 @@ class InitramfsInstaller:
 
         # write comments
         for mi in self._mountPointList:
-            buf += "# %s: %s\n" % (mi.mount_point, mi.dev_uuid)
+            buf += "# %s: %s\n" % (mi.mountpoint, mi.dev_uuid)
         buf += "\n"
 
         # load kernel modules
@@ -403,22 +403,22 @@ class InitramfsInstaller:
         # mount block devices
         i = 0
         for mi in self._mountPointList:
-            if mi.fs_type == "btrfs":
+            if mi.fstype == "btrfs":
                 if isinstance(mi.underlay_disk, HostDiskBtrfsRaid):
                     uuidList = [x.uuid for x in mi.underlay_disk.children]
                 else:
                     uuidList = [mi.underlay_disk.uuid]
-                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
+                buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mountpoint), mi.opts, " ".join(uuidList))
                 buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
-            elif mi.fs_type == "bcachefs":
+            elif mi.fstype == "bcachefs":
                 if isinstance(mi.underlay_disk, HostDiskBcachefsRaid):
                     uuidList = [x.uuid for x in mi.underlay_disk.children]
                 else:
                     uuidList = [mi.underlay_disk.uuid]
-                buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mount_point), mi.mnt_opts, " ".join(uuidList))
+                buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mountpoint), mi.opts, " ".join(uuidList))
             else:
-                buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fs_type, mi.mnt_opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mount_point))
+                buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fstype, mi.opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mountpoint))
                 buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             buf += "\n"

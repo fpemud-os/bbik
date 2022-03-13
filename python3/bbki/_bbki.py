@@ -165,8 +165,8 @@ class Bbki:
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
     def install_initramfs(self, initramfs_atom, mount_points, boot_entry):
-        assert mount_points[0].mount_point == "/"
-        assert Util.checkListUnique(mount_points, key=lambda x: x.mount_point)
+        assert mount_points[0].mountpoint == "/"
+        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
         assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
@@ -178,13 +178,13 @@ class Bbki:
             obj.remove_tmpdirs()
 
     def install_bootloader(self, boot_mode, mount_points, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert mount_points[0].mount_point == "/"
-        assert Util.checkListUnique(mount_points, key=lambda x: x.mount_point)
-        assert all([x.dev_path is not None for x in mount_points])
+        assert mount_points[0].mountpoint == "/"
+        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
+        assert all([x.device is not None for x in mount_points])
 
         if boot_mode == BootMode.EFI:
             rootfsMp = mount_points[0]
-            espMp = Util.findInList(mount_points, key=lambda x: x.mount_point == "/boot")
+            espMp = Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot")
             self._bootloader.install(boot_mode, rootfsMp, espMp,
                                      main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
                                      bForce=True)

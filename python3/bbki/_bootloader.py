@@ -288,9 +288,9 @@ class BootLoader:
     def _genGrubCfg(self, bootMode, mainBootEntry, auxOsList, kernelCmdLine):
         buf = ''
 
-        rootfsDevUuid = Util.getBlkDevUuid(self._rootfsMnt.dev)
+        rootfsDevUuid = Util.getBlkDevUuid(self._rootfsMnt.device)
         if self._bootMnt is not None:
-            espDevUuid = Util.getBlkDevUuid(self._bootMnt.dev)
+            espDevUuid = Util.getBlkDevUuid(self._bootMnt.device)
         else:
             espDevUuid = None
 

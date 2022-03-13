@@ -78,63 +78,63 @@ class HostMountPoint:
     FS_TYPE_BCACHEFS = "bcachefs"
 
     def __init__(self, mount_point, dev_path_or_uuid, fs_type=None, mnt_opts=None, underlay_disk=None):
-        self.mount_point = None
-        self.dev_path = None
+        self.device = None              # use same variable name as the elements in psutil.disk_partitions()
+        self.mountpoint = None          # same as above
+        self.fstype = None              # same as above
+        self.opts = None                # same as above
         self.dev_uuid = None
-        self.fs_type = None
-        self.mnt_opts = None
         self.underlay_disk = None
 
-        # self.mount_point
+        # self.mountpoint
         assert os.path.isabs(mount_point)
-        self.mount_point = mount_point
+        self.mountpoint = mount_point
 
-        # self.dev_path and self.dev_uuid, may contain multiple values seperated by ":"
+        # self.device and self.dev_uuid, may contain multiple values seperated by ":"
         if ":" not in dev_path_or_uuid:
             if dev_path_or_uuid.startswith("/dev/"):
-                self.dev_path = dev_path_or_uuid
+                self.device = dev_path_or_uuid
                 self.dev_uuid = "UUID=%s" % (Util.getBlkDevUuid(dev_path_or_uuid))
             elif re.fullmatch(r'UUID=\S+', dev_path_or_uuid):
-                self.dev_path = None
+                self.device = None
                 self.dev_uuid = dev_path_or_uuid
             else:
                 assert False
         else:
             tlist = dev_path_or_uuid.split(":")
             if all([item.startswith("/dev/") for item in tlist]):
-                self.dev_path = dev_path_or_uuid
+                self.device = dev_path_or_uuid
                 self.dev_uuid = ":".join(["UUID_SUB=%s" % (Util.getBlkDevSubUuid(item)) for item in tlist])
             elif all([re.fullmatch(r'UUID_SUB=\S+', item) for item in tlist]):
-                self.dev_path = None
+                self.device = None
                 self.dev_uuid = dev_path_or_uuid
             else:
                 assert False
 
-        # self.fs_type
-        if self.dev_path is not None:
-            assert fs_type is None                                     # self.dev_path and parameter "fs_type" are mutally exclusive
-            for item in self.dev_path.split(":"):
+        # self.fstype
+        if self.device is not None:
+            assert fs_type is None                                     # self.device and parameter "fs_type" are mutally exclusive
+            for item in self.device.split(":"):
                 t = Util.getBlkDevFsType(item)
-                if self.fs_type is None:
-                    self.fs_type = t
+                if self.fstype is None:
+                    self.fstype = t
                 else:
-                    assert self.fs_type == t
+                    assert self.fstype == t
         else:
             assert fs_type in [self.FS_TYPE_VFAT, self.FS_TYPE_EXT4, self.FS_TYPE_BTRFS, self.FS_TYPE_BCACHEFS]
-            self.fs_type = fs_type
+            self.fstype = fs_type
 
-        # self.mnt_opts
-        if self.dev_path is not None:
-            assert mnt_opts is None                                    # self.dev_path and parameter "mnt_opts" are mutally exclusive
-            self.mnt_opts = PhysicalDiskMounts.find_entry_by_mount_point(self.mount_point).mnt_opts
+        # self.opts
+        if self.device is not None:
+            assert mnt_opts is None                                    # self.device and parameter "mnt_opts" are mutally exclusive
+            self.opts = PhysicalDiskMounts.find_entry_by_mount_point(self.mountpoint).opts
         else:
             assert isinstance(mnt_opts, str)
-            self.mnt_opts = mnt_opts
+            self.opts = mnt_opts
 
         # self.underlay_disk
-        if self.dev_path is not None:
-            assert underlay_disk is None                               # self.dev_path and parameter "underlay_disk" are mutally exclusive
-            self.underlay_disk = HostDisk.getUnderlayDisk(self.dev_path, mount_point=self.mount_point)
+        if self.device is not None:
+            assert underlay_disk is None                               # self.device and parameter "underlay_disk" are mutally exclusive
+            self.underlay_disk = HostDisk.getUnderlayDisk(self.device, mount_point=self.mountpoint)
         else:
             assert underlay_disk is not None
             assert all([isinstance(x, HostDisk) for x in anytree.PostOrderIter(underlay_disk)])
