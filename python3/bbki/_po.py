@@ -30,7 +30,7 @@ from ._util import PhysicalDiskMounts
 from ._exception import RunningEnvironmentError
 
 
-class KernelType(enum.Enum):
+class KernelType:       # FIXME: should change to enum.Enum
 
     LINUX = "linux"
 
