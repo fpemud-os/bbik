@@ -90,6 +90,12 @@ class BootLoader:
         self._invalidReason = None
         return
 
+    def getRootfsMnt(self):
+        return self._rootfsMnt
+
+    def getBootMnt(self):
+        return self._bootMnt
+
     def getStatus(self):
         return self._status
 

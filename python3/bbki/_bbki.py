@@ -185,18 +185,14 @@ class Bbki:
         assert all([x.device is not None for x in mount_points])
 
         if boot_mode == BootMode.EFI:
-            rootfsMp = mount_points[0]
-            espMp = Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot")
-            self._bootloader.install(boot_mode, rootfsMp, espMp,
-                                     main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
-                                     bForce=True)
+            assert mount_points[0] == self._bootloader.getRootfsMnt()
+            assert Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot") == self._bootloader.getBootMnt()
         elif boot_mode == BootMode.BIOS:
-            rootfsMp = mount_points[0]
-            self._bootloader.install(boot_mode, rootfsMp, None,
-                                     main_boot_entry, aux_os_list, aux_kernel_init_cmdline,
-                                     bForce=True)
+            assert mount_points[0] == self._bootloader.getRootfsMnt()
         else:
             assert False
+
+        self._bootloader.install(boot_mode, main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
 
     def update_bootloader(self, main_boot_entry=None, aux_os_list=None, aux_kernel_init_cmdline=None):
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
