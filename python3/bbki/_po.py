@@ -140,6 +140,21 @@ class HostMountPoint:
             assert all([isinstance(x, HostDisk) for x in anytree.PostOrderIter(underlay_disk)])
             self.underlay_disk = underlay_disk
 
+    def __eq__(self, other):
+        if type(self) != type(other):
+            return False
+        if self.device != other.device:
+            return False
+        if self.mountpoint != other.mountpoint:
+            return False
+        if self.fstype != other.fstype:
+            return False
+        if self.opts != other.opts:
+            return False
+        if self.dev_uuid != other.dev_uuid:
+            return False
+        return True
+
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
 
