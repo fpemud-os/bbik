@@ -184,6 +184,9 @@ class Bbki:
         assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
         assert all([x.device is not None for x in mount_points])
 
+        print(mount_points[0])
+        print(self._bootloader.getRootfsMnt())
+
         if boot_mode == BootMode.EFI:
             assert mount_points[0] == self._bootloader.getRootfsMnt()
             assert Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot") == self._bootloader.getBootMnt()
