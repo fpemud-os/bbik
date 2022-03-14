@@ -70,7 +70,7 @@ class Bbki:
 
         # FIXME: we should not create boot-loader object here, we should support no boot-loader senario
         rootfsMnt = PhysicalDiskMounts.find_root_entry()
-        bootMnt = PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
+        bootMnt = PhysicalDiskMounts.find_entry_by_mount_point(self._fsLayout.get_boot_dir())
         self._bootloader = BootLoader(self, rootfsMnt, bootMnt)
 
     @property
