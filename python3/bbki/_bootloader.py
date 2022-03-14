@@ -26,7 +26,6 @@ import re
 import pathlib
 import grub_install
 from ._util import Util
-from ._util import PhysicalDiskMounts
 from ._po import BootMode
 from ._po import HostAuxOs
 from ._boot_entry import BootEntryUtils
@@ -39,14 +38,13 @@ class BootLoader:
     STATUS_NOT_VALID = 2
     STATUS_NOT_INSTALLED = 3
 
-    def __init__(self, bbki):
+    def __init__(self, bbki, rootfs_mount_point, boot_mount_point):
         self._bbki = bbki
+        self._rootfsMnt = rootfs_mount_point
+        self._bootMnt = boot_mount_point
 
         self._grubCfgFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grub.cfg")
         self._grubEnvFile = os.path.join(self._bbki._fsLayout.get_boot_grub_dir(), "grubenv")
-
-        self._rootfsMnt = PhysicalDiskMounts.find_root_entry()
-        self._bootMnt = PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
 
         self._targetObj = grub_install.Target(grub_install.TargetType.MOUNTED_HDD_DEV, grub_install.TargetAccessMode.RW,
                                               rootfs_mount_point=self._rootfsMnt, boot_mount_point=self._bootMnt)

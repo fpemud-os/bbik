@@ -38,6 +38,7 @@ from ._kernel import KernelInstaller
 from ._exception import RunningEnvironmentError
 
 from ._util import Util
+from ._util import PhysicalDiskMounts
 from ._po import FsLayout
 from ._repo import BbkiAtomExecutor
 from ._boot_entry import BootEntryUtils
@@ -68,7 +69,9 @@ class Bbki:
         ]
 
         # FIXME: we should not create boot-loader object here, we should support no boot-loader senario
-        self._bootloader = BootLoader(self)
+        rootfsMnt = PhysicalDiskMounts.find_root_entry()
+        bootMnt = PhysicalDiskMounts.find_entry_by_mount_point(self._bbki._fsLayout.get_boot_dir())
+        self._bootloader = BootLoader(self, rootfsMnt, bootMnt)
 
     @property
     def config(self):
