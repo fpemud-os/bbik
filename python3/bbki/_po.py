@@ -23,18 +23,19 @@
 
 import os
 import re
+import enum
 import anytree
 from ._util import Util
 from ._util import PhysicalDiskMounts
 from ._exception import RunningEnvironmentError
 
 
-class KernelType:
+class KernelType(enum.Enum):
 
     LINUX = "linux"
 
 
-class BootMode:
+class BootMode(enum.Enum):
 
     EFI = "efi"
     BIOS = "bios"
@@ -68,6 +69,9 @@ class RescueOsSpec:
         self.root_dir = bbki._fsLayout.get_boot_rescue_os_dir()
         self.kernel_filepath = bbki._fsLayout.get_boot_rescue_os_kernel_filepath()
         self.initrd_filepath = bbki._fsLayout.get_boot_rescue_os_initrd_filepath()
+
+    def __repr__(self):
+        return "<%s %r>" % (self.__class__.__name__, self.__dict__)
 
 
 class HostMountPoint:
@@ -154,6 +158,9 @@ class HostMountPoint:
         if self.dev_uuid != other.dev_uuid:
             return False
         return True
+
+    def __repr__(self):
+        return "<%s %r>" % (self.__class__.__name__, self.__dict__)
 
 
 class HostDisk(anytree.node.nodemixin.NodeMixin):
