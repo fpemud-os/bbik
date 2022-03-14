@@ -139,15 +139,8 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, rootfs_mnt, esp_mnt, main_boot_entry, aux_os_list, aux_kernel_init_cmdline, bForce=False):
-        if boot_mode == BootMode.EFI:
-            assert rootfs_mnt is not None
-            assert esp_mnt is not None
-        elif boot_mode == BootMode.BIOS:
-            assert rootfs_mnt is not None
-            assert esp_mnt is None
-        else:
-            assert False
+    def install(self, boot_mode, rootfs_mnt, esp_mnt, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
+        assert rootfs_mnt == self._rootfsMnt and esp_mnt == self._bootMnt
         assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
         assert not main_boot_entry.is_historical()
 
@@ -171,10 +164,7 @@ class BootLoader:
         if boot_mode == BootMode.EFI:
             self._targetObj.install_platform(grub_install.PlatformType.X86_64_EFI, s, removable=True, update_nvram=False)
         elif boot_mode == BootMode.BIOS:
-            # install /boot/grub directory
-            # install grub into disk MBR
-            # FIXME
-            Util.cmdCall("grub-install", "--target=i386-pc", Util.devPathPartitionToDisk(rootfs_mnt.device))
+            self._targetObj.install_platform(grub_install.PlatformType.I386_PC, s)
         else:
             assert False
         self._targetObj.install_data_files(s, locales="*", fonts="*")

@@ -67,6 +67,7 @@ class Bbki:
             Repo(self, self._cfg.data_repo_dir),
         ]
 
+        # FIXME: we should not create boot-loader object here, we should support no boot-loader senario
         self._bootloader = BootLoader(self)
 
     @property
@@ -92,8 +93,6 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
         if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
-        if not Util.cmdCallTestSuccess("grub-install", "-V"):
-            raise RunningEnvironmentError("executable \"grub-install\" does not exist")
 
     def get_current_boot_entry(self):
         assert self._bSelfBoot
