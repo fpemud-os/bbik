@@ -227,7 +227,7 @@ class Bbki:
         if True:
             tset = set(glob.glob(os.path.join(self._fsLayout.get_boot_dir(), "*")))                     # mark /boot/* (no recursion) as to-be-deleted
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-                tset -= set(self._bootloader.get_filepaths())                                           # don't delete boot-loader files
+                tset -= set(self._bootloader.getFilepaths())                                           # don't delete boot-loader files
             tset.discard(self._fsLayout.get_boot_rescue_os_dir())                                       # don't delete /boot/rescue
             if currentBe is not None:
                 if currentBe.is_historical():

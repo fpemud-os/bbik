@@ -101,7 +101,7 @@ class BootLoader:
         assert self._status == self.STATUS_NORMAL
         return self._bootMode
 
-    def get_filepaths(self):
+    def getFilepaths(self):
         assert self._status == self.STATUS_NORMAL
 
         ret = []
