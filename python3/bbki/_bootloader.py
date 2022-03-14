@@ -174,7 +174,7 @@ class BootLoader:
             # install /boot/grub directory
             # install grub into disk MBR
             # FIXME
-            Util.cmdCall("grub-install", "--target=i386-pc", Util.devPathPartitionToDisk(rootfs_mnt))
+            Util.cmdCall("grub-install", "--target=i386-pc", Util.devPathPartitionToDisk(rootfs_mnt.device))
         else:
             assert False
         self._targetObj.install_data_files(s, locales="*", fonts="*")
