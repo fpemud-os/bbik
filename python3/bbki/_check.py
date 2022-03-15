@@ -43,17 +43,16 @@ class Checker:
     def checkBootDir(self):
         # check bootloader
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-            pass
+            try:
+                self._bbki._bootloader.compare_source()
+            except grub_install.CompareSourceError as e:
+                self._errCb("Boot-loader is different with source files, %s." % (e))
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_VALID:
             self._errCb("Boot-loader is invalid, %s." % (self._bbki._bootloader.getInvalidReason()))
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_INSTALLED:
             self._errCb("Boot-loader is not installed.")
         else:
             assert False
-        try:
-            self._bbki._bootloader.compare_source()
-        except grub_install.CompareSourceError as e:
-            self._errCb("Boot-loader is different with source files, %s." % (str(e)))
 
         # check pending boot entry
         pendingBe = self._bbki.get_pending_boot_entry()
