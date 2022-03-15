@@ -32,6 +32,7 @@ from .etcdir_cfg import Config as EtcDirConfig
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
+from ._po import HostMountPoint
 from ._repo import Repo
 from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
@@ -184,14 +185,15 @@ class Bbki:
         assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
         assert all([x.device is not None for x in mount_points])
 
-        print(mount_points[0])
-        print(self._bootloader.getRootfsMnt())
+        def __cmpHostMountPointAndPhysicalDiskMountsEntry(obj1, obj2):
+            assert isinstance(obj1, HostMountPoint) and isinstance(obj2, PhysicalDiskMounts.Entry)
+            return obj1.device == obj2.device and obj1.mountpoint == obj2.mountpoint and obj1.fstype == obj2.fstype and obj1.opts == obj2.opts
 
+        assert __cmpHostMountPointAndPhysicalDiskMountsEntry(mount_points[0], self._bootloader.getRootfsMnt())
         if boot_mode == BootMode.EFI:
-            assert mount_points[0] == self._bootloader.getRootfsMnt()
-            assert Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot") == self._bootloader.getBootMnt()
+            assert __cmpHostMountPointAndPhysicalDiskMountsEntry(Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"), self._bootloader.getBootMnt())
         elif boot_mode == BootMode.BIOS:
-            assert mount_points[0] == self._bootloader.getRootfsMnt()
+            pass
         else:
             assert False
 

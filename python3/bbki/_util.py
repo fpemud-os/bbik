@@ -452,6 +452,9 @@ class PhysicalDiskMounts:
         def mnt_opt_list(self):
             return self._p.opts.split(",")
 
+        def __repr__(self):
+            return "<%s %r>" % (self.__class__.__name__, self.__dict__)
+
     class NotFoundError(Exception):
         pass
 
