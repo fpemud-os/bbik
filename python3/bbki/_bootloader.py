@@ -143,8 +143,7 @@ class BootLoader:
                 return
             Util.cmdCall("grub-editenv", self._grubEnvFile, "unset", "stable")
 
-    def install(self, boot_mode, rootfs_mnt, esp_mnt, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert rootfs_mnt == self._rootfsMnt and esp_mnt == self._bootMnt
+    def install(self, boot_mode, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
         assert main_boot_entry.has_kernel_files() and main_boot_entry.has_initrd_files()
         assert not main_boot_entry.is_historical()
 
