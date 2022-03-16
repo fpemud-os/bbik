@@ -25,7 +25,6 @@ import os
 import glob
 import robust_layer.simple_fops
 
-from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
 from ._po import HostMountPoint
@@ -35,7 +34,6 @@ from ._kernel import KernelInstaller
 from ._exception import RunningEnvironmentError
 
 from ._util import Util
-from ._util import PhysicalDiskMounts
 from ._po import FsLayout
 from ._repo import BbkiAtomExecutor
 from ._boot_entry import BootEntryUtils
@@ -46,9 +44,15 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, mount_points=[]):
         assert isinstance(cfg, ConfigBase)
         self._cfg = cfg
+
+        assert all([isinstance(x, HostMountPoint) for x in mount_points])
+        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
+        if len(mount_points) > 0:
+            assert mount_points[0].mountpoint == "/"
+        self._mpList = mount_points
 
         if self._cfg.get_kernel_type() == KernelType.LINUX:
             self._fsLayout = FsLayout(self)
@@ -59,10 +63,10 @@ class Bbki:
             Repo(self, self._cfg.data_repo_dir),
         ]
 
-        # FIXME: we should not create boot-loader object here, we should support no boot-loader senario
-        rootfsMnt = PhysicalDiskMounts.find_root_entry()
-        bootMnt = PhysicalDiskMounts.find_entry_by_mount_point(self._fsLayout.get_boot_dir())
-        self._bootloader = BootLoader(self, rootfsMnt, bootMnt)
+        if len(self._mpList) > 0 and all([x.device is not None for x in self._mpList]):
+            self._bootloader = BootLoader(self, mount_points[0], Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"))
+        else:
+            self._bootloader = None
 
     @property
     def config(self):
@@ -89,7 +93,7 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
 
     def get_pending_boot_entry(self):
-        if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+        if self._bootloader is not None and self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             mbe = self._bootloader.getMainBootEntry()
             if mbe.has_kernel_files() and mbe.has_initrd_files():
                 return mbe
@@ -155,41 +159,23 @@ class Bbki:
 
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
-    def install_initramfs(self, initramfs_atom, mount_points, boot_entry):
-        assert mount_points[0].mountpoint == "/"
-        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
+    def install_initramfs(self, initramfs_atom, boot_entry):
+        assert len(self._mpList) > 0
         assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
         obj.create_tmpdirs()
         try:
             obj.exec_src_unpack()
-            obj.exec_initramfs_install(mount_points, boot_entry)
+            obj.exec_initramfs_install(self._mpList, boot_entry)
         finally:
             obj.remove_tmpdirs()
 
-    def install_bootloader(self, boot_mode, mount_points, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
-        assert mount_points[0].mountpoint == "/"
-        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
-        assert all([x.device is not None for x in mount_points])
-
-        def __cmpHostMountPointAndPhysicalDiskMountsEntry(obj1, obj2):
-            assert isinstance(obj1, HostMountPoint) and isinstance(obj2, PhysicalDiskMounts.Entry)
-            return obj1.device == obj2.device and obj1.mountpoint == obj2.mountpoint and obj1.fstype == obj2.fstype and obj1.opts == obj2.opts
-
-        assert __cmpHostMountPointAndPhysicalDiskMountsEntry(mount_points[0], self._bootloader.getRootfsMnt())
-        if boot_mode == BootMode.EFI:
-            assert __cmpHostMountPointAndPhysicalDiskMountsEntry(Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"), self._bootloader.getBootMnt())
-        elif boot_mode == BootMode.BIOS:
-            pass
-        else:
-            assert False
-
+    def install_bootloader(self, boot_mode, main_boot_entry, aux_os_list, aux_kernel_init_cmdline):
         self._bootloader.install(boot_mode, main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
 
     def update_bootloader(self, main_boot_entry=None, aux_os_list=None, aux_kernel_init_cmdline=None):
         assert self._bootloader.getStatus() == BootLoader.STATUS_NORMAL
-
         self._bootloader.update(main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
 
     def get_stable_flag(self):
@@ -263,7 +249,8 @@ class Bbki:
         #     return ret
 
     def remove_all(self):
-        self._bootloader.remove(bForce=True)                                      # remove MBR if necessary
+        if self._bootloader is not None:
+            self._bootloader.remove(bForce=True)
         robust_layer.simple_fops.truncate_dir(self._fsLayout.get_boot_dir())      # remove /boot/*
         robust_layer.simple_fops.rm(self._fsLayout.get_firmware_dir())            # remove /lib/firmware
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
