@@ -114,6 +114,13 @@ class Bbki:
                 return mbe
         return None
 
+    def get_newest_boot_entry(self):
+        ret = self.get_boot_entries()
+        if len(ret) > 0:
+            return ret[0]
+        else:
+            return None
+
     def get_boot_entries(self):
         ret = []
         for kernelFile in sorted(os.listdir(self._fsLayout.get_boot_dir()), reverse=True):
