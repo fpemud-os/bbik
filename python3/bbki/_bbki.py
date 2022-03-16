@@ -44,10 +44,11 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg, mount_points=[]):
+    def __init__(self, cfg, mount_points):
         assert isinstance(cfg, ConfigBase)
         self._cfg = cfg
 
+        assert len(mount_points) > 0
         assert all([isinstance(x, HostMountPoint) for x in mount_points])
         assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
         if len(mount_points) > 0:
@@ -63,7 +64,7 @@ class Bbki:
             Repo(self, self._cfg.data_repo_dir),
         ]
 
-        if len(self._mpList) > 0 and all([x.device is not None for x in self._mpList]):
+        if all([x.device is not None for x in self._mpList]):
             self._bootloader = BootLoader(self, mount_points[0], Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"))
         else:
             self._bootloader = None
@@ -170,7 +171,6 @@ class Bbki:
         return KernelInstaller(self, kernel_atom, kernel_addon_atom_list, initramfs_atom)
 
     def install_initramfs(self, initramfs_atom, boot_entry):
-        assert len(self._mpList) > 0
         assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
         obj = BbkiAtomExecutor(initramfs_atom)
