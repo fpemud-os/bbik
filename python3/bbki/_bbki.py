@@ -73,12 +73,18 @@ class Bbki:
         return self._cfg
 
     @property
+    def repositories(self):
+        return self._repoList
+
+    @property
     def mount_points(self):
         return self._mpList
 
     @property
-    def repositories(self):
-        return self._repoList
+    def boot_mode(self):
+        if self._bootloader is not None and self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+            return self._bootloader.getBootMode()
+        return None
 
     @property
     def rescue_os_spec(self):
