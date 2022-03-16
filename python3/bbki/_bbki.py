@@ -35,7 +35,7 @@ from ._exception import RunningEnvironmentError
 
 from ._util import Util
 from ._po import FsLayout
-from ._repo import BbkiAtomExecutor
+from ._repo_atom_exec import BbkiAtomExecutor
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
 from ._bootloader import BootLoader
@@ -162,7 +162,7 @@ class Bbki:
             return None
 
     def fetch(self, atom):
-        BbkiAtomExecutor(atom).exec_fetch()
+        BbkiAtomExecutor(self, atom).exec_fetch()
 
     def get_kernel_installer(self, kernel_atom, kernel_addon_atom_list, initramfs_atom=None):
         assert kernel_atom.atom_type == Repo.ATOM_TYPE_KERNEL
@@ -173,7 +173,7 @@ class Bbki:
     def install_initramfs(self, initramfs_atom, boot_entry):
         assert boot_entry.has_kernel_files() and not boot_entry.is_historical()
 
-        obj = BbkiAtomExecutor(initramfs_atom)
+        obj = BbkiAtomExecutor(self, initramfs_atom)
         obj.create_tmpdirs()
         try:
             obj.exec_src_unpack()

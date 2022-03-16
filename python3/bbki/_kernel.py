@@ -30,7 +30,7 @@ import robust_layer.simple_fops
 from ._util import Util
 from ._boot_entry import BootEntry
 from ._boot_entry import BootEntryWrapper
-from ._repo import BbkiAtomExecutor
+from ._repo_atom_exec import BbkiAtomExecutor
 from ._exception import KernelInstallError
 
 
@@ -90,11 +90,11 @@ class KernelInstaller:
         self._initramfsAtom = initramfs_atom
 
         self._executorDict = dict()
-        self._executorDict[kernel_atom] = BbkiAtomExecutor(kernel_atom)
+        self._executorDict[kernel_atom] = BbkiAtomExecutor(self._bbki, kernel_atom)
         for item in kernel_atom_item_list:
-            self._executorDict[item] = BbkiAtomExecutor(item)
+            self._executorDict[item] = BbkiAtomExecutor(self._bbki, item)
         if self._initramfsAtom is not None:
-            self._executorDict[self._initramfsAtom] = BbkiAtomExecutor(self._initramfsAtom)
+            self._executorDict[self._initramfsAtom] = BbkiAtomExecutor(self._bbki, self._initramfsAtom)
 
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = None
