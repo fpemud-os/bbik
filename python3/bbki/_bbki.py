@@ -42,6 +42,26 @@ from ._bootloader import BootLoader
 from ._check import Checker
 
 
+class BbkiRepoman:
+
+    def __init__(self, cfg):
+        assert isinstance(cfg, ConfigBase)
+        self._cfg = cfg
+
+        if self._cfg.get_kernel_type() == KernelType.LINUX:
+            self._fsLayout = FsLayout(self)
+        else:
+            assert False
+
+        self._repoList = [
+            Repo(self._cfg.data_repo_dir),
+        ]
+
+    @property
+    def repositories(self):
+        return self._repoList
+
+
 class Bbki:
 
     def __init__(self, cfg, mount_points):
@@ -266,7 +286,7 @@ class Bbki:
         robust_layer.simple_fops.rm(self._fsLayout.get_kernel_modules_dir())      # remove /lib/modules
 
     def check_config(self, autofix=False, error_callback=None):
-        self._cfg.do_check(self, autofix, error_callback)
+        self._cfg.check_against_repositories(self._repoList, autofix, error_callback)
 
     def check_repositories(self, autofix=False, error_callback=None):
         obj = Checker(self, autofix, error_callback)

@@ -66,5 +66,5 @@ class ConfigBase:
     def test_version_mask(self, item_fullname, item_verstr):
         raise NotImplementedError()
 
-    def do_check(self, autofix, error_callback):
+    def check_against_repositories(self, repositories, autofix, error_callback):
         raise NotImplementedError()

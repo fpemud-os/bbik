@@ -157,10 +157,10 @@ class Config(ConfigBase):
                     return False
         return True
 
-    def do_check(self, bbki, autofix, error_callback):
+    def check_with_repositories(self, repositories, autofix, error_callback):
         # check kernel name
         bFound = False
-        for repo in bbki.repositories:
+        for repo in repositories:
             ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL, self._tKernelTypeName[1])
             if len(ret) > 0:
                 bFound = True
@@ -180,7 +180,7 @@ class Config(ConfigBase):
                 fullfn = os.path.join(dirPath, fn)
                 for addonName, bAdd in KernelAddonFile.parse_from_file(self._tKernelTypeName[0], fullfn):
                     bFound = False
-                    for repo in bbki.repositories:
+                    for repo in repositories:
                         ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_KERNEL_ADDON, addonName)
                         if len(ret) > 0:
                             bFound = True
@@ -190,7 +190,7 @@ class Config(ConfigBase):
 
         # check initramfs name
         bFound = False
-        for repo in bbki.repositories:
+        for repo in repositories:
             ret = repo.get_atoms_by_type_name(self._tKernelTypeName[0], repo.ATOM_TYPE_INITRAMFS, self.get_initramfs_name())
             if len(ret) > 0:
                 bFound = True
