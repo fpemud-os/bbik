@@ -50,7 +50,7 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg, self_boot=True):
+    def __init__(self, cfg, self_boot):
         assert isinstance(cfg, ConfigBase)
         assert isinstance(self_boot, bool)
 
