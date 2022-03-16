@@ -157,7 +157,7 @@ class Config(ConfigBase):
                     return False
         return True
 
-    def check_with_repositories(self, repositories, autofix, error_callback):
+    def check_against_repositories(self, repositories, autofix, error_callback):
         # check kernel name
         bFound = False
         for repo in repositories:
