@@ -61,7 +61,7 @@ class Bbki:
             assert False
 
         self._repoList = [
-            Repo(self, self._cfg.data_repo_dir),
+            Repo(self._cfg.data_repo_dir),
         ]
 
         if all([x.device is not None for x in self._mpList]):

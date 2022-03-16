@@ -36,8 +36,7 @@ class Repo:
     ATOM_TYPE_KERNEL_ADDON = 2
     ATOM_TYPE_INITRAMFS = 3
 
-    def __init__(self, bbki, path):
-        self._bbki = bbki
+    def __init__(self, path):
         self._path = path
 
     @property
@@ -103,7 +102,6 @@ class Repo:
 class RepoAtom:
 
     def __init__(self, repo, kernel_type, atom_type, atom_name, ver, rev):
-        self._bbki = repo._bbki
         self._repo = repo
         self._kernelType = kernel_type
         self._atomType = atom_type
