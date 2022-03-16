@@ -59,11 +59,6 @@ class Checker:
         if pendingBe is None:
             self._errCb("No pending boot entry, system is not bootable.")
 
-        # check current boot entry
-        if self._bbki._bSelfBoot:
-            if self._bbki.get_current_boot_entry() != pendingBe:
-                self._errCb("Current boot entry and pending boot entry are different, reboot needed.")
-
         # check boot entries
         beList = self._bbki.get_boot_entries()
         if len(beList) > 1:
