@@ -50,11 +50,8 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg=None, self_boot=True):
-        if cfg is not None:
-            assert isinstance(cfg, ConfigBase)
-        else:
-            cfg = EtcDirConfig()
+    def __init__(self, cfg, self_boot=True):
+        assert isinstance(cfg, ConfigBase)
         assert isinstance(self_boot, bool)
 
         self._cfg = cfg
