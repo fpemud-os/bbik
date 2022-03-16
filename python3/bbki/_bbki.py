@@ -73,6 +73,10 @@ class Bbki:
         return self._cfg
 
     @property
+    def mount_points(self):
+        return self._mpList
+
+    @property
     def repositories(self):
         return self._repoList
 

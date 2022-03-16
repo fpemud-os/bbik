@@ -48,10 +48,9 @@ from ._exception import InitramfsInstallError
 
 class InitramfsInstaller:
 
-    def __init__(self, bbki, work_dir, mount_points, boot_entry):
+    def __init__(self, bbki, work_dir, boot_entry):
         self._bbki = bbki
         self._trWorkDir = work_dir
-        self._mountPointList = mount_points
         self._be = boot_entry
         self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
@@ -71,7 +70,7 @@ class InitramfsInstaller:
 
         # deduplicated disk list
         diskList = OrderedSet()
-        for mp in self._mountPointList:
+        for mp in self._bbki.mount_points:
             for disk in anytree.PostOrderIter(mp.underlay_disk):
                 diskList.add(disk)
 
@@ -114,7 +113,7 @@ class InitramfsInstaller:
                     else:
                         assert False
 
-            for mp in self._mountPointList:
+            for mp in self._bbki.mount_points:
                 if mp.fstype == HostMountPoint.FS_TYPE_VFAT:
                     buf = pathlib.Path(self._be.kernel_config_filepath).read_text()
                     kaliasList.add("vfat")
@@ -384,7 +383,7 @@ class InitramfsInstaller:
                 return "./sysroot" + mount_point
 
         # write comments
-        for mi in self._mountPointList:
+        for mi in self._bbki.mount_points:
             buf += "# %s: %s\n" % (mi.mountpoint, mi.dev_uuid)
         buf += "\n"
 
@@ -402,7 +401,7 @@ class InitramfsInstaller:
 
         # mount block devices
         i = 0
-        for mi in self._mountPointList:
+        for mi in self._bbki.mount_points:
             if mi.fstype == "btrfs":
                 if isinstance(mi.underlay_disk, HostDiskBtrfsRaid):
                     uuidList = [x.uuid for x in mi.underlay_disk.children]
