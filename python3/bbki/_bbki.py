@@ -58,11 +58,15 @@ class BbkiRepoman:
         ]
 
     @property
+    def config(self):
+        return self._cfg
+
+    @property
     def repositories(self):
         return self._repoList
 
 
-class Bbki:
+class BbkiInstaller:
 
     def __init__(self, cfg, mount_points):
         assert isinstance(cfg, ConfigBase)
@@ -92,10 +96,6 @@ class Bbki:
     @property
     def config(self):
         return self._cfg
-
-    @property
-    def repositories(self):
-        return self._repoList
 
     @property
     def mount_points(self):

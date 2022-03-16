@@ -237,7 +237,7 @@ class BootLoader:
         kernelCmdLine = ""
         kernelCmdLine += " console=ttynull"                                               # global data: only use console when debug boot process
         kernelCmdLine += " %s" % (aux_kernel_init_cmdline)                                # host level extra data
-        kernelCmdLine += " %s" % (self._bbki.config.get_kernel_extra_init_cmdline())      # admin level extra data
+        kernelCmdLine += " %s" % (self._bbki._cfg.get_kernel_extra_init_cmdline())        # admin level extra data
         kernelCmdLine = kernelCmdLine.strip()
         return kernelCmdLine
 
@@ -296,7 +296,7 @@ class BootLoader:
         else:
             assert False
 
-        initCmdLine = self._bbki.config.get_system_init().cmd
+        initCmdLine = self._bbki._cfg.get_system_init().cmd
 
         # deal with recordfail variable
         buf += 'load_env\n'
@@ -318,10 +318,10 @@ class BootLoader:
             assert False
         buf += 'if [ "${stable}" ] ; then\n'
         buf += '  set default=0\n'
-        buf += '  set timeout=%d\n' % (0 + self._bbki.config.get_bootloader_extra_time())
+        buf += '  set timeout=%d\n' % (0 + self._bbki._cfg.get_bootloader_extra_time())
         buf += 'else\n'
         buf += '  set default=1\n'
-        buf += '  if sleep --verbose --interruptible %d ; then\n' % (3 + self._bbki.config.get_bootloader_extra_time())
+        buf += '  if sleep --verbose --interruptible %d ; then\n' % (3 + self._bbki._cfg.get_bootloader_extra_time())
         buf += '    set timeout=0\n'
         buf += '  else\n'
         buf += '    set timeout=-1\n'

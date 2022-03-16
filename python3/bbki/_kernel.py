@@ -99,7 +99,7 @@ class KernelInstaller:
         self._progress = KernelInstallProgress.STEP_INIT
         self._targetBootEntry = None
 
-        self._myTmpDir = os.path.join(self._bbki.config.tmp_dir, "kernel")
+        self._myTmpDir = os.path.join(self._bbki._cfg.tmp_dir, "kernel")
         self._kcfgRulesTmpFile = os.path.join(self._myTmpDir, "config.rules")
         self._dotCfgFile = os.path.join(self._myTmpDir, "config")
 

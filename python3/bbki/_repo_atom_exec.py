@@ -89,8 +89,8 @@ class BbkiAtomExecutor:
 
     def run_for_variable_values(self, varList):
         out = None
-        robust_layer.simple_fops.mkdir(self._bbki.config.tmp_dir)
-        with TempChdir(self._bbki.config.tmp_dir):
+        robust_layer.simple_fops.mkdir(self._bbki._cfg.tmp_dir)
+        with TempChdir(self._bbki._cfg.tmp_dir):
             cmd = ""
             cmd += self._vars_common()
             cmd += "source %s\n" % (self._atom.bbki_file)
@@ -117,7 +117,7 @@ class BbkiAtomExecutor:
     def exec_fetch(self):
         if self._item_has_me():
             # custom action
-            targetDir = os.path.join(self._bbki.config.cache_distfiles_dir, _custom_src_dir(self._atom))
+            targetDir = os.path.join(self._bbki._cfg.cache_distfiles_dir, _custom_src_dir(self._atom))
             os.makedirs(targetDir, exist_ok=True)
             with TempChdir(targetDir):
                 cmd = ""
@@ -128,7 +128,7 @@ class BbkiAtomExecutor:
         else:
             # default action
             for downloadType, url, localFn in _distfiles_get(self._atom):
-                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
+                localFullFn = os.path.join(self._bbki._cfg.cache_distfiles_dir, localFn)
                 os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
                 if downloadType == "git":
                     robust_layer.simple_git.pull(localFullFn, reclone_on_failure=True, url=url)
@@ -152,7 +152,7 @@ class BbkiAtomExecutor:
         else:
             # default action
             for downloadType, url, localFn in _distfiles_get(self._atom):
-                localFullFn = os.path.join(self._bbki.config.cache_distfiles_dir, localFn)
+                localFullFn = os.path.join(self._bbki._cfg.cache_distfiles_dir, localFn)
                 if os.path.isdir(localFullFn):
                     Util.shellCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
                 elif tarfile.is_tarfile(localFullFn) or zipfile.is_zipfile(localFullFn):
@@ -182,7 +182,7 @@ class BbkiAtomExecutor:
             cmd = ""
             cmd += self._vars_common()
             cmd += self._vars_after_fetch()
-            cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+            cmd += "export MAKEOPTS='%s'\n" % (self._bbki._cfg.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "export KVER='%s'\n" % (boot_entry.verstr)
             cmd += "export KERNEL_CONFIG_FILE='%s'\n" % (kernelConfigFile)
@@ -267,7 +267,7 @@ class BbkiAtomExecutor:
             cmd += "export KERNEL_DIR='%s'\n" % (kernelDir)
             cmd += "export KERNEL_MODULES_DIR='%s'\n" % (self._bbki._fsLayout.get_kernel_modules_dir(boot_entry.verstr))
             cmd += "export FIRMWARE_DIR='%s'\n" % (self._bbki._fsLayout.get_firmware_dir())
-            cmd += "export MAKEOPTS='%s'\n" % (self._bbki.config.get_build_variable("MAKEOPTS"))
+            cmd += "export MAKEOPTS='%s'\n" % (self._bbki._cfg.get_build_variable("MAKEOPTS"))
             cmd += 'export PATH="%s:$PATH"\n' % (_get_script_helpers_dir())
             cmd += "\n"
             cmd += "source %s\n" % (self._atom.bbki_file)
@@ -373,7 +373,7 @@ class BbkiAtomExecutor:
         buf = ""
         if True:
             fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
-            fnlist = [os.path.join(os.path.join(self._bbki.config.cache_distfiles_dir, x)) for x in fnlist]
+            fnlist = [os.path.join(os.path.join(self._bbki._cfg.cache_distfiles_dir, x)) for x in fnlist]
             buf += "export A='%s'\n" % ("' '".join(fnlist))
         return buf
 
@@ -416,7 +416,7 @@ def _distfiles_get(atom):
 
 
 def _tmpdirs(bbki, atom):
-    tmpRootDir = os.path.join(bbki.config.tmp_dir, atom.fullname)
+    tmpRootDir = os.path.join(bbki._cfg.tmp_dir, atom.fullname)
     # trBuildInfoDir = os.path.join(tmpRootDir, "build-info")     # FIXME
     # trDistDir = os.path.join(tmpRootDir, "distdir")             # FIXME
     # trEmptyDir = os.path.join(tmpRootDir, "empty")              # FIXME

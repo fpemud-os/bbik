@@ -53,7 +53,7 @@ class InitramfsInstaller:
         self._trWorkDir = work_dir
         self._be = boot_entry
         self._beWrapper = BootEntryWrapper(self._be)
-        self._initramfsTmpDir = os.path.join(self._bbki.config.tmp_dir, "initramfs")
+        self._initramfsTmpDir = os.path.join(self._bbki._cfg.tmp_dir, "initramfs")
 
         # trick: initramfs debug is seldomly needed
         self.trickDebug = False
@@ -423,7 +423,7 @@ class InitramfsInstaller:
             buf += "\n"
 
         # switch to new root
-        buf += ("switchroot \"%s\" %s\n" % (_getPrefixedMountPoint("/"), self._bbki.config.get_system_init().cmd)).rstrip()
+        buf += ("switchroot \"%s\" %s\n" % (_getPrefixedMountPoint("/"), self._bbki._cfg.get_system_init().cmd)).rstrip()
         buf += "\n"
 
         # write cfg file

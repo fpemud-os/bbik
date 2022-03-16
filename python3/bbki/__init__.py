@@ -32,7 +32,8 @@ __author__ = "fpemud@sina.com (Fpemud)"
 __version__ = "0.0.1"
 
 
-from ._bbki import Bbki
+from ._bbki import BbkiRepoman
+from ._bbki import BbkiInstaller
 
 from ._po import KernelType
 from ._po import BootMode
