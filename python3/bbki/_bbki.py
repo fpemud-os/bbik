@@ -23,18 +23,14 @@
 
 import os
 import glob
-import platform
 import robust_layer.simple_fops
-
-from ._config import ConfigBase
-from .etcdir_cfg import Config as EtcDirConfig
 
 from ._po import BootMode
 from ._po import KernelType
 from ._po import RescueOsSpec
 from ._po import HostMountPoint
+from ._config import ConfigBase
 from ._repo import Repo
-from ._boot_entry import BootEntry
 from ._kernel import KernelInstaller
 from ._exception import RunningEnvironmentError
 
@@ -50,12 +46,9 @@ from ._check import Checker
 
 class Bbki:
 
-    def __init__(self, cfg, self_boot):
+    def __init__(self, cfg):
         assert isinstance(cfg, ConfigBase)
-        assert isinstance(self_boot, bool)
-
         self._cfg = cfg
-        self._bSelfBoot = self_boot
 
         if self._cfg.get_kernel_type() == KernelType.LINUX:
             self._fsLayout = FsLayout(self)
@@ -94,15 +87,6 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
         if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
-
-    def get_current_boot_entry(self):
-        assert self._bSelfBoot
-
-        for bHistoryEntry in [False, True]:
-            ret = BootEntry(self, platform.machine(), platform.release(), history_entry=bHistoryEntry)
-            if ret.has_kernel_files() and ret.has_initrd_files():
-                return ret
-        raise RunningEnvironmentError("current boot entry is lost")
 
     def get_pending_boot_entry(self):
         if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
@@ -218,38 +202,26 @@ class Bbki:
         self._bootloader.setStableFlag(value)
 
     def clean_boot_entry_files(self, pretend=False):
-        if self._bSelfBoot:
-            currentBe = self.get_current_boot_entry()
-            beList = self.get_boot_entries()
-            fullBeList = beList if not currentBe.is_historical() else beList + [currentBe]
-        else:
-            currentBe = None
-            beList = self.get_boot_entries()
-            fullBeList = beList
+        beList = self.get_boot_entries()
 
         # get to-be-deleted files in /boot
         bootFileList = None
         if True:
             tset = set(glob.glob(os.path.join(self._fsLayout.get_boot_dir(), "*")))                     # mark /boot/* (no recursion) as to-be-deleted
             if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
-                tset -= set(self._bootloader.getFilepaths())                                           # don't delete boot-loader files
+                tset -= set(self._bootloader.getFilepaths())                                            # don't delete boot-loader files
             tset.discard(self._fsLayout.get_boot_rescue_os_dir())                                       # don't delete /boot/rescue
-            if currentBe is not None:
-                if currentBe.is_historical():
-                    tset.discard(self._fsLayout.get_boot_history_dir())                                 # don't delete /boot/history since some files in it are referenced
-                    tset |= set(glob.glob(os.path.join(self._fsLayout.get_boot_history_dir(), "*")))    # mark /boot/history/* (no recursion) as to-be-deleted
-                    tset -= set(BootEntryWrapper(currentBe).get_filepaths())                            # don't delete files of current-boot-entry
             for be in beList:
-                tset -= set(BootEntryWrapper(be).get_filepaths())                                       # don't delete files of pending-boot-entry
+                tset -= set(BootEntryWrapper(be).get_filepaths())                                       # don't delete files of pending-boot-entries
             bootFileList = sorted(list(tset))
 
         # get to-be-deleted files in /lib/modules
-        modulesFileList = BootEntryUtils(self).getRedundantKernelModulesDirs(fullBeList)
+        modulesFileList = BootEntryUtils(self).getRedundantKernelModulesDirs(beList)
         if modulesFileList == os.listdir(self._fsLayout.get_kernel_modules_dir()):
             modulesFileList.append(self._fsLayout.get_kernel_modules_dir())
 
         # get to-be-deleted files in /lib/firmware
-        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(fullBeList)
+        firmwareFileList = BootEntryUtils(self).getRedundantFirmwareFiles(beList)
 
         # delete files
         if not pretend:
