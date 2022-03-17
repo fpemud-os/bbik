@@ -77,6 +77,15 @@ class BbkiManager:
         assert mount_points[0].mountpoint == "/"
         self._mpList = mount_points
 
+        if not os.path.isdir(self._fsLayout.get_boot_dir()):
+            raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_boot_dir()))
+        if not Util.cmdCallTestSuccess("make", "-v"):
+            raise RunningEnvironmentError("executable \"make\" does not exist")
+        if not Util.cmdCallTestSuccess("grub-script-check", "-V"):
+            raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
+        if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
+            raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
+
         if self._cfg.get_kernel_type() == KernelType.LINUX:
             self._fsLayout = FsLayout(self)
         else:
@@ -108,18 +117,6 @@ class BbkiManager:
     @property
     def rescue_os_spec(self):
         return RescueOsSpec(self)
-
-    def check_running_environment(self):
-        if not os.path.isdir(self._fsLayout.get_boot_dir()):
-            raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_boot_dir()))
-
-        if not Util.cmdCallTestSuccess("make", "-v"):
-            raise RunningEnvironmentError("executable \"make\" does not exist")
-
-        if not Util.cmdCallTestSuccess("grub-script-check", "-V"):
-            raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
-        if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
-            raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
 
     def get_pending_boot_entry(self):
         if self._bootloader is not None and self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
