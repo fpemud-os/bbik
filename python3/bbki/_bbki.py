@@ -42,31 +42,7 @@ from ._bootloader import BootLoader
 from ._check import Checker
 
 
-class RepoManager:
-
-    def __init__(self, cfg):
-        assert isinstance(cfg, ConfigBase)
-        self._cfg = cfg
-
-        if self._cfg.get_kernel_type() == KernelType.LINUX:
-            self._fsLayout = FsLayout(self)
-        else:
-            assert False
-
-        self._repoList = [
-            Repo(self._cfg.data_repo_dir),
-        ]
-
-    @property
-    def config(self):
-        return self._cfg
-
-    @property
-    def repositories(self):
-        return self._repoList
-
-
-class BbkiManager:
+class Bbki:
 
     def __init__(self, cfg, mount_points):
         assert isinstance(cfg, ConfigBase)
@@ -97,18 +73,25 @@ class BbkiManager:
         ]
 
         if len(mount_points) > 0:
-            self._initramfsInstaller = Initramfs(self)
+            self._initramfsInstaller = InitramfsInstaller(self)
         else:
             self._initramfsInstaller = None
 
         if len(mount_points) > 0 and all([x.device is not None for x in self._mpList]):
             self._bootloader = BootLoader(self, mount_points[0], Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"))
         else:
+            for fullfn in [self._fsLayout.get_boot_grub_dir(), self._fsLayout.get_boot_grub_efi_dir()]:
+                if os.path.exists(fullfn):
+                    raise RunningEnvironmentError("there's trace that bootloader exists")
             self._bootloader = None
 
     @property
     def config(self):
         return self._cfg
+
+    @property
+    def repositories(self):
+        return self._repoList
 
     @property
     def mount_points(self):
@@ -211,13 +194,17 @@ class BbkiManager:
         self._bootloader.update(main_boot_entry, aux_os_list, aux_kernel_init_cmdline)
 
     def get_stable_flag(self):
-        return self._bootloader.getStatus() == BootLoader.STATUS_NORMAL and self._bootloader.getStableFlag()
+        if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+            return self._bootloader.getStableFlag()
+        else:
+            return False
 
     def set_stable_flag(self, value):
         # we use grub environment variable to store stable status
-        if self._bootloader.getStatus() != BootLoader.STATUS_NORMAL:
+        if self._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
+            self._bootloader.setStableFlag(value)
+        if value:
             raise RunningEnvironmentError("bootloader is not properly installed")
-        self._bootloader.setStableFlag(value)
 
     def clean_boot_entry_files(self, pretend=False):
         beList = self.get_boot_entries()

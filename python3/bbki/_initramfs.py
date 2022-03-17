@@ -46,7 +46,7 @@ from ._boot_entry import BootEntryWrapper
 from ._exception import InitramfsInstallError
 
 
-class Initramfs:
+class InitramfsInstaller:
 
     def __init__(self, bbki):
         self._bbki = bbki
