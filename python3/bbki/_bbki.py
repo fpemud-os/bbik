@@ -72,9 +72,10 @@ class BbkiManager:
         assert isinstance(cfg, ConfigBase)
         self._cfg = cfg
 
-        assert all([isinstance(x, HostMountPoint) for x in mount_points])
-        assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
-        assert mount_points[0].mountpoint == "/"
+        if len(mount_points) > 0:
+            assert all([isinstance(x, HostMountPoint) for x in mount_points])
+            assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
+            assert mount_points[0].mountpoint == "/"
         self._mpList = mount_points
 
         if not os.path.isdir(self._fsLayout.get_boot_dir()):
@@ -95,7 +96,12 @@ class BbkiManager:
             Repo(self._cfg.data_repo_dir),
         ]
 
-        if all([x.device is not None for x in self._mpList]):
+        if len(mount_points) > 0:
+            self._initramfsInstaller = Initramfs(self)
+        else:
+            self._initramfsInstaller = None
+
+        if len(mount_points) > 0 and all([x.device is not None for x in self._mpList]):
             self._bootloader = BootLoader(self, mount_points[0], Util.findInList(mount_points, key=lambda x: x.mountpoint == "/boot"))
         else:
             self._bootloader = None
@@ -192,6 +198,7 @@ class BbkiManager:
         obj.create_tmpdirs()
         try:
             obj.exec_src_unpack()
+            assert self._initramfsInstaller is not None     # FIXME
             obj.exec_initramfs_install(boot_entry)
         finally:
             obj.remove_tmpdirs()

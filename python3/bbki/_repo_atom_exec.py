@@ -36,7 +36,7 @@ from ._util import Util
 from ._util import TempChdir
 from ._repo import Repo
 from ._exception import RepoError
-from ._initramfs import InitramfsInstaller
+from ._initramfs import Initramfs
 
 
 class BbkiAtomExecutor:
@@ -320,7 +320,7 @@ class BbkiAtomExecutor:
                 return Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # FIXME
-            InitramfsInstaller(self._bbki, self._trWorkDir, boot_entry).install()
+            Initramfs(self._bbki).install(self._trWorkDir, boot_entry)
 
     def _fillt(self):
         if self._tVarDict is not None and self._tFuncList is not None:

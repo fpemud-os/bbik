@@ -46,19 +46,20 @@ from ._boot_entry import BootEntryWrapper
 from ._exception import InitramfsInstallError
 
 
-class InitramfsInstaller:
+class Initramfs:
 
-    def __init__(self, bbki, work_dir, boot_entry):
+    def __init__(self, bbki):
         self._bbki = bbki
+
+        # trick: initramfs debug is seldomly needed
+        self.trickDebug = False
+
+    def install(self, work_dir, boot_entry):
         self._trWorkDir = work_dir
         self._be = boot_entry
         self._beWrapper = BootEntryWrapper(self._be)
         self._initramfsTmpDir = os.path.join(self._bbki._cfg.tmp_dir, "initramfs")
 
-        # trick: initramfs debug is seldomly needed
-        self.trickDebug = False
-
-    def install(self):
         self._checkDotCfgFile()
         if not os.path.exists(self._be.kernel_modules_dirpath):
             raise InitramfsInstallError("\"%s\" does not exist" % (self._be.kernel_modules_dirpath))
