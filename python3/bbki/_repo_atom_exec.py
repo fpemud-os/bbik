@@ -127,7 +127,7 @@ class BbkiAtomExecutor:
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # default action
-            for downloadType, url, localFn in _distfiles_get(self._atom):
+            for downloadType, url, localFn in _distfiles_get(self):
                 localFullFn = os.path.join(self._bbki._cfg.cache_distfiles_dir, localFn)
                 os.makedirs(os.path.dirname(localFullFn), exist_ok=True)
                 if downloadType == "git":
@@ -151,7 +151,7 @@ class BbkiAtomExecutor:
                 Util.cmdCall("/bin/bash", "-c", cmd)
         else:
             # default action
-            for downloadType, url, localFn in _distfiles_get(self._atom):
+            for downloadType, url, localFn in _distfiles_get(self):
                 localFullFn = os.path.join(self._bbki._cfg.cache_distfiles_dir, localFn)
                 if os.path.isdir(localFullFn):
                     Util.shellCall("cp -r %s/* %s" % (localFullFn, self._trWorkDir))
@@ -354,7 +354,7 @@ class BbkiAtomExecutor:
     def _item_has_me(self):
         parent_func_name = inspect.getouterframes(inspect.currentframe())[1].function
         assert parent_func_name.startswith("exec_")
-        return self._atom.has_function(parent_func_name[len("exec_"):])
+        return self.has_function(parent_func_name[len("exec_"):])
 
     def _vars_common(self):
         buf = ""
@@ -372,7 +372,7 @@ class BbkiAtomExecutor:
     def _vars_after_fetch(self):
         buf = ""
         if True:
-            fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self._atom)]
+            fnlist = [localFn for downloadType, url, localFn in _distfiles_get(self)]
             fnlist = [os.path.join(os.path.join(self._bbki._cfg.cache_distfiles_dir, x)) for x in fnlist]
             buf += "export A='%s'\n" % ("' '".join(fnlist))
         return buf
@@ -386,14 +386,14 @@ def _custom_src_dir(atom):
     return os.path.join("custom-src", atom.fullname)
 
 
-def _distfiles_get(atom):
-    if not atom.has_variable("SRC_URI"):
+def _distfiles_get(exec_atom):
+    if not exec_atom.has_variable("SRC_URI"):
         return []
 
-    assert not atom.has_function("fetch")
+    assert not exec_atom.has_function("fetch")
 
     ret = []
-    for line in atom.get_variable("SRC_URI").split("\n"):
+    for line in exec_atom.get_variable("SRC_URI").split("\n"):
         line = line.strip()
         if line == "":
             continue
