@@ -55,6 +55,11 @@ class Bbki:
             assert mount_points[0].mountpoint == "/"
         self._mpList = mount_points
 
+        if self._cfg.get_kernel_type() == KernelType.LINUX:
+            self._fsLayout = FsLayout(self)
+        else:
+            assert False
+
         if not os.path.isdir(self._fsLayout.get_boot_dir()):
             raise RunningEnvironmentError("directory \"%s\" does not exist" % (self._fsLayout.get_boot_dir()))
         if not Util.cmdCallTestSuccess("make", "-v"):
@@ -63,11 +68,6 @@ class Bbki:
             raise RunningEnvironmentError("executable \"grub-script-check\" does not exist")
         if not Util.cmdCallTestSuccess("grub-editenv", "-V"):
             raise RunningEnvironmentError("executable \"grub-editenv\" does not exist")
-
-        if self._cfg.get_kernel_type() == KernelType.LINUX:
-            self._fsLayout = FsLayout(self)
-        else:
-            assert False
 
         self._repoList = [
             Repo(self._cfg.data_repo_dir),
