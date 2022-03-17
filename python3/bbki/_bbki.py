@@ -42,7 +42,7 @@ from ._bootloader import BootLoader
 from ._check import Checker
 
 
-class BbkiRepoman:
+class BbkiRepoManager:
 
     def __init__(self, cfg):
         assert isinstance(cfg, ConfigBase)
@@ -66,7 +66,7 @@ class BbkiRepoman:
         return self._repoList
 
 
-class BbkiInstaller:
+class BbkiManager:
 
     def __init__(self, cfg, mount_points):
         assert isinstance(cfg, ConfigBase)
