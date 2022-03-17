@@ -229,9 +229,9 @@ class BootLoader:
         self._kernelCmdLine = None
         self._invalidReason = None
 
-    def compare_source(self):
+    def compare_with_source(self):
         assert self._status == self.STATUS_NORMAL
-        self._targetObj.compare_source(grub_install.Source("/"))
+        self._targetObj.compare_with_source(grub_install.Source("/"))
 
     def _getKernelCmdLine(self, aux_kernel_init_cmdline):
         kernelCmdLine = ""

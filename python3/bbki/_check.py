@@ -44,8 +44,8 @@ class Checker:
         # check bootloader
         if self._bbki._bootloader.getStatus() == BootLoader.STATUS_NORMAL:
             try:
-                self._bbki._bootloader.compare_source()
-            except grub_install.CompareSourceError as e:
+                self._bbki._bootloader.compare_with_source()
+            except grub_install.CompareWithSourceError as e:
                 self._errCb("Boot-loader is different with source files, %s." % (e))
         elif self._bbki._bootloader.getStatus() == BootLoader.STATUS_NOT_VALID:
             self._errCb("Boot-loader is invalid, %s." % (self._bbki._bootloader.getInvalidReason()))
