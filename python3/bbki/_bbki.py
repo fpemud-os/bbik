@@ -72,11 +72,9 @@ class BbkiInstaller:
         assert isinstance(cfg, ConfigBase)
         self._cfg = cfg
 
-        assert len(mount_points) > 0
         assert all([isinstance(x, HostMountPoint) for x in mount_points])
         assert Util.checkListUnique(mount_points, key=lambda x: x.mountpoint)
-        if len(mount_points) > 0:
-            assert mount_points[0].mountpoint == "/"
+        assert mount_points[0].mountpoint == "/"
         self._mpList = mount_points
 
         if self._cfg.get_kernel_type() == KernelType.LINUX:
