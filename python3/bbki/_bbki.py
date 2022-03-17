@@ -42,7 +42,7 @@ from ._bootloader import BootLoader
 from ._check import Checker
 
 
-class BbkiRepoManager:
+class RepoManager:
 
     def __init__(self, cfg):
         assert isinstance(cfg, ConfigBase)
