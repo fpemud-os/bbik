@@ -38,6 +38,7 @@ from ._po import FsLayout
 from ._repo_atom_exec import BbkiAtomExecutor
 from ._boot_entry import BootEntryUtils
 from ._boot_entry import BootEntryWrapper
+from ._initramfs import InitramfsInstaller
 from ._bootloader import BootLoader
 from ._check import Checker
 
@@ -82,7 +83,7 @@ class Bbki:
         else:
             for fullfn in [self._fsLayout.get_boot_grub_dir(), self._fsLayout.get_boot_grub_efi_dir()]:
                 if os.path.exists(fullfn):
-                    raise RunningEnvironmentError("there's trace that bootloader exists")
+                    raise RunningEnvironmentError("perhaps bootloader exists when it should not be")
             self._bootloader = None
 
     @property
