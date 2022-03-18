@@ -37,7 +37,7 @@ class Util:
         for x in lst:
             if key(x):
                 return x
-        assert False
+        return None
 
     @staticmethod
     def checkListUnique(lst, key=None):
