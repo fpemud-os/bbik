@@ -409,7 +409,6 @@ class InitramfsInstaller:
                 else:
                     uuidList = [mi.underlay_disk.uuid]
                 buf += "mount-btrfs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mountpoint), mi.opts, " ".join(uuidList))
-                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             elif mi.fstype == "bcachefs":
                 if isinstance(mi.underlay_disk, HostDiskBcachefsRaid):
@@ -419,7 +418,6 @@ class InitramfsInstaller:
                 buf += "mount-bcachefs %s \"%s\" %s\n" % (_getPrefixedMountPoint(mi.mountpoint), mi.opts, " ".join(uuidList))
             else:
                 buf += "mount -t %s -o \"%s\" \"%s\" \"%s\"\n" % (mi.fstype, mi.opts, mi.dev_uuid, _getPrefixedMountPoint(mi.mountpoint))
-                buf += "echo debug > ./sysroot/%d.txt\n" % (i)
                 i += 1
             buf += "\n"
 
