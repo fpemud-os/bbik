@@ -57,7 +57,7 @@ class Repo:
 
     def sync(self):
         # Business exception should not be raise, but be printed as error message
-        robust_layer.simple_git.pull(self._path, reclone_on_failure=True, url="https://github.com/fpemud-os/bbki-repo")
+        robust_layer.simple_git.pull(self._path, reclone_on_failure=True, url="https://gitee.com/your-own-os/bbki-repo")
 
     def check(self, autofix=False):
         if not self.exists():
